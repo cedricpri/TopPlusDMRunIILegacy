@@ -1,5 +1,5 @@
 import ROOT
-from ROOT import TMVA, TFile, TTree, TCanvas, TCut, TChain, TMath, TH1F
+from ROOT import TMVA, TFile, TTree, TCanvas, TCut, TChain, TMath, TH1F, TLorentzVector
 from subprocess import call
 from os.path import isfile
 from keras.models import Sequential
@@ -22,7 +22,10 @@ thetal0l1 = thetal0 + "*" + thetal1
 thetal0b = thetal0 + "*" + thetab
 thetal1b = thetal1 + "*" + thetab
 
-variables = ["PuppiMET_pt", "MET_pt", "TkMET_pt", "mT2", "dphill", "dphillmet", "Lepton0_pt", "Lepton1_pt", "mll", "njet", "mtw1", "mtw2", "mth", "Lepton0_eta-Lepton1_eta", "Lepton0_phi-Lepton1_phi", "thetal0l1 := "+thetal0l1, "thetal0b := "+thetal0b, "thetal1b := "+thetal1b]
+#IFCA variables
+totalET = "PuppiMET_sumEt + Lepton0_pt + Lepton1_pt + CleanJet0_pt + CleanJet1_pt"
+
+variables = ["PuppiMET_pt", "mT2", "dphill", "dphillmet", "Lepton0_pt", "Lepton1_pt", "mll", "njet", "nbjet", "mtw1", "mtw2", "mth", "Lepton0_eta-Lepton1_eta", "Lepton0_phi-Lepton1_phi", "thetal0l1 := "+thetal0l1, "thetal0b := "+thetal0b, "thetal1b := "+thetal1b, "totalET :="+totalET]
 #baseDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Summer16_102X_nAODv4_Full2016v5/MCl1loose2016v5__MCCorr2016v5__l2loose__l2tightOR2016v5/"
 baseDir = os.getcwd() + "/rootfiles/"
 
@@ -103,8 +106,8 @@ model.summary()
 # Book method
 factory.BookMethod(dataloader, TMVA.Types.kBDT, 'BDT',
                    '!H:!V')
-factory.BookMethod(dataloader, TMVA.Types.kFisher, 'Fisher',
-                   '!H:!V:Fisher')
+#factory.BookMethod(dataloader, TMVA.Types.kFisher, 'Fisher',
+#                   '!H:!V:Fisher')
 factory.BookMethod(dataloader, TMVA.Types.kPyKeras, 'PyKeras',
                    'H:!V:FilenameModel=model.h5:NumEpochs=20:BatchSize=32')
 factory.BookMethod(dataloader, TMVA.Types.kLikelihood, 'LikelihoodD',
