@@ -12,15 +12,15 @@ This needs to be done using CMSSW_10_2_16_patch1. For some reason, at this stage
 Then, the Premix can be produced by running the premix.py file, using CRAB and the crab_cfg_premix.py.
 This needs to be done using CMSSW_10_2_5.
 
-### Step 1 (AOD)
+### Step 2 (AOD)
 Then, the AOD can be produced by running the aodsim.py file, using CRAB and the crab_cfg_aodsim.py.
 This needs to be done using CMSSW_10_2_5.
 
-### Step 1 (MiniAOD)
+### Step 3 (MiniAOD)
 Then, the MiniAOD can be produced by running the miniaod.py file, using CRAB and the crab_cfg_miniaod.py.
 This needs to be done using CMSSW_10_2_5.
 
-### Step 1 (NanoAODv6)
+### Step 4 (NanoAODv6)
 Finally, the NanoAODv6 can be produced by running the nanoaod.py file, using CRAB and the crab_cfg_nanoaod.py.
 This needs to be done using CMSSW_10_2_18 and lxplus6.
 
