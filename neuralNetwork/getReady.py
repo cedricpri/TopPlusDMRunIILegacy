@@ -2,7 +2,7 @@
 from ROOT import TFile, TTree, TLorentzVector
 from array import array
 import optparse
-import os, sys
+import os, sys, fnmatch
 
 import numpy as np
 LinAlgError = np.linalg.linalg.LinAlgError
@@ -34,19 +34,21 @@ def updateProgress(progress):
 #=========================================================================================================
 # TREE CREATION
 #=========================================================================================================
-def createTree(filename):
-    inputFile = TFile.Open(filename)
+def createTree(inputDir, filename):
+    print("\n\n --> Now considering file... " + filename)
+
+    inputFile = TFile.Open(inputDir + filename)
     inputTree = inputFile.Get("Events")
 
     #Create a directory to keep the files if it does not already exist
-    outputDirectory = "rootfiles"
+    outputDirectory = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/"
     try:
         os.stat(outputDirectory)
     except:
         os.mkdir(outputDirectory)
-    os.chdir(outputDirectory)
+    #os.chdir(outputDirectory)
 
-    outputFile = TFile.Open(filename[:-5] + "_dnn.root", "recreate")
+    outputFile = TFile.Open(outputDirectory + filename[:-5] + "_dnn.root", "recreate")
     outputTree = TTree("Events", "New events tree")
 
     #Set the variables we want to keep
@@ -69,7 +71,7 @@ def createTree(filename):
     Jet1_eta = array("f", [0.])
     Jet0_phi = array("f", [0.])
     Jet1_phi = array("f", [0.])
-    njet          = array("i", [0])
+    njet     = array("i", [0])
 
     #bJets
     bJet0_pt  = array("f", [0.])
@@ -78,21 +80,26 @@ def createTree(filename):
     bJet1_eta = array("f", [0.])
     bJet0_phi = array("f", [0.])
     bJet1_phi = array("f", [0.])
-    nbjet          = array("i", [0])
+    nbjet     = array("i", [0])
+
+    ##ttbar reco related variables
+    ttbarLowestInvMass = array("f", [0.])
+    dark_pt = array("f", [0.])
+    overlapingFactor = array("f", [0.])
 
     #Additional variables
-    PuppiMET_pt = array("f", [0.])
-    PuppiMET_phi = array("f", [0.])
+    PuppiMET_pt    = array("f", [0.])
+    PuppiMET_phi   = array("f", [0.])
     PuppiMET_sumEt = array("f", [0.])
-    MET_pt      = array("f", [0.])
-    TkMET_pt    = array("f", [0.])
-    mT2         = array("f", [0.])
-    dphill      = array("f", [0.])
-    dphillmet   = array("f", [0.])
-    mll         = array("f", [0.])
-    mtw1        = array("f", [0.])
-    mtw2        = array("f", [0.])
-    mth         = array("f", [0.])
+    MET_pt         = array("f", [0.])
+    TkMET_pt       = array("f", [0.])
+    mT2            = array("f", [0.])
+    dphill         = array("f", [0.])
+    dphillmet      = array("f", [0.])
+    mll            = array("f", [0.])
+    mtw1           = array("f", [0.])
+    mtw2           = array("f", [0.])
+    mth            = array("f", [0.])
 
     #Set the branches
     outputTree.Branch("Lepton0_pt", Lepton0_pt, "Lepton0_pt/F")
@@ -122,6 +129,10 @@ def createTree(filename):
     outputTree.Branch("bJet1_phi", bJet1_phi, "bJet1_phi/F")
     outputTree.Branch("nbjet", nbjet, "nbjet/I")
 
+    outputTree.Branch("ttbarLowestInvMass", ttbarLowestInvMass, "ttbarLowestInvMass/F")
+    outputTree.Branch("dark_pt", dark_pt, "dark_pt/F")
+    outputTree.Branch("overlapingFactor", overlapingFactor, "overlapingFactor/F")
+
     outputTree.Branch("PuppiMET_pt", PuppiMET_pt, "PuppiMET_pt/F")
     outputTree.Branch("PuppiMET_phi", PuppiMET_phi, "PuppiMET_phi/F")
     outputTree.Branch("PuppiMET_sumEt", PuppiMET_sumEt, "PuppiMET_sumEt/F")
@@ -142,13 +153,15 @@ def createTree(filename):
     print("Let's start with the loop")
 
     for index, ev in enumerate(inputFile.Events):
-        if index % 200 == 0: #Update the loading bar every 100 events                                                                                              
+        if index % 100 == 0: #Update the loading bar every 100 events                                                                                              
             updateProgress(round(index/float(nEvents), 2))
 
         #Skimming and preselection
         if ev.njet < 2:
             continue
-        if ev.Lepton_pt[0] < 20. or ev.Lepton_pt[1] < 20.:
+        if ev.Lepton_pt[0] < 25. or ev.Lepton_pt[1] < 20.:
+            continue
+        if mll < 20.:
             continue
     
         #Leptons
@@ -250,8 +263,8 @@ def createTree(filename):
                 else:
                     listOfBJetsCandidates.append(jet)
 
-        #We have different combinations to perform the reconstruction: we consider the association of the bjets with the two leptons, and we consider all the different bjets
-	successfullCombinations = [] #List used to keep the lepton/b-jet indexes for which the reconstruction is working
+        #We have different combinations to perform the reconstruction: we consider the association of the bjets with the two leptons, and we consider all the different bjets candidates
+	successfullCombinations = [] #List used to keep the lepton/b-jet indexes for which the reconstruction is working and all the new ttbar inv mass
 
         Tlep1.SetPtEtaPhiM(Lepton0_pt[0], Lepton0_eta[0], Lepton0_phi[0], Lepton0_mass[0])
         Tlep2.SetPtEtaPhiM(Lepton1_pt[0], Lepton1_eta[0], Lepton1_phi[0], Lepton1_mass[0])
@@ -265,9 +278,9 @@ def createTree(filename):
                 Tnu2.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0)
                 TMET.SetPtEtaPhiM(PuppiMET_pt[0], -99.0, PuppiMET_phi[0], -99.0)
 
-                mW1 = 82-0
-                mW2 = 82.0
-                mt1 = 173.0
+                mW1 = 80.38 #Mass of the W
+                mW2 = 80.38
+                mt1 = 173.0 #Mass of the top
                 mt2 = 173.0
 
                 if verbose:
@@ -279,15 +292,15 @@ def createTree(filename):
                 
                 try:
                     nuSol=ttbar.solveNeutrino(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2)
-                    successfullCombinations.append([0, listOfBJetsCandidates[0], 1, jet])             
+                    successfullCombinations.append([[0, listOfBJetsCandidates[0], 1, jet], (Tnu1+Tlep1+Tb1).M() + (Tnu2+Tlep2+Tb2).M(), nuSol]) 
                 except LinAlgError :
                     if verbose: 
                         print('There is no solution for the ttbar reconstruction for event number '+ str(index))
                     
-                #Now we do the same by switching the two leptons
+                #Now we do the same by switching the two leptons since we do not know which lepton corresponds to which b-jet
                 try:
                     nuSol=ttbar.solveNeutrino(Tb1, Tb2, Tlep2, Tlep1, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2)
-                    successfullCombinations.append([0, jet, 1, listOfBJetsCandidates[0]])             
+                    successfullCombinations.append([[0, jet, 1, listOfBJetsCandidates[0]], (Tnu1+Tlep1+Tb1).M() + (Tnu2+Tlep2+Tb2).M(), nuSol])             
                 except LinAlgError :
                     if verbose:
                         print('There is no solution for the ttbar reconstruction for event number '+ str(index))
@@ -296,9 +309,32 @@ def createTree(filename):
         if verbose: 
             print 'Number of solutions', len(successfullCombinations) 
 
-        #Count the number of times the reco worked
-        if len(successfullCombinations) != 0:
-            recoWorked = recoWorked + 1
+        if len(successfullCombinations) == 0:
+            #The ttbar reco did not work so we fill the ttbar reco with with default values
+            ttbarLowestInvMass[0] = -99.0
+            dark_pt[0] = -99.0
+            overlapingFactor[0] = -99.0
+        else:
+            recoWorked = recoWorked + 1 #Count the number of times the reco worked
+
+            #Keep the combination having the lowest ttbar invariant mass
+            indexLowestInvMass = -1
+            lowestInvMass = 100000
+            for i, combination in enumerate(successfullCombinations):
+                invMass = combination[1]
+                if invMass < lowestInvMass:
+                    indexLowestInvMass = i
+                    lowestInvMass = invMass
+
+            #Compute the dark pt and all the needed variables from this particular combination
+            bestNuSol = successfullCombinations[indexLowestInvMass][2]
+
+            ttbarLowestInvMass[0] = lowestInvMass
+            overlapingFactor[0] = bestNuSol.overlapingFactor(bestNuSol.N,bestNuSol.n_)
+            if bestNuSol.overlapingFactor(bestNuSol.N,bestNuSol.n_) < 0.2: #0.2 to be tweaked?
+                dark_pt[0] = bestNuSol.darkPt('DarkPt')
+            else:
+                dark_pt[0] = -99.0
 
         outputTree.Fill()
 
@@ -314,14 +350,55 @@ if __name__ == "__main__":
     # ===========================================
     
     parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0')
-    parser.add_option('-f', '--filename', action='store', type=str, dest='filename', default='', help='Name of the file to be read')
+    parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
+    parser.add_option('-s', '--signal', action='store_true', dest='signal', default=False) #Process the signal or background files?
+    parser.add_option('-a', '--allFiles', action='store_true', dest='allFiles', default=False) #Process all the files or just one?
+    parser.add_option('-d', '--dryRun', action='store_true', dest='dryRun', default=False) #Only print the files, do not launch the processing
+    parser.add_option('-t', '--searchTerm', action='store', type=str, dest='searchTerm', default="*") #String to be matched when searching for the files
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
     (opts, args) = parser.parse_args()
 
-    filename = opts.filename
+    year = opts.year
+    signal = opts.signal
+    allFiles = opts.allFiles #Launch the processing of all the files found
+    dryRun = opts.dryRun
+    searchTerm = opts.searchTerm
     verbose = opts.verbose
 
-    if filename is not "":
-        createTree(filename)
+    print("=================================================")
+    print("-> OPTIONS USED:")
+    print("Year: " + str(year))
+    print("Signal: " + str(signal))
+    print("All files: " + str(allFiles))
+    print("searchTerm: " + str(searchTerm))
+    print("=================================================")
+
+    if year == 2018:
+        inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/" if signal else "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
+    elif year == 2017:
+        inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6/" if signal else "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6/"
+    elif year == 2016:
+        inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Summer16_102X_nAODv5_Full2016v6/MCl1loose2016v6__MCCorr2016v6__l2loose__l2tightOR2016v6/" if signal else "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Summer16_102X_nAODv5_Full2016v6/MCl1loose2016v6__MCCorr2016v6__l2loose__l2tightOR2016v6/"
     else:
-        print "The filename option has to be used"
+        inputDir = ""
+        print("The year option has to be used, and the year should be 2016, 2017 or 2018.")
+
+    filesToProcess = []
+    if inputDir != "":
+        if signal:
+            filesToProcess = fnmatch.filter(os.listdir(inputDir), 'nanoLatino*'+searchTerm+'*')
+        else:
+            if searchTerm == "*": #We definitely don't want to consider all the MC files
+                searchTerm = "TTTo2L2Nu__"
+            filesToProcess = fnmatch.filter(os.listdir(inputDir), 'nanoLatino*'+searchTerm+'*')
+
+    if not allFiles:
+        filesToProcess = [filesToProcess[0]]
+
+    if dryRun:
+        print("Files to be processed: ")
+        print(filesToProcess)
+    else:
+        for filename in filesToProcess:
+            createTree(inputDir, filename)
+    

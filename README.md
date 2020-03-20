@@ -30,8 +30,7 @@ Set of scripts able to run a BDT/DNN in order to enhance the signal background d
 These scripts need to be run within CMSSW_10_4_0 or higher to have access to keras.
 
 First, the getReady.py needs to be run in order to read the latino rootfiles, to skim them, select variables and perform the top reconstruction.
-       python getReady.py <filename>
-This will create a folder called rootfiles in which a new file <filename>_dnn.root will be created.
+The top reconstruction is based on the one performed in https://github.com/alantero/ttbarDM.
 
 Then, the MVA can be run using simply the following command.
       python dnn.py
