@@ -34,10 +34,10 @@ def updateProgress(progress):
 #=========================================================================================================
 # TREE CREATION
 #=========================================================================================================
-def createTree(filename):
+def createTree(inputDir, filename):
     print("\n\n --> Now considering file... " + filename)
 
-    inputFile = TFile.Open(filename)
+    inputFile = TFile.Open(inputDir+filename)
     inputTree = inputFile.Get("Events")
 
     #Create a directory to keep the files if it does not already exist
@@ -350,9 +350,13 @@ if __name__ == "__main__":
     # ===========================================
     
     parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0')
-    parser.add_option('-f', '--filename', action='store', type=int, dest='filename', default="")
+    parser.add_option('-f', '--filename', action='store', type=str, dest='filename', default="")
+    parser.add_option('-d', '--inputDir', action='store', type=str, dest='inputDir', default="")
+    parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
     (opts, args) = parser.parse_args()
 
     filename = opts.filename
-    createTree(filename)
+    inputDir = opts.inputDir
+    verbose = opts.verbose
+    createTree(inputDir, filename)
     

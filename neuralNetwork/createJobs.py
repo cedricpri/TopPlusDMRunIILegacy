@@ -1,4 +1,4 @@
-import os, sys, stat, fnmatch
+import os, sys, stat, fnmatch, shutil
 import ROOT as r
 from array import array
 import optparse
@@ -19,9 +19,8 @@ if __name__ == "__main__":
     parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0')
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
     parser.add_option('-c', '--cmssw', action='store', type=str, dest='cmssw', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/") #Cmssw release
-    parser.add_option('-s', '--signal', action='store_true', dest='signal', default=False) #Process the signal or background files?                                                                              
-    parser.add_option('-a', '--allFiles', action='store_true', dest='allFiles', default=False) #Process all the files or just one?                                                                               
-    parser.add_option('-d', '--dryRun', action='store_true', dest='dryRun', default=False) #Only print the files, do not launch the processing                                                                   
+    parser.add_option('-s', '--signal', action='store_true', dest='signal', default=False) #Process the signal or background files?
+    parser.add_option('-a', '--allFiles', action='store_true', dest='allFiles', default=False) #Process all the files or just one?
     parser.add_option('-t', '--searchTerm', action='store', type=str, dest='searchTerm', default="*") #String to be matched when searching for the files
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
     (opts, args) = parser.parse_args()
@@ -30,7 +29,6 @@ if __name__ == "__main__":
     cmssw = opts.cmssw
     signal = opts.signal
     allFiles = opts.allFiles #Launch the processing of all the files found
-    dryRun = opts.dryRun
     searchTerm = opts.searchTerm
     verbose = opts.verbose
 
@@ -68,9 +66,17 @@ if __name__ == "__main__":
         except:
             print("No file matching the requirements has been found.")
 
+    try:
+        #shutil.rmtree('sh')
+        os.makedirs('sh')
+    except:
+        pass #Directory already exists, this is fine
+
     for i in filesToProcess:
 
-        executable = workingpath + "/getReady.py -t " + i
+        executable = workingpath + "/getReady.py -f" + i + " -d" + inputDir
+        if verbose:
+            executable = executable + " -v"
 
         template = templateCONDOR
         template = template.replace('CMSSWRELEASE', cmssw)
@@ -79,15 +85,10 @@ if __name__ == "__main__":
         template = template.replace('MODEL', i) 
         template = template.replace('WORKINGPATH', workingpath) 
 
-        try:
-            os.makedirs('sh')
-        except:
-            pass #Directory already exists, this is fine
-
-        f = open('sh/send_' + i + '.sh', 'w')
+        f = open('sh/send_' + i.replace('.root', '') + '.sh', 'w')
         f.write(template)
         f.close()
-        os.chmod('sh/send_' + i + '.sh', 0755)     
+        os.chmod('sh/send_' + i.replace('.root', '') + '.sh', 0755)     
     
 
 
