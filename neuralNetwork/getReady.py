@@ -85,7 +85,7 @@ def createTree(inputDir, filename):
     ##ttbar reco related variables
     ttbarLowestInvMass = array("f", [0.])
     dark_pt = array("f", [0.])
-    overlapingFactor = array("f", [0.])
+    overlappingFactor = array("f", [0.])
 
     #Additional variables
     PuppiMET_pt    = array("f", [0.])
@@ -131,7 +131,7 @@ def createTree(inputDir, filename):
 
     outputTree.Branch("ttbarLowestInvMass", ttbarLowestInvMass, "ttbarLowestInvMass/F")
     outputTree.Branch("dark_pt", dark_pt, "dark_pt/F")
-    outputTree.Branch("overlapingFactor", overlapingFactor, "overlapingFactor/F")
+    outputTree.Branch("overlappingFactor", overlappingFactor, "overlappingFactor/F")
 
     outputTree.Branch("PuppiMET_pt", PuppiMET_pt, "PuppiMET_pt/F")
     outputTree.Branch("PuppiMET_phi", PuppiMET_phi, "PuppiMET_phi/F")
@@ -313,7 +313,7 @@ def createTree(inputDir, filename):
             #The ttbar reco did not work so we fill the ttbar reco with with default values
             ttbarLowestInvMass[0] = -99.0
             dark_pt[0] = -99.0
-            overlapingFactor[0] = -99.0
+            overlappingFactor[0] = -99.0
         else:
             recoWorked = recoWorked + 1 #Count the number of times the reco worked
 
@@ -330,7 +330,7 @@ def createTree(inputDir, filename):
             bestNuSol = successfullCombinations[indexLowestInvMass][2]
 
             ttbarLowestInvMass[0] = lowestInvMass
-            overlapingFactor[0] = bestNuSol.overlapingFactor(bestNuSol.N,bestNuSol.n_)
+            overlappingFactor[0] = bestNuSol.overlapingFactor(bestNuSol.N,bestNuSol.n_)
             if bestNuSol.overlapingFactor(bestNuSol.N,bestNuSol.n_) < 0.2: #0.2 to be tweaked?
                 dark_pt[0] = bestNuSol.darkPt('DarkPt')
             else:

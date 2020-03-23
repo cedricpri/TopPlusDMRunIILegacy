@@ -4,28 +4,38 @@ from ROOT import TCanvas, TLegend, TFile, TH1F
 #SETUP
 #=============================================================================
 normalization = True
-variable = ["PuppiMET_pt", 100, 0, 500, "Puppi MET [GeV]"] #Variable name, bins, from, to, xaxis title
-signalDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
+#variable = ["PuppiMET_pt", 100, 0, 500, "Puppi MET [GeV]"] #Variable name, bins, from, to, xaxis title
+#variable = ["dark_pt", 50, 0, 800, "Dark pt [GeV]"] 
+variable = ["overlapingFactor", 40, 0, 4, "Overlapping factor"] 
+#signalDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
+signalDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/"
 category = "scalar"
+trailer = "_dnn" #_dnn trailer or not?
+addBackground = True #Plot the ttbar on this graph?
+
+files = ['nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_50'+trailer+'.root', 
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_100'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_150'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_200'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_250'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_300'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_350'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_400'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_450'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_500'+trailer+'.root']
+
+if addBackground:
+    files.append('nanoLatino_TTTo2L2Nu'+trailer+'.root')
+
 """
-files = ['nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_50.root', 
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_100.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_150.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_200.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_250.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_300.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_350.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_400.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_450.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_500.root']
+files = ['nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_20_Mphi_100'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_30_Mphi_100'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_40_Mphi_100'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_45_Mphi_100'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_49_Mphi_100'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_51_Mphi_100'+trailer+'.root',
+         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_55_Mphi_100'+trailer+'.root']
 """
-files = ['nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_20_Mphi_100.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_30_Mphi_100.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_40_Mphi_100.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_45_Mphi_100.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_49_Mphi_100.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_51_Mphi_100.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_55_Mphi_100.root']
 
 #=============================================================================
 #GET STARTED
@@ -35,10 +45,17 @@ massPoints = [] #For the legend
 signalHistList = []
 colors = [636, 635, 634, 633, 632, 807, 802, 801, 800, 798] 
 
+if addBackground:
+    colors.append(600)
+
 for f, filename in enumerate(files):
     print('Now reading file... ' + filename)
 
-    massPoint = "_".join(filename.split("_")[5:9]).replace('.root', '')
+    if('TTTo2L2Nu' in filename):
+        massPoint = "TTTo2L2Nu"
+    else:
+        massPoint = "_".join(filename.split("_")[5:9]).replace('.root', '')
+
     signalFile = TFile.Open(signalDir+filename, "read")
     signalTree = signalFile.Get("Events")
         
@@ -66,4 +83,4 @@ for i, h in enumerate(signalHistList):
     legend.AddEntry(h, massPoints[i])
 
 legend.Draw()
-canvas.SaveAs(category+'.png')
+canvas.SaveAs(category+'_'+variable[0]+'.png')
