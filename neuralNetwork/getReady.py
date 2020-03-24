@@ -46,406 +46,123 @@ def createTree(inputDir, filename):
         os.stat(outputDirectory)
     except:
         os.mkdir(outputDirectory)
-    #os.chdir(outputDirectory)
 
-    outputFile = TFile.Open(outputDirectory + filename[:-5] + "_dnn.root", "recreate")
-    outputTree = TTree("Events", "New events tree")
+    outputFile = TFile.Open(outputDirectory + filename, "recreate")
+    outputTree = inputTree.CloneTree(0)
 
-    #Set the variables we want to keep
-    Nmax = 50 #This is needed to keep arrays as branches
-    Nmax2 = 200
+    #Select the branches we want to keep
+    outputTree.SetBranchStatus("*", 0);
 
     #Leptons
-    nLepton = array("i", [0])
-    outputTree.Branch("nLepton", nLepton, "nLepton/I")
-    Lepton_pt = array("f", Nmax*[0.])
-    outputTree.Branch("Lepton_pt", Lepton_pt, "Lepton_pt[nLepton]/F")
-    Lepton_eta = array("f", Nmax*[0.])
-    outputTree.Branch("Lepton_eta", Lepton_eta, "Lepton_eta[nLepton]/F")
-    Lepton_phi = array("f", Nmax*[0.])
-    outputTree.Branch("Lepton_phi", Lepton_phi, "Lepton_phi[nLepton]/F")
-    Lepton_pdgId = array("f", Nmax*[0.])
-    outputTree.Branch("Lepton_pdgId", Lepton_pdgId, "Lepton_pdgId[nLepton]/F")
-    Lepton_promptgenmatched = array("f", Nmax*[0.])
-    outputTree.Branch("Lepton_promptgenmatched", Lepton_promptgenmatched, "Lepton_promptgenmatched[nLepton]/F")
-
+    outputTree.SetBranchStatus("nLepton", 1);
+    outputTree.SetBranchStatus("Lepton_pt", 1);
+    outputTree.SetBranchStatus("Lepton_eta", 1);
+    outputTree.SetBranchStatus("Lepton_pdgId", 1);
+    outputTree.SetBranchStatus("Lepton_promptgenmatched", 1);
+    
     #Jets
-    nJet = array("i", [0])
-    outputTree.Branch("nJet", nJet, "nJet/I")
-    Jet_btagDeepB = array("f", Nmax2*[0.])
-    outputTree.Branch("Jet_btagDeepB", Jet_btagDeepB, "Jet_btagDeepB[nJet]/F")
-    Jet_btagSF_shape = array("f", Nmax2*[0.])
-    outputTree.Branch("Jet_btagSF_shape", Jet_btagSF_shape, "Jet_btagSF_shape[nJet]/F")
+    outputTree.SetBranchStatus("nJet", 1);
+    outputTree.SetBranchStatus("Jet_btagDeepB", 1);
+    outputTree.SetBranchStatus("Jet_btagSF_shape", 1);
 
-    nCleanJet = array("i", [0])
-    outputTree.Branch("nCleanJet", nCleanJet, "nCleanJet/I")
-    CleanJet_pt = array("f", Nmax2*[0.])
-    outputTree.Branch("CleanJet_pt", CleanJet_pt, "CleanJet_pt[nCleanJet]/F")
-    CleanJet_eta = array("f", Nmax2*[0.])
-    outputTree.Branch("CleanJet_eta", CleanJet_eta, "CleanJet_eta[nCleanJet]/F")
-    CleanJet_phi = array("f", Nmax2*[0.])
-    outputTree.Branch("CleanJet_phi", CleanJet_phi, "CleanJet_phi[nCleanJet]/F")
-    CleanJet_jetIdx = array("f", Nmax2*[0.])
-    outputTree.Branch("CleanJet_jetIdx", CleanJet_jetIdx, "CleanJet_jetIdx[nCleanJet]/F")
+    #Clean jets
+    outputTree.SetBranchStatus("nCleanJet", 1);
+    outputTree.SetBranchStatus("CleanJet_pt", 1);
+    outputTree.SetBranchStatus("CleanJet_eta", 1);
+    outputTree.SetBranchStatus("CleanJet_phi", 1);
+    outputTree.SetBranchStatus("CleanJet_jetIdx", 1);
 
+    #Additional discriminating variables
+    outputTree.SetBranchStatus("PuppiMET_pt", 1);
+    outputTree.SetBranchStatus("PuppiMET_phi", 1);
+    outputTree.SetBranchStatus("PuppiMET_sumEt", 1);
+    outputTree.SetBranchStatus("MET_pt", 1);
+    outputTree.SetBranchStatus("TkMET_pt", 1);
+    outputTree.SetBranchStatus("mT2", 1);
+    outputTree.SetBranchStatus("dphill", 1);
+    outputTree.SetBranchStatus("dphillmet", 1);
+    outputTree.SetBranchStatus("mll", 1);
+    outputTree.SetBranchStatus("mtw1", 1);
+    outputTree.SetBranchStatus("mtw2", 1);
+    outputTree.SetBranchStatus("mth", 1);
+    outputTree.SetBranchStatus("PV_npvsGood", 1);
+    outputTree.SetBranchStatus("ptll", 1);
+
+    #Additional variables needed for latino
+    outputTree.SetBranchStatus("Gen_ZGstar_mass", 1);
+    outputTree.SetBranchStatus("LepCut2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW", 1);
+    outputTree.SetBranchStatus("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW*", 1);
+    outputTree.SetBranchStatus("GenPart_pdgId", 1);
+    outputTree.SetBranchStatus("GenPart_statusFlags", 1);
+    outputTree.SetBranchStatus("topGenPt", 1);
+    outputTree.SetBranchStatus("antitopGenPt", 1);
+    outputTree.SetBranchStatus("Jet_btagSF_shape_*", 1);
+    outputTree.SetBranchStatus("SFweight2l", 1);
+    outputTree.SetBranchStatus("LepSF2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW", 1);
+    outputTree.SetBranchStatus("LepWPCut", 1);
+    outputTree.SetBranchStatus("btagSF", 1);
+    outputTree.SetBranchStatus("SFweight*", 1);
+    outputTree.SetBranchStatus("TriggerEffWeight_2l*", 1);
+    outputTree.SetBranchStatus("baseW", 1);
+    outputTree.SetBranchStatus("puWeight*", 1);
+    outputTree.SetBranchStatus("LHEScaleWeight", 1);
+    outputTree.SetBranchStatus("nllW", 1);
+    outputTree.SetBranchStatus("Trigger_*", 1);
+    outputTree.SetBranchStatus("XSWeight", 1);
+    outputTree.SetBranchStatus("METFilter_*", 1);
+    outputTree.SetBranchStatus("gen_ptll", 1);
+    outputTree.SetBranchStatus("PhotonGen_isPrompt", 1);
+    outputTree.SetBranchStatus("PhotonGen_pt", 1);
+    outputTree.SetBranchStatus("PhotonGen_eta", 1);
+
+    #New variables
     nbJet = array("i", [0])
     outputTree.Branch("nbJet", nbJet, "nbJet/I")
-    CleanbJet_pt = array("f", Nmax2*[0.])
-    outputTree.Branch("CleanbJet_pt", CleanbJet_pt, "CleanbJet_pt[nbJet]/F")
-    CleanbJet_eta = array("f", Nmax2*[0.])
-    outputTree.Branch("CleanbJet_eta", CleanbJet_eta, "CleanbJet_eta[nbJet]/F")
-    CleanbJet_phi = array("f", Nmax2*[0.])
-    outputTree.Branch("CleanbJet_phi", CleanbJet_phi, "CleanbJet_phi[nbJet]/F")
+    bJetsIdx = array("i", 10*[0])
+    outputTree.Branch("bJetsIdx", bJetsIdx, "bJetsIdx[nbJet]/F")
 
-    #Additional variables for the dnn
-    PuppiMET_pt    = array("f", [0.])
-    outputTree.Branch("PuppiMET_pt", PuppiMET_pt, "PuppiMET_pt/F")
-    PuppiMET_phi   = array("f", [0.])
-    outputTree.Branch("PuppiMET_phi", PuppiMET_phi, "PuppiMET_phi/F")
-    PuppiMET_sumEt = array("f", [0.])
-    outputTree.Branch("PuppiMET_sumEt", PuppiMET_sumEt, "PuppiMET_sumEt/F")
-    MET_pt         = array("f", [0.])
-    outputTree.Branch("MET_pt", MET_pt, "MET_pt/F")
-    TkMET_pt       = array("f", [0.])
-    outputTree.Branch("TkMET_pt", TkMET_pt, "TkMET_pt/F")
-    mT2            = array("f", [0.])
-    outputTree.Branch("mT2", mT2, "mT2/F")
-    dphill         = array("f", [0.])
-    outputTree.Branch("dphill", dphill, "dphill/F")
-    dphillmet      = array("f", [0.])
-    outputTree.Branch("dphillmet", dphillmet, "dphillmet/F")
-    mll            = array("f", [0.])
-    outputTree.Branch("mll", mll, "mll/F")
-    mtw1           = array("f", [0.])
-    outputTree.Branch("mtw1", mtw1, "mtw1/F")
-    mtw2           = array("f", [0.])
-    outputTree.Branch("mtw2", mtw2, "mtw2/F")
-    mth            = array("f", [0.])
-    outputTree.Branch("mth", mth, "mth/F")
-    PV_npvsGood = array("f", [0.])
-    outputTree.Branch("PV_npvsGood", PV_npvsGood, "PV_npvsGood/F")
-    ptll            = array("f", [0.])
-    outputTree.Branch("ptll", ptll, "ptll/F")
-
-    #Additional latino variables needed for plotting and datacards
-    Gen_ZGstar_mass = array("f", [0.])
-    outputTree.Branch("Gen_ZGstar_mass", Gen_ZGstar_mass, "Gen_ZGstar_mass/F")
-    LepCut2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW = array("f", [0.])
-    outputTree.Branch("LepCut2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW", LepCut2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW, "LepCut2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW/F")
-    fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW = array("f", [0.])
-    outputTree.Branch("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW", fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW, "fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW/F")
-    fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_EleUp = array("f", [0.])
-    outputTree.Branch("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_EleUp", fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_EleUp, "fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_EleUp/F")
-    fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_EleDown = array("f", [0.])
-    outputTree.Branch("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_EleDown", fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_EleDown, "fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_EleDown/F")
-    fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_MuUp = array("f", [0.])
-    outputTree.Branch("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_MuUp", fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_MuUp, "fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_MuUp/F")
-    fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_MuDown = array("f", [0.])
-    outputTree.Branch("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_MuDown", fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_MuDown, "fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_MuDown/F")
-    fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statEleUp = array("f", [0.])
-    outputTree.Branch("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statEleUp", fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statEleUp, "fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statEleUp/F")
-    fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statEleDown = array("f", [0.])
-    outputTree.Branch("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statEleDown", fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statEleDown, "fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statEleDown/F")
-    fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statMuUp = array("f", [0.])
-    outputTree.Branch("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statMuUp", fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statMuUp, "fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statMuUp/F")
-    fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statMuDown = array("f", [0.])
-    outputTree.Branch("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statMuDown", fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statMuDown, "fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statMuDown/F")
-
-    nGenPart = array("i", [0])
-    outputTree.Branch("nGenPart", nGenPart, "nGenPart/I")
-    GenPart_pdgId = array("f", Nmax2*[0.])
-    outputTree.Branch("GenPart_pdgId", GenPart_pdgId, "GenPart_pdgId[nGenPart]/F")
-    GenPart_statusFlags = array("f", Nmax2*[0.])
-    outputTree.Branch("GenPart_statusFlags", GenPart_statusFlags, "GenPart_statusFlags[nGenPart]/F")
-    topGenPt = array("f", [0.])
-    outputTree.Branch("topGenPt", topGenPt, "topGenPt/F")
-    antitopGenPt= array("f", [0.])
-    outputTree.Branch("antitopGenPt", antitopGenPt, "antitopGenPt/F")
-
-    Jet_btagSF_shape_up_jes = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_up_jes", Jet_btagSF_shape_up_jes, "Jet_btagSF_shape_up_jes[nJet]/F")
-    Jet_btagSF_shape_up_lf = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_up_lf", Jet_btagSF_shape_up_lf, "Jet_btagSF_shape_up_lf[nJet]/F")
-    Jet_btagSF_shape_up_hf = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_up_hf", Jet_btagSF_shape_up_hf, "Jet_btagSF_shape_up_hf[nJet]/F")
-    Jet_btagSF_shape_up_lfstats1 = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_up_lfstats1", Jet_btagSF_shape_up_lfstats1, "Jet_btagSF_shape_up_lfstats1[nJet]/F")
-    Jet_btagSF_shape_up_lfstats2 = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_up_lfstats2", Jet_btagSF_shape_up_lfstats2, "Jet_btagSF_shape_up_lfstats2[nJet]/F")
-    Jet_btagSF_shape_up_hfstats1 = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_up_hfstats1", Jet_btagSF_shape_up_hfstats1, "Jet_btagSF_shape_up_hfstats1[nJet]/F")
-    Jet_btagSF_shape_up_hfstats2 = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_up_hfstats2", Jet_btagSF_shape_up_hfstats2, "Jet_btagSF_shape_up_hfstats2[nJet]/F")
-    Jet_btagSF_shape_up_cferr1 = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_up_cferr1", Jet_btagSF_shape_up_cferr1, "Jet_btagSF_shape_up_cferr1[nJet]/F")
-    Jet_btagSF_shape_up_cferr2 = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_up_cferr2", Jet_btagSF_shape_up_cferr2, "Jet_btagSF_shape_up_cferr2[nJet]/F")
-    Jet_btagSF_shape_down_jes = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_down_jes", Jet_btagSF_shape_down_jes, "Jet_btagSF_shape_down_jes[nJet]/F")
-    Jet_btagSF_shape_down_lf = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_down_lf", Jet_btagSF_shape_down_lf, "Jet_btagSF_shape_down_lf[nJet]/F")
-    Jet_btagSF_shape_down_hf = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_down_hf", Jet_btagSF_shape_down_hf, "Jet_btagSF_shape_down_hf[nJet]/F")
-    Jet_btagSF_shape_down_lfstats1 = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_down_lfstats1", Jet_btagSF_shape_down_lfstats1, "Jet_btagSF_shape_down_lfstats1[nJet]/F")
-    Jet_btagSF_shape_down_lfstats2 = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_down_lfstats2", Jet_btagSF_shape_down_lfstats2, "Jet_btagSF_shape_down_lfstats2[nJet]/F")
-    Jet_btagSF_shape_down_hfstats1 = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_down_hfstats1", Jet_btagSF_shape_down_hfstats1, "Jet_btagSF_shape_down_hfstats1[nJet]/F")
-    Jet_btagSF_shape_down_hfstats2 = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_down_hfstats2", Jet_btagSF_shape_down_hfstats2, "Jet_btagSF_shape_down_hfstats2[nJet]/F")
-    Jet_btagSF_shape_down_cferr1 = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_down_cferr1", Jet_btagSF_shape_down_cferr1, "Jet_btagSF_shape_down_cferr1[nJet]/F")
-    Jet_btagSF_shape_down_cferr2 = array("f", Nmax*[0.])
-    outputTree.Branch("Jet_btagSF_shape_down_cferr2", Jet_btagSF_shape_down_cferr2, "Jet_btagSF_shape_down_cferr2[nJet]/F")
-
-    SFweight2l = array("f", [0.])
-    outputTree.Branch("SFweight2l", SFweight2l, "SFweight2l/F")
-    LepSF2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW = array("f", [0.])
-    outputTree.Branch("LepSF2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW", LepSF2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW, "LepSF2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW/F")
-    LepWPCut = array("f", [0.])
-    outputTree.Branch("LepWPCut", LepWPCut, "LepWPCut/F")
-    btagSF = array("f", [0.])
-    outputTree.Branch("btagSF", btagSF, "btagSF/F")
-    SFweightEleUp = array("f", [0.])
-    outputTree.Branch("SFweightEleUp", SFweightEleUp, "SFweightEleUp/F")
-    SFweightEleDown = array("f", [0.])
-    outputTree.Branch("SFweightEleDown", SFweightEleDown, "SFweightEleDown/F")
-    SFweightMuUp = array("f", [0.])
-    outputTree.Branch("SFweightMuUp", SFweightMuUp, "SFweightMuUp/F")
-    SFweightMuDown = array("f", [0.])
-    outputTree.Branch("SFweightMuDown", SFweightMuDown, "SFweightMuDown/F")
-
-    TriggerEffWeight_2l = array("f", [0.])
-    outputTree.Branch("TriggerEffWeight_2l", TriggerEffWeight_2l, "TriggerEffWeight_2l/F")
-    TriggerEffWeight_2l_u = array("f", [0.])
-    outputTree.Branch("TriggerEffWeight_2l_u", TriggerEffWeight_2l_u, "TriggerEffWeight_2l_u/F")
-    TriggerEffWeight_2l_d = array("f", [0.])
-    outputTree.Branch("TriggerEffWeight_2l_d", TriggerEffWeight_2l_d, "TriggerEffWeight_2l_d/F")
-    baseW = array("f", [0.])
-    outputTree.Branch("baseW", baseW, "baseW/F")
-    puWeight = array("f", [0.])
-    outputTree.Branch("puWeight", puWeight, "puWeight/F")
-    puWeightUp = array("f", [0.])
-    outputTree.Branch("puWeightUp", puWeightUp, "puWeightUp/F")
-    puWeightDown = array("f", [0.])
-    outputTree.Branch("puWeightDown", puWeightDown, "puWeightDown/F")
-    nLHEScaleWeight = array("i", [0])
-    outputTree.Branch("nLHEScaleWeight", nLHEScaleWeight, "nLHEScaleWeight/I")
-    LHEScaleWeight = array("f", Nmax*[0.])
-    outputTree.Branch("LHEScaleWeight", LHEScaleWeight, "LHEScaleWeight[nLHEScaleWeight]/F")
-    nllW = array("f", [0.])
-    outputTree.Branch("nllW", nllW, "nllW/F")
-    luminosityBlock = array("i", [0])
-    outputTree.Branch("luminosityBlock", luminosityBlock, "luminosityBlock/I")
-
-    Trigger_ElMu = array("i", [0])
-    outputTree.Branch("Trigger_ElMu", Trigger_ElMu, "Trigger_ElMu/I")
-    Trigger_dblMu = array("i", [0])
-    outputTree.Branch("Trigger_dblMu", Trigger_dblMu, "Trigger_dblMu/I")
-    Trigger_sngMu = array("i", [0])
-    outputTree.Branch("Trigger_sngMu", Trigger_sngMu, "Trigger_sngMu/I")
-    Trigger_sngEl = array("i", [0])
-    outputTree.Branch("Trigger_sngEl", Trigger_sngEl, "Trigger_sngEl/I")
-    Trigger_dblEl = array("i", [0])
-    outputTree.Branch("Trigger_dblEl", Trigger_dblEl, "Trigger_dblEl/I")
-    XSWeight = array("f", [0.])
-    outputTree.Branch("XSWeight", XSWeight, "XSWeight/F")
-    METFilter_MC = array("f", [0.])
-    outputTree.Branch("METFilter_MC", METFilter_MC, "METFilter_MC/F")
-    METFilter_DATA = array("f", [0.])
-    outputTree.Branch("METFilter_DATA", METFilter_DATA, "METFilter_DATA/F")
-    gen_ptll = array("f", [0.])
-    outputTree.Branch("gen_ptll", gen_ptll, "gen_ptll/F")
-
-    PhotonGen_isPrompt = array("f", [0.])
-    outputTree.Branch("PhotonGen_isPrompt", PhotonGen_isPrompt, "PhotonGen_isPrompt/F")
-    PhotonGen_pt = array("f", [0.])
-    outputTree.Branch("PhotonGen_pt", PhotonGen_pt, "PhotonGen_pt/F")
-    PhotonGen_eta = array("f", [0.])
-    outputTree.Branch("PhotonGen_eta", PhotonGen_eta, "PhotonGen_eta/F")
-
-    #Our own discriminating variables
     dark_pt = array("f", [0.])
     outputTree.Branch("dark_pt", dark_pt, "dark_pt/F")
     overlapping_factor = array("f", [0.])
     outputTree.Branch("overlapping_factor", overlapping_factor, "overlapping_factor/F")
 
-    #Let's get started
     nEvents = inputFile.Events.GetEntries()
     recoAttempts = 0
     recoWorked = 0
 
-    print("Let's start with the loop")
-    
     for index, ev in enumerate(inputFile.Events):
-        if index % 100 == 0: #Update the loading bar every 100 events                                                                                              
+        if index % 100 == 0: #Update the loading bar every 100 events
             updateProgress(round(index/float(nEvents), 2))
-
+    
         #Skimming and preselection
-        if ev.Lepton_pdgId[0]*ev.Lepton_pdgId[1] >= 0:
-            continue
+        if ev.nLepton < 2:
+                continue
         if ev.Lepton_pt[0] < 25. or ev.Lepton_pt[1] < 20.:
             continue
-        if mll < 20.:
-            continue
-        if ev.njet < 2:
+        if ev.Lepton_pdgId[0]*ev.Lepton_pdgId[1] >= 0:
             continue
 
-        #Leptons
-        nLepton[0] = ev.nLepton
-        for l in range(ev.nLepton):
-            Lepton_pt[l] = ev.Lepton_pt[l]
-            Lepton_eta[l] = ev.Lepton_eta[l]
-            Lepton_phi[l] = ev.Lepton_phi[l]
-            Lepton_pdgId[l] = ev.Lepton_pdgId[l]
-            try:
-                Lepton_promptgenmatched[l] = ev.promptgenmatched[l]
-            except:
-                pass
+        if ev.mll < 20.:
+            continue
 
-        #Jets
+        if ev.nCleanJet < 2:
+            continue
+
+        #if index > 1000: #For testing only
+        #    continue
+
+        #Creation of new variables
+        #bjets collection
         jetIndexes = []
-        nJet[0] = ev.nJet
-        for j in range(ev.nJet):
-            Jet_btagDeepB[j] = ev.Jet_btagDeepB[j]
-            Jet_btagSF_shape[j] = ev.Jet_btagSF_shape[j]
-
-            #Systematics
-            Jet_btagSF_shape_up_jes[j] = ev.Jet_btagSF_shape_up_jes[j]
-            Jet_btagSF_shape_up_lf[j] = ev.Jet_btagSF_shape_up_lf[j]
-            Jet_btagSF_shape_up_hf[j] = ev.Jet_btagSF_shape_up_hf[j]
-            Jet_btagSF_shape_up_lfstats1[j] = ev.Jet_btagSF_shape_up_lfstats1[j]
-            Jet_btagSF_shape_up_lfstats2[j] = ev.Jet_btagSF_shape_up_lfstats2[j]
-            Jet_btagSF_shape_up_hfstats1[j] = ev.Jet_btagSF_shape_up_hfstats1[j]
-            Jet_btagSF_shape_up_hfstats2[j] = ev.Jet_btagSF_shape_up_hfstats2[j]
-            Jet_btagSF_shape_up_cferr1[j] = ev.Jet_btagSF_shape_up_cferr1[j]
-            Jet_btagSF_shape_up_cferr2[j] = ev.Jet_btagSF_shape_up_cferr2[j]
-
-            Jet_btagSF_shape_down_jes[j] = ev.Jet_btagSF_shape_down_jes[j]
-            Jet_btagSF_shape_down_lf[j] = ev.Jet_btagSF_shape_down_lf[j]
-            Jet_btagSF_shape_down_hf[j] = ev.Jet_btagSF_shape_down_hf[j]
-            Jet_btagSF_shape_down_lfstats1[j] = ev.Jet_btagSF_shape_down_lfstats1[j]
-            Jet_btagSF_shape_down_lfstats2[j] = ev.Jet_btagSF_shape_down_lfstats2[j]
-            Jet_btagSF_shape_down_hfstats1[j] = ev.Jet_btagSF_shape_down_hfstats1[j]
-            Jet_btagSF_shape_down_hfstats2[j] = ev.Jet_btagSF_shape_down_hfstats2[j]
-            Jet_btagSF_shape_down_cferr1[j] = ev.Jet_btagSF_shape_down_cferr1[j]
-            Jet_btagSF_shape_down_cferr2[j] = ev.Jet_btagSF_shape_down_cferr2[j]
-
-        #Clean and b jets
-        nCleanJet[0] = ev.nCleanJet
+        bJetIndexes = []
         for j in range(ev.nCleanJet):
             jetIndexes.append(j)
-            CleanJet_pt[j] = ev.CleanJet_pt[j]
-            CleanJet_eta[j] = ev.CleanJet_eta[j]
-            CleanJet_eta[j] = ev.CleanJet_eta[j]
-            CleanJet_jetIdx[j] = ev.CleanJet_jetIdx[j]
-
-            #B-jets
-            bJetIndexes = []
             if ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.2217: #Loose WP for now
                 bJetIndexes.append(j)
-                CleanbJet_pt[j] = ev.CleanJet_pt[j]
-                CleanbJet_eta[j] = ev.CleanJet_eta[j]
-                CleanbJet_phi[j] = ev.CleanJet_phi[j]
-                nbJet[0] = nbJet[0] + 1
 
-        PuppiMET_pt[0] = ev.PuppiMET_pt
-        PuppiMET_phi[0] = ev.PuppiMET_phi
-        PuppiMET_sumEt[0] = ev.PuppiMET_sumEt
-        MET_pt[0] = ev.MET_pt
-        TkMET_pt[0] = ev.TkMET_pt
-        mT2[0] = ev.mT2
-        dphill[0] = ev.dphill
-        dphillmet[0] = ev.dphillmet
-        mll[0] = ev.mll
-        mtw1[0] = ev.mtw1
-        mtw2[0] = ev.mtw2
-        mth[0] = ev.mth
-        PV_npvsGood[0] = ev.PV_npvsGood
-        ptll[0] = ev.ptll
-
-        #Additional latino variables needed for plotting and datacards
-        Gen_ZGstar_mass = ev.Gen_ZGstar_mass
-        LepCut2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW = ev.LepCut2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW
-        try:
-            fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW = ev.fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW
-            fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_EleUp = ev.fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_EleUp
-            fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_EleDown = ev.fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_EleDown
-            fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_MuUp = ev.fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_MuUp
-            fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_MuDown = ev.fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW_MuDown
-            fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statEleUp = ev.fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statEleUp
-            fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statEleDown = ev.fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statEleDown
-            fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statMuUp = ev.fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statMuUp
-            fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statMuDown = ev.fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW__statMuDown
-        except:
-            pass #These variables are not in all the trees
-
-        nGenPart[0] = ev.nGenPart
-        for g in range(ev.nGenPart):
-            GenPart_pdgId[g] = ev.GenPart_pdgId[g]
-            GenPart_statusFlags[g] = ev.GenPart_statusFlags[g]
-
-        try:
-            topGenPt = ev.topGenPt
-            antitopGenPt = ev.antitopGenPt
-        except:
-            pass
-
-        SFweight2l = ev.SFweight2l
-        LepSF2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW = ev.LepSF2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW
-
-        try:
-            LepWPCut = ev.LepWPCut
-        except:
-            pass
-
-        try:
-            btagSF = ev.btagSF
-            SFweightEleUp = ev.SFweightEleUp
-            SFweightEleDown = ev.SFweightEleDown
-            SFweightMuUp = ev.SFweightMuUp
-            SFweightMuDown = ev.SFweightMuDown
-        except:
-            pass
-
-        TriggerEffWeight_2l = ev.TriggerEffWeight_2l
-        TriggerEffWeight_2l_u = ev.TriggerEffWeight_2l_u
-        TriggerEffWeight_2l_d = ev.TriggerEffWeight_2l_d
-        baseW = ev.baseW
-        puWeight = ev.puWeight
-        puWeightUp = ev.puWeightUp
-        puWeightDown = ev.puWeightDown
-        
-        try:
-            nLHEScaleWeight[0] = ev.nLHEScaleWeight
-            for n in range(ev.nLHEScaleWeight):
-                LHEScaleWeight[j] = ev.LHEScaleWeight[j]
-        except:
-            pass
-
-        try:
-            nllW = ev.nllW
-        except:
-            pass
-
-        luminosityBlock = ev.luminosityBlock
-        Trigger_ElMu = ev.Trigger_ElMu
-        Trigger_dblMu = ev.Trigger_dblMu
-        Trigger_sngMu = ev.Trigger_sngMu
-        Trigger_sngEl = ev.Trigger_sngEl
-        Trigger_dblEl = ev.Trigger_dblEl
-        
-        XSWeight = ev.XSWeight
-        try:
-            METFilter_MC = ev.METFilter_MC
-            METFilter_DATA = ev.METFilter_DATA
-        except:
-            pass
-        gen_ptll = ev.gen_ptll
-        PhotonGen_isPrompt = ev.PhotonGen_isPrompt
-        PhotonGen_pt = ev.PhotonGen_pt
-        PhotonGen_eta = ev.PhotonGen_eta
+        jetsIdx = jetIndexes
+        bJetsIdx = bJetIndexes
+        nbJet[0] = len(bJetIndexes)
 
         #===================================================
         #Ttbar reconstruction
@@ -471,10 +188,10 @@ def createTree(inputDir, filename):
             listOfBJetsCandidates = bJetIndexes + jetIndexes
 
         #We have different combinations to perform the reconstruction: we consider the association of the bjets with the two leptons, and we consider all the different bjets candidates
-	successfullCombinations = [] #List used to keep the lepton/b-jet indexes for which the reconstruction is working and all the new ttbar inv mass
+        successfullCombinations = [] #List used to keep the lepton/b-jet indexes for which the reconstruction is working and all the new ttbar inv mass
 
-        Tlep1.SetPtEtaPhiM(Lepton_pt[0], Lepton_eta[0], Lepton_phi[0], 0.000511 if (abs(Lepton_pdgId[0]) == 11) else 0.106)
-        Tlep2.SetPtEtaPhiM(Lepton_pt[1], Lepton_eta[1], Lepton_phi[1], 0.000511 if (abs(Lepton_pdgId[1]) == 11) else 0.106)
+        Tlep1.SetPtEtaPhiM(ev.Lepton_pt[0], ev.Lepton_eta[0], ev.Lepton_phi[0], 0.000511 if (abs(ev.Lepton_pdgId[0]) == 11) else 0.106)
+        Tlep2.SetPtEtaPhiM(ev.Lepton_pt[1], ev.Lepton_eta[1], ev.Lepton_phi[1], 0.000511 if (abs(ev.Lepton_pdgId[1]) == 11) else 0.106)
                         
         for i, jet in enumerate(listOfBJetsCandidates):
             if i == 0:
@@ -483,7 +200,7 @@ def createTree(inputDir, filename):
                 Tb2.SetPtEtaPhiM(ev.Jet_pt[jet], ev.Jet_eta[jet], ev.Jet_phi[jet], ev.Jet_mass[jet])
                 Tnu1.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0) #Not needed for the ttbar reconstruction and not available, we can pass default values
                 Tnu2.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0)
-                TMET.SetPtEtaPhiM(PuppiMET_pt[0], -99.0, PuppiMET_phi[0], -99.0)
+                TMET.SetPtEtaPhiM(ev.PuppiMET_pt, -99.0, ev.PuppiMET_phi, -99.0)
 
                 mW1 = 80.38 #Mass of the W
                 mW2 = 80.38
@@ -542,8 +259,6 @@ def createTree(inputDir, filename):
 
         outputTree.Fill()
 
-    #print 'The ttbar reconstruction worked for ' + str(round((recoWorked/float(recoAttempts))*100, 2)) + '% of the events considered'
-    
     outputTree.Write()
     inputFile.Close()
     outputFile.Close()
