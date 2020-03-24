@@ -25,8 +25,8 @@ thetal1b = thetal1 + "*" + thetab
 #IFCA variables
 totalET = "PuppiMET_sumEt + Lepton0_pt + Lepton1_pt + Jet0_pt + Jet1_pt"
 
-#variables = ["PuppiMET_pt", "mT2", "dphill", "dphillmet", "Lepton0_pt", "Lepton1_pt", "mll", "njet", "nbjet", "mtw1", "mtw2", "mth", "Lepton0_eta-Lepton1_eta", "Lepton0_phi-Lepton1_phi", "thetal0l1 := "+thetal0l1, "thetal0b := "+thetal0b, "thetal1b := "+thetal1b, "totalET :="+totalET, "dark_pt", "overlapingFactor"]
-variables = ["PuppiMET_pt", "mT2", "dphill", "dphillmet", "Lepton0_pt", "Lepton1_pt", "mll", "njet", "nbjet", "mtw1", "mtw2", "mth", "Lepton0_eta-Lepton1_eta", "Lepton0_phi-Lepton1_phi", "thetal0l1 := "+thetal0l1, "thetal0b := "+thetal0b, "thetal1b := "+thetal1b, "totalET :="+totalET]
+variables = ["PuppiMET_pt", "mT2", "dphill", "dphillmet", "Lepton0_pt", "Lepton1_pt", "mll", "njet", "nbjet", "mtw1", "mtw2", "mth", "Lepton0_eta-Lepton1_eta", "Lepton0_phi-Lepton1_phi", "thetal0l1 := "+thetal0l1, "thetal0b := "+thetal0b, "thetal1b := "+thetal1b, "totalET :="+totalET, "dark_pt", "overlapingFactor"]
+#variables = ["PuppiMET_pt", "mT2", "dphill", "dphillmet", "Lepton0_pt", "Lepton1_pt", "mll", "njet", "nbjet", "mtw1", "mtw2", "mth", "Lepton0_eta-Lepton1_eta", "Lepton0_phi-Lepton1_phi", "thetal0l1 := "+thetal0l1, "thetal0b := "+thetal0b, "thetal1b := "+thetal1b, "totalET :="+totalET]
 #baseDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Summer16_102X_nAODv4_Full2016v5/MCl1loose2016v5__MCCorr2016v5__l2loose__l2tightOR2016v5/"
 #baseDir = os.getcwd() + "/rootfiles/"
 baseDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/"
