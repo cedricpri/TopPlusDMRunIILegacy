@@ -210,7 +210,7 @@ def createTree(inputDir, filename):
     SFweightMuUp = array("f", [0.])
     outputTree.Branch("SFweightMuUp", SFweightMuUp, "SFweightMuUp/F")
     SFweightMuDown = array("f", [0.])
-    outputTree.Branch("SFweightMuDown", SFweightEMuDown, "SFweightMuDown/F")
+    outputTree.Branch("SFweightMuDown", SFweightMuDown, "SFweightMuDown/F")
 
     TriggerEffWeight_2l = array("f", [0.])
     outputTree.Branch("TriggerEffWeight_2l", TriggerEffWeight_2l, "TriggerEffWeight_2l/F")
@@ -226,24 +226,24 @@ def createTree(inputDir, filename):
     outputTree.Branch("puWeightUp", puWeightUp, "puWeightUp/F")
     puWeightDown = array("f", [0.])
     outputTree.Branch("puWeightDown", puWeightDown, "puWeightDown/F")
-    nLHEScaleWeight = array("i", [0.])
+    nLHEScaleWeight = array("i", [0])
     outputTree.Branch("nLHEScaleWeight", nLHEScaleWeight, "nLHEScaleWeight/I")
     LHEScaleWeight = array("f", [0.])
     outputTree.Branch("LHEScaleWeight", LHEScaleWeight, "LHEScaleWeight/F")
     nllW = array("f", [0.])
     outputTree.Branch("nllW", nllW, "nllW/F")
-    luminosityBlock = array("i", [0.])
+    luminosityBlock = array("i", [0])
     outputTree.Branch("luminosityBlock", luminosityBlock, "luminosityBlock/I")
 
-    Trigger_ElMu = array("i", [0.])
+    Trigger_ElMu = array("i", [0])
     outputTree.Branch("Trigger_ElMu", Trigger_ElMu, "Trigger_ElMu/I")
-    Trigger_dblMu = array("i", [0.])
+    Trigger_dblMu = array("i", [0])
     outputTree.Branch("Trigger_dblMu", Trigger_dblMu, "Trigger_dblMu/I")
-    Trigger_sngMu = array("i", [0.])
+    Trigger_sngMu = array("i", [0])
     outputTree.Branch("Trigger_sngMu", Trigger_sngMu, "Trigger_sngMu/I")
-    Trigger_sngEl = array("i", [0.])
+    Trigger_sngEl = array("i", [0])
     outputTree.Branch("Trigger_sngEl", Trigger_sngEl, "Trigger_sngEl/I")
-    Trigger_dblEl = array("i", [0.])
+    Trigger_dblEl = array("i", [0])
     outputTree.Branch("Trigger_dblEl", Trigger_dblEl, "Trigger_dblEl/I")
     XSWeight = array("f", [0.])
     outputTree.Branch("XSWeight", XSWeight, "XSWeight/F")
@@ -266,7 +266,7 @@ def createTree(inputDir, filename):
     recoWorked = 0
 
     print("Let's start with the loop")
-
+    
     for index, ev in enumerate(inputFile.Events):
         if index % 100 == 0: #Update the loading bar every 100 events                                                                                              
             updateProgress(round(index/float(nEvents), 2))
@@ -278,67 +278,44 @@ def createTree(inputDir, filename):
             continue
         if mll < 20.:
             continue
-    
+        if ev.njet < 2:
+            continue
+        if index > 100:  #TODO: to be removed
+            break
+
         #Leptons
-        Lepton0_pt[0] = ev.Lepton_pt[0]
-        if(len(ev.Lepton_pt) > 1):
-            Lepton1_pt[0] = ev.Lepton_pt[1]
-
-        Lepton0_eta[0] = ev.Lepton_eta[0]
-        if(len(ev.Lepton_eta) > 1):
-            Lepton1_eta[0] = ev.Lepton_eta[1]
-
-        Lepton0_phi[0] = ev.Lepton_phi[0]
-        if(len(ev.Lepton_phi) > 1):
-            Lepton1_phi[0] = ev.Lepton_phi[1]
-
-        Lepton0_pdgId[0] = ev.Lepton_pdgId[0]
-        Lepton0_mass[0] = 0.000511 if (abs(Lepton0_pdgId[0]) == 11) else 0.106; #Mass in GeV needed for ttbar reconstruction
-        if(len(ev.Lepton_pdgId) > 1):
-            Lepton1_pdgId[0] = ev.Lepton_pdgId[1]
-            Lepton1_mass[0] = 0.000511 if (abs(Lepton1_pdgId[0]) == 11) else 0.106;
-
+        Lepton_pt = []
+        for l, lepton in enumerate(ev.Lepton_pt):
+            Lepton_pt.append(ev.Lepton_pt[l])
+            Lepton_eta.append(ev.Lepton_eta[l])
+            Lepton_phi.append(ev.Lepton_phi[l])
+            Lepton_pdgId.append(ev.Lepton_pdgId[l])
+            Lepton_promptgenmatched.append(ev.Lepton_promptgenmatched[l])
+        print(Lepton_pt)
+        
         #Jets
-        nJets = 0
-        for jet in ev.CleanJet_jetIdx:
-            nJets = nJets + 1
-            if nJets < 2:
-                if nJets == 0:
-                    Jet0_pt[0] = ev.Jet_pt[jet]
-                    Jet0_eta[0] = ev.Jet_eta[jet]
-                    Jet0_phi[0] = ev.Jet_phi[jet]
-                elif nJets == 1:
-                    Jet1_pt[0] = ev.Jet_pt[jet]
-                    Jet1_eta[0] = ev.Jet_eta[jet]
-                    Jet1_phi[0] = ev.Jet_phi[jet]
-                 
-        njet[0] = nJets
+        for j, jet in enumerate(ev.CleanJet_jetIdx):
+            CleanJet_pt.append(ev.CleanJet_pt[j])
+            CleanJet_eta.append(ev.CleanJet_eta[j])
+            CleanJet_eta.append(ev.CleanJet_eta[j])
+            CleanJet_jetIdx.append(ev.CleanJet_jetIdx[j])
+            Jet_btagDeepB.append(ev.Jet_btagDeepB[j])
+            Jet_btagSF_shape.append(ev.Jet_btagSF_shape[j])
+            njet[0] = njet[0] + 1
 
-        #bJets
-        nBjets = 0
-	bJetIndex = [] #First of all, we are going to keep in an array the jet indices corresponding to the bjets in the jet collection
+            #B-jets
+            if ev.Jet_btagDeepB[j] > 0.2217: #Loose WP for now
+                CleanbJet_pt.append(ev.CleanJet_pt[j])
+                CleanbJet_eta.append(ev.CleanJet_eta[j])
+                CleanbJet_phi.append(ev.CleanJet_phi[j])
+                nbjet[0] = nbjet[0] + 1
 
-        for jet in ev.CleanJet_jetIdx:
-            if ev.Jet_btagDeepB[jet] > 0.2217: #For now, we use the loose WP for the b-tag
-                bJetIndex.append(jet)
- 		if ev.Jet_btagDeepB[jet] > 0.2217 and nBjets == 0:
-                    nBjets = 1
-                    bJet0_pt[0] = ev.Jet_pt[jet]
-                    bJet0_eta[0] = ev.Jet_eta[jet]
-                    bJet0_phi[0] = ev.Jet_phi[jet]
-		elif ev.Jet_btagDeepB[jet] > 0.2217 and nBjets == 1:
-                    nBjets = 2
-                    bJet1_pt[0] = ev.Jet_pt[jet]
-                    bJet1_eta[0] = ev.Jet_eta[jet]
-                    bJet1_phi[0] = ev.Jet_phi[jet]
-            	elif ev.Jet_btagDeepB[jet] > 0.2217:
-                    nBjets = nBjets + 1
-   
-	nbjet[0] = nBjets
-
-        #Additional variables
         PuppiMET_pt[0] = ev.PuppiMET_pt;
         PuppiMET_phi[0] = ev.PuppiMET_phi;
+        #PuppiMET_sumET[0] = ev.PuppiMET_sumET;
+
+        """
+        #Additional variables
         PuppiMET_sumEt[0] = ev.PuppiMET_sumEt;
         MET_pt[0] = ev.MET_pt;
         TkMET_pt[0] = ev.TkMET_pt;
@@ -450,10 +427,10 @@ def createTree(inputDir, filename):
                 dark_pt[0] = bestNuSol.darkPt('DarkPt')
             else:
                 dark_pt[0] = -99.0
-
+        """
         outputTree.Fill()
 
-    print 'The ttbar reconstruction worked for ' + str(round((recoWorked/float(recoAttempts))*100, 2)) + '% of the events considered'
+    #print 'The ttbar reconstruction worked for ' + str(round((recoWorked/float(recoAttempts))*100, 2)) + '% of the events considered'
     
     outputTree.Write()
     inputFile.Close()
