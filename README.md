@@ -26,22 +26,28 @@ This needs to be done using CMSSW_10_2_18 and lxplus6.
 
 ## NeuralNetwork
 
-Set of scripts able to run a BDT/DNN in order to enhance the signal background discrimination.
+Set of scripts able to perform the top reconstruction, compute new variables on top of the latino trees and run a BDT/DNN in order to enhance the signal background discrimination.
 These scripts need to be run within CMSSW_10_4_0 or higher to have access to keras.
 
-First, the getReady.py needs to be run in order to read the latino rootfiles, to skim them, select variables and perform the top reconstruction.
+First, the createTrees.py script needs to be run in order to read the latino rootfiles, to skim them, select variables and perform the top reconstruction.
 The top reconstruction is based on the one performed in https://github.com/alantero/ttbarDM.
+This process has been setup to be used with condor, thanks to createJobs.py. The job of this script is to read all the latino files matching some criterias in order to create a .sh file for each file we want to process with createTrees.py. The arguments taken are, among others:
+- **a**: whether you want to create a .sh for ALL the files found or just one for testing purposes
+- **s**: whether the files to be processed are signals or not
+- **d**: whether the files to be processes are data or MC files
+- **t**: the search term to be found in the correct directory (eg, TTT02L2Nu__part can be used to process only TTbar MC files).
+Once the .sh files created, then can be launched using the command condor_submit condorjob.tcl.
 
-Then, the MVA can be run using simply the following command.
+Then, the MVA can be run on these previously produced files using simply the following command.
       python dnn.py
-A signal and a background files can be given as argument to this script.
+A signal and a background files can be given as arguments to this script.
 
 ## Scripts
 
 Set of additional scripts.
 
 ### plotSignals
-Small script able to plot one variable for all the signals available in a single canvas.
+Small script able to plot one variable for all the signals mass points available in a single canvas.
 
 ### createjobsScalar/createjobsPseudoScalar
 Two scripts allowing to divide a randomized parameters file into its different mass points.

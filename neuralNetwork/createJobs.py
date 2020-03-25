@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     for i in filesToProcess:
 
-        executable = workingpath + "/getReady.py -f" + i + " -d" + inputDir
+        executable = workingpath + "/createTrees.py -f " + i + " -d " + inputDir
         if verbose:
             executable = executable + " -v"
 
