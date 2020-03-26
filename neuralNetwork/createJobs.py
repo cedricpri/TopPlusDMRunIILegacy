@@ -23,6 +23,7 @@ if __name__ == "__main__":
     parser.add_option('-d', '--data', action='store_true', dest='data', default=False) #Process the data?
     parser.add_option('-a', '--allFiles', action='store_true', dest='allFiles', default=False) #Process all the files or just one?
     parser.add_option('-t', '--searchTerm', action='store', type=str, dest='searchTerm', default="*") #String to be matched when searching for the files
+    parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
     (opts, args) = parser.parse_args()
 
@@ -32,6 +33,7 @@ if __name__ == "__main__":
     data = opts.data
     allFiles = opts.allFiles #Launch the processing of all the files found
     searchTerm = opts.searchTerm
+    resubmit = opts.resubmit
     verbose = opts.verbose
 
     if signal:
@@ -45,6 +47,7 @@ if __name__ == "__main__":
     print("Data: " + str(data))
     print("All files: " + str(allFiles))
     print("searchTerm: " + str(searchTerm))
+    print("resubmit: " + str(resubmit))
     print("=================================================")
 
     workingpath = os.getcwd()
@@ -93,6 +96,15 @@ if __name__ == "__main__":
     except:
         pass #Directory already exists, this is fine
 
+    #If the resubmit option is set, the remove from this list the files that are already found in the output directory
+    if resubmit:
+        outputDirectory = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/"
+        outputDirectoryProduction = "/".join(inputDir.split('/')[-3:-1])+"/"
+        outputDirectory = outputDirectory + outputDirectoryProduction
+        alreadyFound = os.listdir(outputDirectory)
+
+        filesToProcess = [x for x in filesToProcess if x not in alreadyFound] #Remove the files not needed
+
     for i in filesToProcess:
 
         executable = workingpath + "/createTrees.py -f " + i + " -d " + inputDir
@@ -110,19 +122,5 @@ if __name__ == "__main__":
         f.write(template)
         f.close()
         os.chmod('sh/send_' + i.replace('.root', '') + '.sh', 0755)     
-    
 
-
-
-
-
-
-
-
-
-
-
-
-
-     
-
+    print(str(len(filesToProcess)) + " file(s) matching the requirements have been found.")

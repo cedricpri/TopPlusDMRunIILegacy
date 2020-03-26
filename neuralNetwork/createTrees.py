@@ -37,7 +37,7 @@ def updateProgress(progress):
 def createTree(inputDir, filename):
     print("\n\n --> Now considering file... " + filename)
 
-    inputFile = TFile.Open(inputDir+filename)
+    inputFile = TFile.Open(inputDir+filename, "r")
     inputTree = inputFile.Get("Events")
 
     #Create a directory to keep the files if it does not already exist
@@ -59,6 +59,7 @@ def createTree(inputDir, filename):
     outputTree.SetBranchStatus("nLepton", 1);
     outputTree.SetBranchStatus("Lepton_pt", 1);
     outputTree.SetBranchStatus("Lepton_eta", 1);
+    outputTree.SetBranchStatus("Lepton_phi", 1);
     outputTree.SetBranchStatus("Lepton_pdgId", 1);
     outputTree.SetBranchStatus("Lepton_promptgenmatched", 1);
     
@@ -91,6 +92,7 @@ def createTree(inputDir, filename):
     outputTree.SetBranchStatus("ptll", 1);
 
     #Additional variables needed for latino
+    outputTree.SetBranchStatus("event", 1);
     outputTree.SetBranchStatus("Gen_ZGstar_mass", 1);
     outputTree.SetBranchStatus("LepCut2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW", 1);
     outputTree.SetBranchStatus("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW*", 1);
@@ -100,7 +102,8 @@ def createTree(inputDir, filename):
     outputTree.SetBranchStatus("antitopGenPt", 1);
     outputTree.SetBranchStatus("Jet_btagSF_shape_*", 1);
     outputTree.SetBranchStatus("SFweight2l", 1);
-    outputTree.SetBranchStatus("LepSF2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW", 1);
+    outputTree.SetBranchStatus("LepSF2l__ele_mvaFall17V1Iso_WP90*", 1);
+    outputTree.SetBranchStatus("LepSF2l__mu_cut_Tight_HWWW*", 1);
     outputTree.SetBranchStatus("LepWPCut", 1);
     outputTree.SetBranchStatus("btagSF", 1);
     outputTree.SetBranchStatus("SFweight*", 1);
@@ -137,9 +140,12 @@ def createTree(inputDir, filename):
             updateProgress(round(index/float(nEvents), 2))
     
         #Skimming and preselection
-        if ev.nLepton < 2:
-                continue
-        if ev.Lepton_pt[0] < 25. or ev.Lepton_pt[1] < 20.:
+        try: #The third lepton is not always defined
+            pt3 = ev.Lepton_pt[2]
+        except:
+            pt3 = 0.
+
+        if ev.Lepton_pt[0] < 25. or ev.Lepton_pt[1] < 20. or pt3 > 10.: #Exactly two leptons
             continue
         if ev.Lepton_pdgId[0]*ev.Lepton_pdgId[1] >= 0:
             continue
@@ -147,7 +153,17 @@ def createTree(inputDir, filename):
         if ev.mll < 20.:
             continue
 
-        if ev.nCleanJet < 2:
+        try:
+            jetpt1 = ev.CleanJet_pt[0]
+        except:
+            jetpt1 = 0.
+
+        try:
+            jetpt2 = ev.CleanJet_pt[1]
+        except:
+            jetpt2 = 0.
+
+        if jetpt1 < 30. or jetpt2 < 30.: #At least two jets with pt > 30 GeV
             continue
 
         #if index > 1000: #For testing only
@@ -157,7 +173,7 @@ def createTree(inputDir, filename):
         #bjets collection
         jetIndexes = []
         bJetIndexes = []
-        for j in range(ev.nCleanJet):
+        for j, jet in enumerate(ev.CleanJet_pt): #For now, we only consider b jets from the clean jets collection
             jetIndexes.append(j)
             if ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.2217: #Loose WP for now
                 bJetIndexes.append(j)
@@ -186,7 +202,7 @@ def createTree(inputDir, filename):
             continue #We don't consider events having less than 1 bjet
         elif len(bJetIndexes) > 1:
             listOfBJetsCandidates = bJetIndexes
-        else: #If we have exactly one bjet, then we keep it as the first element of listOfBJetsCandidates.append while the rest of the list will be made out of usual jets for which we will try to apply the ttbar reconstruction, to try and recover some efficiency of the b-tagging
+        else: #If we have exactly one bjet, then we keep it as the first element of listOfBJetsCandidates while the rest of the list will be made out of usual jets for which we will try to apply the ttbar reconstruction, to try and recover some efficiency of the b-tagging
             listOfBJetsCandidates = bJetIndexes + jetIndexes
 
         #We have different combinations to perform the reconstruction: we consider the association of the bjets with the two leptons, and we consider all the different bjets candidates
@@ -197,9 +213,9 @@ def createTree(inputDir, filename):
                         
         for i, jet in enumerate(listOfBJetsCandidates):
             if i == 0:
-                Tb1.SetPtEtaPhiM(ev.Jet_pt[jet], ev.Jet_eta[jet], ev.Jet_phi[jet], ev.Jet_mass[jet]) #By construction, we know that the first element of listOfBJetsCandidates is a bjet
+                Tb1.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]]) #By construction, we know that the first element of listOfBJetsCandidates is a bjet
             else:
-                Tb2.SetPtEtaPhiM(ev.Jet_pt[jet], ev.Jet_eta[jet], ev.Jet_phi[jet], ev.Jet_mass[jet])
+                Tb2.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
                 Tnu1.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0) #Not needed for the ttbar reconstruction and not available, we can pass default values
                 Tnu2.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0)
                 TMET.SetPtEtaPhiM(ev.PuppiMET_pt, -99.0, ev.PuppiMET_phi, -99.0)
@@ -236,7 +252,7 @@ def createTree(inputDir, filename):
             print 'Number of solutions', len(successfullCombinations) 
 
         if len(successfullCombinations) == 0:
-            #The ttbar reco did not work so we fill the ttbar reco with with default values
+            #The ttbar reco did not work so we fill the ttbar reco variables with with default values
             dark_pt[0] = -99.0
             overlapping_factor[0] = -99.0
         else:
@@ -257,9 +273,11 @@ def createTree(inputDir, filename):
             if bestNuSol.overlapingFactor(bestNuSol.N,bestNuSol.n_) < 0.2: #0.2 to be tweaked?
                 dark_pt[0] = bestNuSol.darkPt('DarkPt')
             else:
-                dark_pt[0] = -99.0
+                dark_pt[0] = -999.0
 
         outputTree.Fill()
+
+    print 'The ttbar reconstruction worked for ' + str(round((recoWorked/float(recoAttempts))*100, 2)) + '% of the events considered'
 
     outputTree.Write()
     inputFile.Close()
