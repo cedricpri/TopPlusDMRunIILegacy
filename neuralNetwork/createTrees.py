@@ -81,6 +81,7 @@ def createTree(inputDir, filename):
     outputTree.SetBranchStatus("PuppiMET_sumEt", 1);
     outputTree.SetBranchStatus("MET_pt", 1);
     outputTree.SetBranchStatus("TkMET_pt", 1);
+    outputTree.SetBranchStatus("MET_significance", 1);
     outputTree.SetBranchStatus("mT2", 1);
     outputTree.SetBranchStatus("dphill", 1);
     outputTree.SetBranchStatus("dphillmet", 1);
@@ -124,7 +125,7 @@ def createTree(inputDir, filename):
     nbJet = array("i", [0])
     outputTree.Branch("nbJet", nbJet, "nbJet/I")
     bJetsIdx = array("i", 10*[0])
-    outputTree.Branch("bJetsIdx", bJetsIdx, "bJetsIdx[nbJet]/F")
+    outputTree.Branch("bJetsIdx", bJetsIdx, "bJetsIdx[nbJet]/I")
 
     dark_pt = array("f", [0.])
     outputTree.Branch("dark_pt", dark_pt, "dark_pt/F")
@@ -173,13 +174,14 @@ def createTree(inputDir, filename):
         #bjets collection
         jetIndexes = []
         bJetIndexes = []
+        ibjet = 0
         for j, jet in enumerate(ev.CleanJet_pt): #For now, we only consider b jets from the clean jets collection
             jetIndexes.append(j)
             if ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.2217: #Loose WP for now
                 bJetIndexes.append(j)
+                bJetsIdx[ibjet] = j #Keep the bjets indexes in terms of CLEAN jets
+                ibjet = ibjet + 1
 
-        jetsIdx = jetIndexes
-        bJetsIdx = bJetIndexes
         nbJet[0] = len(bJetIndexes)
 
         #===================================================
@@ -269,11 +271,13 @@ def createTree(inputDir, filename):
 
             #Compute the dark pt and all the needed variables from this particular combination
             bestNuSol = successfullCombinations[indexLowestInvMass][2]
-            overlapping_factor[0] = bestNuSol.overlapingFactor(bestNuSol.N,bestNuSol.n_)
-            if bestNuSol.overlapingFactor(bestNuSol.N,bestNuSol.n_) < 0.2: #0.2 to be tweaked?
+            try:
+                overlapping_factor[0] = bestNuSol.overlapingFactor(bestNuSol.N,bestNuSol.n_)
+                #if bestNuSol.overlapingFactor(bestNuSol.N,bestNuSol.n_) < 0.2: #0.2 to be tweaked?
                 dark_pt[0] = bestNuSol.darkPt('DarkPt')
-            else:
-                dark_pt[0] = -999.0
+            except:
+                overlapping_factor[0] = -99.0
+                dark_pt[0] = -99.0
 
         outputTree.Fill()
 
