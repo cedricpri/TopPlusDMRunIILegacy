@@ -5,9 +5,10 @@ from array import array
 import optparse
 import os, sys, fnmatch
 
+import math
 import numpy as np
-LinAlgError = np.linalg.linalg.LinAlgError
 from ttbarReco import ttbar #ttbar reconstruction
+LinAlgError = np.linalg.linalg.LinAlgError
 
 #=========================================================================================================
 # HELPERS
@@ -36,6 +37,10 @@ def updateProgress(progress):
 # TREE CREATION
 #=========================================================================================================
 def createTree(inputDir, filename):
+    #===================================================
+    #Global setup
+    #===================================================
+
     print("\n\n --> Now considering file... " + filename)
 
     inputFile = TFile.Open(inputDir+filename, "r")
@@ -53,7 +58,10 @@ def createTree(inputDir, filename):
     outputFile = TFile.Open(outputDirectory + filename, "recreate")
     outputTree = inputTree.CloneTree(0)
 
+    #===================================================
     #Select the branches we want to keep
+    #===================================================
+
     outputTree.SetBranchStatus("*", 0);
 
     #Leptons
@@ -138,17 +146,27 @@ def createTree(inputDir, filename):
     overlapping_factor = array("f", [0.])
     outputTree.Branch("overlapping_factor", overlapping_factor, "overlapping_factor/F")
 
-    nEvents = inputFile.Events.GetEntries()
-    recoAttempts = 0
-    recoWorked = 0
+    thetall = array("f", [0.])
+    outputTree.Branch("thetall", thetall, "thetall/F")
+    thetal1b1 = array("f", [0.])
+    outputTree.Branch("thetal1b1", thetal1b1, "thetal1b1/F")
+    thetal2b2 = array("f", [0.])
+    outputTree.Branch("thetal2b2", thetal2b2, "thetal2b2/F")
 
-    ROOT.gROOT.ProcessLine('.L '+os.getcwd()+'/mt2Calculation/lester_mt2_bisect.h+') #Compile the code for the mt2 calculation
+    nEvents = inputFile.Events.GetEntries()
+    recoAttempts, recoWorked = 0, 0
+
+    #Compile the code for the mt2 calculation
+    ROOT.gROOT.ProcessLine('.L '+os.getcwd()+'/mt2Calculation/lester_mt2_bisect.h+')
 
     for index, ev in enumerate(inputFile.Events):
         if index % 100 == 0: #Update the loading bar every 100 events
             updateProgress(round(index/float(nEvents), 2))
     
+        #===================================================
         #Skimming and preselection
+        #===================================================
+
         try: #The third lepton is not always defined
             pt3 = ev.Lepton_pt[2]
         except:
@@ -156,12 +174,13 @@ def createTree(inputDir, filename):
 
         if ev.Lepton_pt[0] < 25. or ev.Lepton_pt[1] < 20. or pt3 > 10.: #Exactly two leptons
             continue
-        if ev.Lepton_pdgId[0]*ev.Lepton_pdgId[1] >= 0:
+        if ev.Lepton_pdgId[0]*ev.Lepton_pdgId[1] >= 0: #Opposite sign leptons only
             continue
 
         if ev.mll < 20.:
             continue
 
+        #The jet does not always exist, so let's check if it does exist
         try:
             jetpt1 = ev.CleanJet_pt[0]
         except:
@@ -174,33 +193,32 @@ def createTree(inputDir, filename):
 
         if jetpt1 < 30. or jetpt2 < 30.: #At least two jets with pt > 30 GeV
             continue
+        
+        #Additional cut removing events having less than one b-jet performed later, once the b-jets have been computed
 
-        #if index > 1000: #For testing only
-        #    continue
-
-        #Creation of new variables
-        #bjets collection
+        #===================================================
+        #b-jets collection creation
+        #===================================================
         jetIndexes = []
-        bJetIndexes = []
+        bJetIndexes = [] #Instead of keeping all the b-jets in a new collection, let's just keep in the trees their indexes to save memory
+
         ibjet = 0
-        for j, jet in enumerate(ev.CleanJet_pt): #For now, we only consider b jets from the clean jets collection
+        for j, jet in enumerate(ev.CleanJet_pt): #TOCHECK: For now, we only consider b-jets from the clean jets collection
             jetIndexes.append(j)
-            if ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.2217: #Loose WP for now
-                bJetIndexes.append(j)
-                bJetsIdx[ibjet] = j #Keep the bjets indexes in terms of CLEAN jets
+            if ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.2217: #TOCHECK: Loose WP for now
+                bJetIndexes.append(j) #Variable to use for the ttbar reco
+                bJetsIdx[ibjet] = j #Variable to keep in the tree
                 ibjet = ibjet + 1
 
         nbJet[0] = len(bJetIndexes)
 
-        #===================================================
-        #Additional variables based on the event kinematics
-        #===================================================
-        
-        if verbose:
-            print("===================================\n")
+        if len(bJetIndexes) == 0: #We don't consider events having less than 1 b-jet
+            continue 
 
-        Tb1   = TLorentzVector()
-        Tb2   = TLorentzVector()
+        #===================================================
+        #Kinematics definition
+        #===================================================
+
         Tlep1 = TLorentzVector()
         Tlep2 = TLorentzVector()
         Tnu1  = TLorentzVector()
@@ -212,101 +230,137 @@ def createTree(inputDir, filename):
                         
         Tnu1.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0) #Not needed for the ttbar reconstruction and not available, we can pass default values
         Tnu2.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0)
-        TMET.SetPtEtaPhiM(ev.PuppiMET_pt, -99.0, ev.PuppiMET_phi, -99.0)
+        TMET.SetPtEtaPhiM(ev.MET_pt, -99.0, ev.MET_phi, -99.0) #TOCHECK: use the MET or PUPPIMET?
+
+        #===================================================
+        #Ttbar reconstruction
+        #===================================================
+        
+        bJetCandidateIndexes = []
+        if len(bJetIndexes) > 1:
+            bJetCandidateIndexes = bJetIndexes
+        else: #If we have exactly one -bjet, then we keep it as the first element while the rest of the list will be made out of usual jets for which we will try to apply the ttbar reconstruction, to try and recover some efficiency of the b-tagging
+            bJetCandidateIndexes = bJetIndexes + jetIndexes
+
+        ttbarReco = runttbarReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes)
+        try:
+            ttbarSolution = ttbarReco[0] #nuSol object
+            orderedCombination = ttbarReco[1] #Boolean telling us wether the first lepton goes with the first b-jet (True), or the other way around (False)
+        except: #If the ttber reco did not work
+            ttbarSolution = None
+            orderedCombination = True
+
+        #Count the number of times the reco worked and create new variables
+        recoAttempts = recoAttempts + 1
+
+        if ttbarSolution is None: #The ttbar reco did not work so we fill the ttbar reco variables with with default values
+            overlapping_factor[0] = -99.0
+            dark_pt[0] = -99.0
+        else:
+            recoWorked = recoWorked + 1
+
+            #Compute the dark pt and all the needed variables from this particular combination
+            try:
+                overlapping_factor[0] = ttbarSolution.overlapingFactor(ttbarSolution.N, ttbarSolution.n_)
+                #if ttbarSolution.overlapingFactor(ttbarSolution.N, ttbarSolution.n_) < 0.2: #TOCHECK: put back this cut and tweak it?
+                dark_pt[0] = ttbarSolution.darkPt('DarkPt')
+            except:
+                overlapping_factor[0] = -99.0
+                dark_pt[0] = -99.0
+
+        #Keep the updated TLorentVectors in variables for the computation of the next variables
+        try:
+            Tb1Updated = ttbarSolution.b1
+            Tb2Updated = ttbarSolution.b2
+        except:
+            Tb1Updated = None
+            Tb2Updated = None
 
         #===================================================
         #MT2 computation
         #===================================================
 
-        #Invisible = ROOT.TVector3(ev.PuppiMET_pt, 0, ev.PuppiMET_phi)
-        mt2ll[0] = computeMT2(Tlep1, Tlep2, TMET, 0, 0) 
-        mt2bl[0] = computeMT2(Tlep1, Tlep2, TMET, 1, 0) 
+        mt2ll[0] = computeMT2(Tlep1, Tlep2, TMET, 0) 
+        try:
+            mt2bl[0] = computeMT2(Tlep1 + Tb1Updated, Tlep2 + Tb2Updated, TMET, 0) 
+        except:
+            mt2bl[0] = -99.0
 
         #===================================================
-        #Ttbar reconstruction
+        #Additional variables computation
         #===================================================
 
-        listOfBJetsCandidates = []
-        if len(bJetIndexes) == 0:
-            continue #We don't consider events having less than 1 bjet
-        elif len(bJetIndexes) > 1:
-            listOfBJetsCandidates = bJetIndexes
-        else: #If we have exactly one bjet, then we keep it as the first element of listOfBJetsCandidates while the rest of the list will be made out of usual jets for which we will try to apply the ttbar reconstruction, to try and recover some efficiency of the b-tagging
-            listOfBJetsCandidates = bJetIndexes + jetIndexes
+        #Variables bases on DESY's AN2016-240-v10
 
-        #We have different combinations to perform the reconstruction: we consider the association of the bjets with the two leptons, and we consider all the different bjets candidates
-        successfullCombinations = [] #List used to keep the lepton/b-jet indexes for which the reconstruction is working and all the new ttbar inv mass
-
-        for i, jet in enumerate(listOfBJetsCandidates):
-            if i == 0:
-                Tb1.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]]) #By construction, we know that the first element of listOfBJetsCandidates is a bjet
+        #cos(theta_i)*cos(theta_j), where (i,j) = (l+l-, l-b, l+bbar)
+        thetall[0] = math.cos(2*math.atan(math.exp(-Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-Tlep2.Eta())))
+        if ttbarSolution is not None:
+            if orderedCombination:
+                thetal1b1[0] = math.cos(2*math.atan(math.exp(-Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-Tb1Updated.Eta())))
+                thetal2b2[0] = math.cos(2*math.atan(math.exp(-Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-Tb2Updated.Eta())))
             else:
-                Tb2.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
-
-                mW1 = 80.38 #Mass of the W
-                mW2 = 80.38
-                mt1 = 173.0 #Mass of the top
-                mt2 = 173.0
-
-                if verbose:
-                    print("Tb1: " + str(Tb1.Print()))
-                    print("Tb2: " + str(Tb2.Print()))
-                    print("Lep1: " + str(Tlep1.Print()))
-                    print("Lep2: " + str(Tlep2.Print()))
-                    print("MET: " + str(TMET.Print()))
-                
-                try:
-                    nuSol=ttbar.solveNeutrino(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2)
-                    successfullCombinations.append([[0, listOfBJetsCandidates[0], 1, jet], (Tnu1+Tlep1+Tb1).M() + (Tnu2+Tlep2+Tb2).M(), nuSol]) 
-                except :
-                    if verbose: 
-                        print('There is no solution for the ttbar reconstruction for event number '+ str(index))
-                    
-                #Now we do the same by switching the two leptons since we do not know which lepton corresponds to which b-jet
-                try:
-                    nuSol=ttbar.solveNeutrino(Tb1, Tb2, Tlep2, Tlep1, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2)
-                    successfullCombinations.append([[0, jet, 1, listOfBJetsCandidates[0]], (Tnu1+Tlep1+Tb1).M() + (Tnu2+Tlep2+Tb2).M(), nuSol])             
-                except :
-                    if verbose:
-                        print('There is no solution for the ttbar reconstruction for event number '+ str(index))
-        
-        recoAttempts = recoAttempts + 1
-        if verbose: 
-            print 'Number of solutions', len(successfullCombinations) 
-
-        if len(successfullCombinations) == 0:
-            #The ttbar reco did not work so we fill the ttbar reco variables with with default values
-            dark_pt[0] = -99.0
-            overlapping_factor[0] = -99.0
+                thetal1b1[0] = math.cos(2*math.atan(math.exp(-Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-Tb2Updated.Eta())))
+                thetal2b2[0] = math.cos(2*math.atan(math.exp(-Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-Tb1Updated.Eta())))
         else:
-            recoWorked = recoWorked + 1 #Count the number of times the reco worked
+            thetal1b1[0] = -99.0
+            thetal2b2[0] = -99.0
 
-            #Keep the combination having the lowest ttbar invariant mass
-            indexLowestInvMass = -1
-            lowestInvMass = 100000
-            for i, combination in enumerate(successfullCombinations):
-                invMass = combination[1]
-                if invMass < lowestInvMass:
-                    indexLowestInvMass = i
-                    lowestInvMass = invMass
-
-            #Compute the dark pt and all the needed variables from this particular combination
-            bestNuSol = successfullCombinations[indexLowestInvMass][2]
-            try:
-                overlapping_factor[0] = bestNuSol.overlapingFactor(bestNuSol.N,bestNuSol.n_)
-                #if bestNuSol.overlapingFactor(bestNuSol.N,bestNuSol.n_) < 0.2: #0.2 to be tweaked?
-                dark_pt[0] = bestNuSol.darkPt('DarkPt')
-            except:
-                overlapping_factor[0] = -99.0
-                dark_pt[0] = -99.0
+        #cos(phi) for the same (i,j) but in the rest frame
 
         outputTree.Fill()
 
-    print 'The ttbar reconstruction worked for ' + str(round((recoWorked/float(recoAttempts))*100, 2)) + '% of the events considered'
+    print '\nThe ttbar reconstruction worked for ' + str(round((recoWorked/float(recoAttempts))*100, 2)) + '% of the events considered'
 
     outputTree.Write()
     inputFile.Close()
     outputFile.Close()
+
+def runttbarReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes):
+
+    Tb1   = TLorentzVector()
+    Tb2   = TLorentzVector()
+
+    #We have different combinations to perform the reconstruction: we consider the association of the bjets with the two leptons, and we consider all the different bjets candidates
+    solution = None #The output of this function, containing a nuSol object and the winning lepton/b-jet combination
+    minInvariantMass = 10000. #The solution to return will be the one having the smallest ttbar invariant mass
+
+    for i, jet in enumerate(bJetCandidateIndexes):
+        if i == 0:
+            Tb1.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[jet]) #By construction, we know that the first element of bJetCandidateIndexes is a b-jet
+        else:
+            Tb2.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[jet])
+
+            mW1 = 80.38 #Mass of the W
+            mW2 = 80.38
+            mt1 = 173.0 #Mass of the top
+            mt2 = 173.0
+
+            if verbose:
+                print("Tb1: " + str(Tb1.Print()))
+                print("Tb2: " + str(Tb2.Print()))
+                print("Lep1: " + str(Tlep1.Print()))
+                print("Lep2: " + str(Tlep2.Print()))
+                print("MET: " + str(TMET.Print()))
+                
+            try: #The ttbar reco is going to overwrite the tlorentz vector given as input, so let's pass to the function a copy of these objects
+                nuSol = ttbar.solveNeutrino(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2)
+                if (Tnu1+Tlep1+Tb1).M() + (Tnu2+Tlep2+Tb2).M() < minInvariantMass:
+                    solution = [nuSol, True]
+            except : #The reconstruction did not work
+                if verbose: 
+                    print('There is no solution for the ttbar reconstruction for event number '+ str(index))
+                    
+            #Now we do the same by switching the two leptons since we do not know which lepton corresponds to which b-jet
+            try:
+                nuSol = ttbar.solveNeutrino(Tb1, Tb2, Tlep2, Tlep1, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2)
+                if (Tnu1+Tlep1+Tb1).M() + (Tnu2+Tlep2+Tb2).M() < minInvariantMass:
+                    solution = [nuSol, False]
+            except :
+                if verbose:
+                    print('There is no solution for the ttbar reconstruction for event number '+ str(index))
+        
+    return solution
+
 
 def computeMT2(VisibleA, VisibleB, Invisible, MT2Type = 0, MT2Precision = 0) :
 
@@ -344,6 +398,7 @@ def computeMT2(VisibleA, VisibleB, Invisible, MT2Type = 0, MT2Precision = 0) :
                                                  desiredPrecisionOnMt2)
     
     return mT2
+
 
 if __name__ == "__main__":
     # =========================================== 
