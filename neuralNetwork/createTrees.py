@@ -1,4 +1,5 @@
 #Code used to read the input files for dnn.py and create additional variables we use for the discrimination
+import ROOT
 from ROOT import TFile, TTree, TLorentzVector
 from array import array
 import optparse
@@ -6,7 +7,7 @@ import os, sys, fnmatch
 
 import numpy as np
 LinAlgError = np.linalg.linalg.LinAlgError
-import ttbar #ttbar reconstruction
+from ttbarReco import ttbar #ttbar reconstruction
 
 #=========================================================================================================
 # HELPERS
@@ -82,7 +83,7 @@ def createTree(inputDir, filename):
     outputTree.SetBranchStatus("MET_pt", 1);
     outputTree.SetBranchStatus("TkMET_pt", 1);
     outputTree.SetBranchStatus("MET_significance", 1);
-    outputTree.SetBranchStatus("mT2", 1);
+    outputTree.SetBranchStatus("mT2", 1); #mT2 computed by Latino
     outputTree.SetBranchStatus("dphill", 1);
     outputTree.SetBranchStatus("dphillmet", 1);
     outputTree.SetBranchStatus("mll", 1);
@@ -127,6 +128,11 @@ def createTree(inputDir, filename):
     bJetsIdx = array("i", 10*[0])
     outputTree.Branch("bJetsIdx", bJetsIdx, "bJetsIdx[nbJet]/I")
 
+    mt2ll = array("f", [0.])
+    outputTree.Branch("mt2ll", mt2ll, "mt2ll/F")
+    mt2bl = array("f", [0.])
+    outputTree.Branch("mt2bl", mt2bl, "mt2bl/F")
+
     dark_pt = array("f", [0.])
     outputTree.Branch("dark_pt", dark_pt, "dark_pt/F")
     overlapping_factor = array("f", [0.])
@@ -135,6 +141,8 @@ def createTree(inputDir, filename):
     nEvents = inputFile.Events.GetEntries()
     recoAttempts = 0
     recoWorked = 0
+
+    ROOT.gROOT.ProcessLine('.L '+os.getcwd()+'/mt2Calculation/lester_mt2_bisect.h+') #Compile the code for the mt2 calculation
 
     for index, ev in enumerate(inputFile.Events):
         if index % 100 == 0: #Update the loading bar every 100 events
@@ -185,7 +193,7 @@ def createTree(inputDir, filename):
         nbJet[0] = len(bJetIndexes)
 
         #===================================================
-        #Ttbar reconstruction
+        #Additional variables based on the event kinematics
         #===================================================
         
         if verbose:
@@ -198,7 +206,26 @@ def createTree(inputDir, filename):
         Tnu1  = TLorentzVector()
         Tnu2  = TLorentzVector()
         TMET  = TLorentzVector()
-        
+
+        Tlep1.SetPtEtaPhiM(ev.Lepton_pt[0], ev.Lepton_eta[0], ev.Lepton_phi[0], 0.000511 if (abs(ev.Lepton_pdgId[0]) == 11) else 0.106)
+        Tlep2.SetPtEtaPhiM(ev.Lepton_pt[1], ev.Lepton_eta[1], ev.Lepton_phi[1], 0.000511 if (abs(ev.Lepton_pdgId[1]) == 11) else 0.106)
+                        
+        Tnu1.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0) #Not needed for the ttbar reconstruction and not available, we can pass default values
+        Tnu2.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0)
+        TMET.SetPtEtaPhiM(ev.PuppiMET_pt, -99.0, ev.PuppiMET_phi, -99.0)
+
+        #===================================================
+        #MT2 computation
+        #===================================================
+
+        #Invisible = ROOT.TVector3(ev.PuppiMET_pt, 0, ev.PuppiMET_phi)
+        mt2ll[0] = computeMT2(Tlep1, Tlep2, TMET, 0, 0) 
+        mt2bl[0] = computeMT2(Tlep1, Tlep2, TMET, 1, 0) 
+
+        #===================================================
+        #Ttbar reconstruction
+        #===================================================
+
         listOfBJetsCandidates = []
         if len(bJetIndexes) == 0:
             continue #We don't consider events having less than 1 bjet
@@ -210,17 +237,11 @@ def createTree(inputDir, filename):
         #We have different combinations to perform the reconstruction: we consider the association of the bjets with the two leptons, and we consider all the different bjets candidates
         successfullCombinations = [] #List used to keep the lepton/b-jet indexes for which the reconstruction is working and all the new ttbar inv mass
 
-        Tlep1.SetPtEtaPhiM(ev.Lepton_pt[0], ev.Lepton_eta[0], ev.Lepton_phi[0], 0.000511 if (abs(ev.Lepton_pdgId[0]) == 11) else 0.106)
-        Tlep2.SetPtEtaPhiM(ev.Lepton_pt[1], ev.Lepton_eta[1], ev.Lepton_phi[1], 0.000511 if (abs(ev.Lepton_pdgId[1]) == 11) else 0.106)
-                        
         for i, jet in enumerate(listOfBJetsCandidates):
             if i == 0:
                 Tb1.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]]) #By construction, we know that the first element of listOfBJetsCandidates is a bjet
             else:
                 Tb2.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
-                Tnu1.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0) #Not needed for the ttbar reconstruction and not available, we can pass default values
-                Tnu2.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0)
-                TMET.SetPtEtaPhiM(ev.PuppiMET_pt, -99.0, ev.PuppiMET_phi, -99.0)
 
                 mW1 = 80.38 #Mass of the W
                 mW2 = 80.38
@@ -286,6 +307,43 @@ def createTree(inputDir, filename):
     outputTree.Write()
     inputFile.Close()
     outputFile.Close()
+
+def computeMT2(VisibleA, VisibleB, Invisible, MT2Type = 0, MT2Precision = 0) :
+
+    mVisA = abs(VisibleA.M())  # Mass of visible object on side A. Must be >= 0
+    mVisB = abs(VisibleB.M())  # Mass of visible object on side B. Must be >= 0
+
+    chiA = 0.  # Hypothesized mass of invisible on side A. Must be >= 0
+    chiB = 0.  # Hypothesized mass of invisible on side B. Must be >= 0
+  
+    if MT2Type== 1 : # This is for mt2 with b jets
+
+        mVisA =  5.
+        mVisB =  5.
+        chiA  = 80.
+        chiB  = 80.
+            
+    pxA = VisibleA.Px()  # x momentum of visible object on side A
+    pyA = VisibleA.Py()  # y momentum of visible object on side A
+    
+    pxB = VisibleB.Px()  # x momentum of visible object on side B
+    pyB = VisibleB.Py()  # y momentum of visible object on side B
+        
+    pxMiss = Invisible.Px()  # x component of missing transverse momentum
+    pyMiss = Invisible.Py()  # y component of missing transverse momentum
+        
+    # Must be >= 0
+    # If = 0 algorithm aims for machine precision
+    # If > 0 MT2 computed to supplied absolute precision
+    desiredPrecisionOnMt2 = MT2Precision
+    
+    mT2 = ROOT.asymm_mt2_lester_bisect().get_mT2(mVisA, pxA, pyA,
+                                                 mVisB, pxB, pyB,
+                                                 pxMiss, pyMiss,
+                                                 chiA, chiB,
+                                                 desiredPrecisionOnMt2)
+    
+    return mT2
 
 if __name__ == "__main__":
     # =========================================== 

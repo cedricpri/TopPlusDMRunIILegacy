@@ -17,8 +17,8 @@ import os, fnmatch
 #DESY variables
 thetal0 = "TMath::Cos(2*TMath::ATan(exp(-Lepton_eta[0])))"
 thetal1 = "TMath::Cos(2*TMath::ATan(exp(-Lepton_eta[1])))"
-thetab = "TMath::Cos(2*TMath::ATan(exp(-CleanbJet_eta[0])))"
-thetab2 = "TMath::Cos(2*TMath::ATan(exp(-CleanbJet_eta[1])))"
+thetab = "TMath::Cos(2*TMath::ATan(exp(-CleanJet_eta[bJetsIdx[0]])))"
+thetab2 = "TMath::Cos(2*TMath::ATan(exp(-CleanJet_eta[bJetsIdx[1]])))"
 thetal0l1 = thetal0 + "*" + thetal1
 thetal0b = thetal0 + "*" + thetab
 thetal1b = thetal1 + "*" + thetab
@@ -48,7 +48,8 @@ background = opts.background
 # ===========================================
 TMVA.Tools.Instance()
 TMVA.PyMethodBase.PyInitialize()
-output = TFile.Open('TMVA_'+signal+'.root', 'RECREATE')
+#output = TFile.Open('TMVA_'+signal+'.root', 'RECREATE')
+output = TFile.Open('TMVA.root', 'RECREATE')
 factory = TMVA.Factory('TMVAClassification', output, '!V:!Silent:Color:DrawProgressBar:AnalysisType=Classification')
 
 # ===========================================
@@ -74,20 +75,19 @@ canvas = TCanvas("canvas")
 canvas.cd()
 
 backgroundChain.Draw("Lepton_pt[1]")
-"""
-signalTree = signalChain.GetTree()
-dataloader.AddSignalTree(signalTree, 1.0)
-backgroundTree = backgroundChain.GetTree()
-dataloader.AddBackgroundTree(backgroundTree, 1.0)
+signalTree = signalChain #We can actually feed directly a Tchain to TMVA, no need to get the tree
+dataloader.AddSignalTree(signalTree)
+backgroundTree = backgroundChain
+dataloader.AddBackgroundTree(backgroundTree)
 
 #Define the training and testing samples
-nSignal = signalChain.GetTree().GetEntries()
-nBackground = backgroundChain.GetTree().GetEntries()
+nSignal = signalChain.GetEntries()
+nBackground = backgroundChain.GetEntries()
 
-nTrain_Signal = int(nSignal/100*10) #10% for now
-nTrain_Background = int(nBackground/100*10)
-nTest_Signal = int(nSignal/100*5)
-nTest_Background = int(nBackground/100*5)
+nTrain_Signal = str(int(nSignal/100*10)) #10% for now
+nTrain_Background = str(int(nBackground/100*10))
+nTest_Signal = str(int(nSignal/100*5))
+nTest_Background = str(int(nBackground/100*5))
 
 dataloader.PrepareTrainingAndTestTree(TCut(''), 'nTrain_Signal='+nTrain_Signal+':nTrain_Background='+nTrain_Background+':nTest_Signal='+nTest_Signal+':nTest_Background='+nTest_Background+':SplitMode=Block:NormMode=NumEvents:!V')
 
@@ -116,13 +116,13 @@ except:
     os.makedirs(outputDirectory)
 
 # Store model
-plot_model(model, to_file=outputDirectory+'model.png')
+#plot_model(model, to_file=outputDirectory+'model.png')
 model.save(outputDirectory+'model.h5')
 model.summary() #Print the summary of the model compiled
 
 # Book method
-factory.BookMethod(dataloader, TMVA.Types.kBDT, 'BDT', '!H:!V')
-factory.BookMethod(dataloader, TMVA.Types.kFisher, 'Fisher', 'NTrees=100:MaxDepth=10:AdaBoostBeta=0.5:!H:!V:Fisher')
+factory.BookMethod(dataloader, TMVA.Types.kBDT, 'BDT', 'NTrees=100:MaxDepth=10:AdaBoostBeta=0.5:!H:!V')
+factory.BookMethod(dataloader, TMVA.Types.kFisher, 'Fisher', '!H:!V:Fisher')
 factory.BookMethod(dataloader, TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel='+outputDirectory+'model.h5:NumEpochs=30:BatchSize=64:TriesEarlyStopping=5')
 factory.BookMethod(dataloader, TMVA.Types.kLikelihood, 'LikelihoodD', '!H:!V:!TransformOutput:PDFInterpol=Spline2:NSmoothSig[0]=20:NSmoothBkg[0]=20:NSmooth=5:NAvEvtPerBin=50')
 
@@ -133,4 +133,3 @@ factory.BookMethod(dataloader, TMVA.Types.kLikelihood, 'LikelihoodD', '!H:!V:!Tr
 factory.TrainAllMethods()
 factory.TestAllMethods()
 factory.EvaluateAllMethods()
-"""
