@@ -44,6 +44,10 @@ def createTree(inputDir, filename):
 
     print("\n\n --> Now considering file... " + filename)
 
+    #Get the generation mlb shape, used to compute the weights and found in mlb.root after running the generateMLB.py script
+    mlbFile = ROOT.TFile("mlb.root", "r")
+    mlbshape = mlbFile.Get("mlb")
+
     inputFile = TFile.Open(inputDir+filename, "r")
     inputTree = inputFile.Get("Events")
 
@@ -142,6 +146,8 @@ def createTree(inputDir, filename):
     mt2bl = array("f", [0.])
     outputTree.Branch("mt2bl", mt2bl, "mt2bl/F")
 
+    reco_weight = array("f", [0.])
+    outputTree.Branch("reco_weight", reco_weight, "reco_weight/F")
     dark_pt = array("f", [0.])
     outputTree.Branch("dark_pt", dark_pt, "dark_pt/F")
     overlapping_factor = array("f", [0.])
@@ -158,10 +164,6 @@ def createTree(inputDir, filename):
 
     nEvents = inputFile.Events.GetEntries()
     nAttempts, nWorked = 0, 0
-
-    #Get the generation mlb shape, used to compute the weights and found in mlb.root after running the generateMLB.py script
-    mlbFile = ROOT.TFile("mlb.root", "r")
-    mlbshape = mlbFile.Get("mlb")
 
     #Compile the code for the mt2 calculation
     ROOT.gROOT.ProcessLine('.L '+os.getcwd()+'/mt2Calculation/lester_mt2_bisect.h+')
@@ -259,38 +261,27 @@ def createTree(inputDir, filename):
         nAttempts = nAttempts + 1 #Count the number of times the reco worked
         if Tb1Updated is not None and Tb2Updated is not None:
             if Tnu1Updated is not None and Tnu2Updated is not None: #The reconstruction worked
-                recoWorked = True
-                nWorked = nWorked + 1
+                if nuSol is not None:
+                    recoWorked = True
+                    nWorked = nWorked + 1
 
         #===================================================
         #Dark pt and overlapping factor
         #===================================================
 
         if recoWorked: 
+            reco_weight[0] = recoOutput[3]
+
             #Compute the dark pt and all the needed variables from this particular combination
             try:
                 overlapping_factor[0] = nuSol.overlapingFactor(nuSol.N, nuSol.n_)
                 #if nuSol.overlapingFactor(nuSol.N, nuSol.n_) < 0.2: #TOCHECK: put back this cut and tweak it?
                 dark_pt[0] = nuSol.darkPt('DarkPt')
-                
-                """
-                #Plot the ellipses if needed
-                m,b=nuSol.ellipseSeparation(nuSol.N,nuSol.n_,'LineParameters')
-                x=np.r_[-600:600]
-                plt.plot(x,m*x+b);
-                plt.show()
-                nuSol.darkPt('ttbarEllipse')
-                nuSol.plotEllipse(nuSol.N,'black')
-                nuSol.plotEllipse(nuSol.n_,'red')
-                
-                plt.savefig('ElipsesDARKPT/Elipse'+str(index)+'.png')
-                plt.clf()
-                """
-
             except:
                 overlapping_factor[0] = -99.0
                 dark_pt[0] = -99.0
         else: #Some variables have to be set the non-physical default values if the reconstruction did not work
+            reco_weight[0] = -999.0
             overlapping_factor[0] = -999.0 #-999 is the default value if the reconstruction did not work
             dark_pt[0] = -999.0
 
@@ -342,6 +333,7 @@ def createTree(inputDir, filename):
 
     outputTree.Write()
     inputFile.Close()
+    mlbFile.Close()
     outputFile.Close()
 
 
@@ -354,8 +346,8 @@ def runReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes, mlbshape):
     Tb1   = TLorentzVector()
     Tb2   = TLorentzVector()
 
-    maxWeight = -1. #The best jet will be the one maximizing this value
-    Tnu1Optimal, Tnu2Optimal = None, None #Best is considered over the possible solution, optimal is additionally the best solution and the best jet
+    maxWeight = -9999. #The best jet will be the one maximizing this value
+    Tnu1Optimal, Tnu2Optimal = None, None
     Tb2Optimal = None
     nuSolOptimal = None #Return the nuSOl object as well
 
@@ -364,11 +356,20 @@ def runReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes, mlbshape):
             Tb1.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]]) #By construction, we know that the first element of bJetCandidateIndexes is a b-jet
         else:
             Tb2.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
-            
+
             mW1, mW2 = 80.379, 80.379
-            mt1, mt2 = 173.0, 173.0 #TOCHECK: use a Breit-Wigner as well?
+            mt1, mt2 = 173.0, 173.0
 
             smearing = runSmearing(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2, mlbshape) #Find the best solution for the jet considered
+            solution, sumWeight = smearing[0], smearing[1]
+            if sumWeight > maxWeight:
+                weightOptimal = sumWeight
+                Tnu1Optimal, Tnu2Optimal = solution[0][0], solution[0][1]
+                Tb2Optimal = Tb1, Tb2
+                nuSolOptimal = solution[1]
+
+            #Do the same by inverting the leptons
+            smearing = runSmearing(Tb1, Tb2, Tlep2, Tlep1, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2, mlbshape) 
             solution, sumWeight = smearing[0], smearing[1]
             if sumWeight > maxWeight:
                 weightOptimal = sumWeight
@@ -376,7 +377,7 @@ def runReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes, mlbshape):
                 Tb2Optimal = Tb2
                 nuSolOptimal = solution[1]
 
-    return [[Tnu1Optimal, Tnu2Optimal], [Tb1, Tb2Optimal], nuSolOptimal]
+    return [[Tnu1Optimal, Tnu2Optimal], [Tb1, Tb2Optimal], nuSolOptimal, weightOptimal]
 
 
 def runSmearing(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2, mlbshape):
@@ -393,7 +394,7 @@ def runSmearing(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2, ml
     sumWeight = 0
     initialSolution = findBestSolution(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2)
 
-    for n in range(0, 100):
+    for n in range(0):
         #Update the W mass
         mW1Updated = rand.BreitWigner(mW1, 2.085)
         mW2Updated = rand.BreitWigner(mW2, 2.085)
@@ -404,12 +405,17 @@ def runSmearing(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2, ml
         
         #Update the jets
         Tb1Uncertainty = rand.Gaus(0, 0.3) * Tb1.E() 
-        Tb2Uncertainty = rand.Gaus(0, 0.3) * Tb2Optimal.E() 
-        ptCorrection1 = math.sqrt((Tb1.E() + Tb1Uncertainty)**2 - tb1.M()**2)/Tb1.P()
-        ptCorrection2 = math.sqrt((Tb2.E() + Tb2Uncertainty)**2 - tb2.M()**2)/Tb2.P()
-        
-        Tb1Updated.SetPtEtaPhi(Tb1.Pt()*ptCorrection1, Tb1.Eta(), Tb1.Phi(), Tb1.M())
-        Tb2Updated.SetPtEtaPhi(Tb2.Pt()*ptCorrection2, Tb2.Eta(), Tb2.Phi(), Tb2.M())
+        Tb2Uncertainty = rand.Gaus(0, 0.3) * Tb2.E() 
+        try:
+            ptCorrection1 = math.sqrt((Tb1.E() + Tb1Uncertainty)**2 - Tb1.M()**2)/Tb1.P()
+            ptCorrection2 = math.sqrt((Tb2.E() + Tb2Uncertainty)**2 - Tb2.M()**2)/Tb2.P()
+        except:
+            ptCorrection1 = 1.0
+            ptCorrection2 = 1.0
+            print("ptCorrection set to 1 for math domain error")
+
+        Tb1Updated.SetPtEtaPhiM(Tb1.Pt()*ptCorrection1, Tb1.Eta(), Tb1.Phi(), Tb1.M())
+        Tb2Updated.SetPtEtaPhiM(Tb2.Pt()*ptCorrection2, Tb2.Eta(), Tb2.Phi(), Tb2.M())
 
         #TOCHECK: Update the leptons as wel?
         Tlep1Updated = Tlep1
@@ -418,13 +424,13 @@ def runSmearing(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2, ml
         #TODO: Perform the angular smearing
             
         #Update the MET
-        TVector2 deltaP1(Tb1Updated.Px() - Tb1.Px(), Tb1Updated.Py() - Tb1.Py())
-        TVector2 deltaP2(Tb2Updated.Px() - Tb2.Px(), Tb2Updated.Py() - Tb2.Py())
-        TMETUpdated = TMET + DeltaP1 + DeltaP2
+        deltaP1 = TLorentzVector(Tb1Updated.Px() - Tb1.Px(), Tb1Updated.Py() - Tb1.Py(), 0, 0)
+        deltaP2 = TLorentzVector(Tb2Updated.Px() - Tb2.Px(), Tb2Updated.Py() - Tb2.Py(), 0, 0)
+        TMETUpdated = TMET + deltaP1 + deltaP2
         
         #Solve with the new parameters
         solution = findBestSolution(Tb1Updated, Tb2Updated, Tlep1Updated, Tlep2Updated, Tnu1, Tnu2, TMETUpdated, mW1Updated, mW2Updated, mt1Updated, mt2Updated)
-        sumWeight = sumWeight + getWeight(solution)
+        sumWeight = sumWeight + getWeight(solution, mlbshape)
 
     return [initialSolution, sumWeight]
 
@@ -448,33 +454,18 @@ def findBestSolution(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt
     minInvMass = 9999999.
 
     if nuSol is not None:
-        for s, possibleSolution in enumerate(nuSol.solution): #The reconstruction can give either 0, 2 or 4 solutions
-            
-            Tnu1.SetPxPyPzE(possibleSolution[0][0], possibleSolution[0][1], possibleSolution[0][2], math.sqrt(possibleSolution[0][0]**2 + possibleSolution[0][1]**2 + possibleSolution[0][2]**2)) #TOCHECK: value of the total momentum (=energy) of a neutrino
-            Tnu2.SetPxPyPzE(possibleSolution[1][0], possibleSolution[1][1], possibleSolution[1][2], math.sqrt(possibleSolution[1][0]**2 + possibleSolution[1][1]**2 + possibleSolution[1][2]**2)) #possibleSolution[0] is the neutrino, possibleSolution[0][0] its momentum along the x-axis
-
-            invMass = (Tnu1+Tlep1+Tb1).M() + (Tnu2+Tlep2+Tb2).M()
-            if invMass < minInvMass:
-                minInvMass = minInvMass
-                Tnu1Best, Tnu2Best = Tnu1, Tnu2
+        try:
+            for s, possibleSolution in enumerate(nuSol.solution): #The reconstruction can give either 0, 2 or 4 solutions
+                Tnu1.SetPxPyPzE(possibleSolution[0][0], possibleSolution[0][1], possibleSolution[0][2], math.sqrt(possibleSolution[0][0]**2 + possibleSolution[0][1]**2 + possibleSolution[0][2]**2)) #TOCHECK: value of the total momentum (=energy) of a neutrino
+                Tnu2.SetPxPyPzE(possibleSolution[1][0], possibleSolution[1][1], possibleSolution[1][2], math.sqrt(possibleSolution[1][0]**2 + possibleSolution[1][1]**2 + possibleSolution[1][2]**2)) #possibleSolution[0] is the neutrino, possibleSolution[0][0] its momentum along the x-axis
+                invMass = (Tnu1+Tlep1+Tb1).M() + (Tnu2+Tlep2+Tb2).M()
+                if invMass < minInvMass:
+                    minInvMass = minInvMass
+                    Tnu1Best, Tnu2Best = Tnu1, Tnu2
+        except:
+            pass
 
     return [[Tnu1Best, Tnu2Best], nuSol]
-
-
-def findBestCombination(solution): #Takes as argument a [[Tnu1Best, Tnu2Best], nuSol] list, from which we can get all the parameters we need   
-    """
-    Function computing the best lepton/b-jet combination based on the invariant mass of the system.
-    """
-    correctOrder = True #Boolean to keep if the lepton1 goes with b-jet 1 or not
-
-    #Check which lepton/b-jet combination gives the lowest invariant mass
-    invMass1 = (solution[1].b1 + solution[1].mu1 + solution[0][0]).M() + (solution[1].b2 + solution[1].mu2 + solution[0][1]).M()
-    invMass2 = (solution[1].b1 + solution[1].mu2 + solution[0][1]).M() + (solution[1].b2 + solution[1].mu1 + solution[0][0]).M()
-    if invMass2 < invMass1:
-        correctOrder = False
-
-    return correctOrder
-"""
 
 
 def getWeight(solution, mlbshape): #Takes as argument a [[Tnu1Best, Tnu2Best], nuSol] list and the generation mlb histogram, from which we can get all the parameters we need
@@ -482,19 +473,18 @@ def getWeight(solution, mlbshape): #Takes as argument a [[Tnu1Best, Tnu2Best], n
     Function computing the weight associated to a solution by comparing the mlb and mlb_ obtained with the one obtained from generation (generateMLB.py)
     """
 
-    #Let's compute mlb and mlb_ based on the correctOrder boolean
-    if correctOrder:
+    if solution[1] is not None:
+        #Let's compute mlb and mlb_ based on the correctOrder boolean
         mlb = (solution[1].mu1 + solution[1].b1).M()
         mlb_ = (solution[1].mu2 + solution[1].b2).M()
-    else:
-        mlb = (solution[1].mu1 + solution[1].b2).M()
-        mlb_ = (solution[1].mu2 + solution[1].b1).M()
-
-    #Compare these values with the one obtained from generation
-    truemlb = mlbshape.GetBinContent(mlbshape.FindBin(mlb))
-    truemlb_ = mlbshape.GetBinContent(mlbshape.FindBin(mlb_))
     
-    return truemlb * truemlb_
+        #Compare these values with the one obtained from generation
+        truemlb = mlbshape.GetBinContent(mlbshape.FindBin(mlb))
+        truemlb_ = mlbshape.GetBinContent(mlbshape.FindBin(mlb_))
+    
+        return truemlb * truemlb_
+    else:
+        return 1.0
 
 
 def computeMT2(VisibleA, VisibleB, Invisible, MT2Type = 0, MT2Precision = 0) :
