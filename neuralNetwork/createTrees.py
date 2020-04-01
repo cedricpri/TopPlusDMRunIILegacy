@@ -5,7 +5,7 @@ import optparse
 import os, sys, fnmatch
 
 #Class for the ttbar reconstruction
-from eventKinematic import EventKinematic
+from ttbar.eventKinematic import EventKinematic
 
 #=========================================================================================================
 # HELPERS
