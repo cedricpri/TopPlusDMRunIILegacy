@@ -6,6 +6,7 @@ import optparse
 import os, sys, fnmatch
 
 import math
+import matplotlib.pyplot as plt
 import numpy as np
 from ttbarReco import ttbar #ttbar reconstruction
 LinAlgError = np.linalg.linalg.LinAlgError
@@ -152,9 +153,11 @@ def createTree(inputDir, filename):
     outputTree.Branch("thetal1b1", thetal1b1, "thetal1b1/F")
     thetal2b2 = array("f", [0.])
     outputTree.Branch("thetal2b2", thetal2b2, "thetal2b2/F")
+    cosphill = array("f", [0.])
+    outputTree.Branch("cosphill", cosphill, "cosphill/F")
 
     nEvents = inputFile.Events.GetEntries()
-    recoAttempts, recoWorked = 0, 0
+    nAttempts, nWorked = 0, 0
 
     #Compile the code for the mt2 calculation
     ROOT.gROOT.ProcessLine('.L '+os.getcwd()+'/mt2Calculation/lester_mt2_bisect.h+')
@@ -227,10 +230,9 @@ def createTree(inputDir, filename):
 
         Tlep1.SetPtEtaPhiM(ev.Lepton_pt[0], ev.Lepton_eta[0], ev.Lepton_phi[0], 0.000511 if (abs(ev.Lepton_pdgId[0]) == 11) else 0.106)
         Tlep2.SetPtEtaPhiM(ev.Lepton_pt[1], ev.Lepton_eta[1], ev.Lepton_phi[1], 0.000511 if (abs(ev.Lepton_pdgId[1]) == 11) else 0.106)
-                        
         Tnu1.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0) #Not needed for the ttbar reconstruction and not available, we can pass default values
         Tnu2.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0)
-        TMET.SetPtEtaPhiM(ev.MET_pt, -99.0, ev.MET_phi, -99.0) #TOCHECK: use the MET or PUPPIMET?
+        TMET.SetPtEtaPhiM(ev.MET_pt, 0.0, ev.MET_phi, 0.0) #TOCHECK: use the MET or PUPPIMET?
 
         #===================================================
         #Ttbar reconstruction
@@ -242,49 +244,64 @@ def createTree(inputDir, filename):
         else: #If we have exactly one -bjet, then we keep it as the first element while the rest of the list will be made out of usual jets for which we will try to apply the ttbar reconstruction, to try and recover some efficiency of the b-tagging
             bJetCandidateIndexes = bJetIndexes + jetIndexes
 
-        ttbarReco = runttbarReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes)
-        try:
-            ttbarSolution = ttbarReco[0] #nuSol object
-            orderedCombination = ttbarReco[1] #Boolean telling us wether the first lepton goes with the first b-jet (True), or the other way around (False)
-        except: #If the ttber reco did not work
-            ttbarSolution = None
-            orderedCombination = True
+        recoOutput = runReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes)
+        Tb1Updated = recoOutput[0][0]
+        Tb2Updated = recoOutput[0][1]
+        Tnu1Updated = recoOutput[1][0]
+        Tnu2Updated = recoOutput[1][1]
+        nuSol = recoOutput[2] #Optimal nuSol object
 
-        #Count the number of times the reco worked and create new variables
-        recoAttempts = recoAttempts + 1
+        recoWorked = False
+        nAttempts = nAttempts + 1 #Count the number of times the reco worked
+        if Tb1Updated is not None and Tb2Updated is not None:
+            if Tnu1Updated is not None and Tnu2Updated is not None: #The reconstruction worked
+                recoWorked = True
+                nWorked = nWorked + 1
 
-        if ttbarSolution is None: #The ttbar reco did not work so we fill the ttbar reco variables with with default values
-            overlapping_factor[0] = -99.0
-            dark_pt[0] = -99.0
-        else:
-            recoWorked = recoWorked + 1
+        #===================================================
+        #Dark pt and overlapping factor
+        #===================================================
 
+        if recoWorked: 
             #Compute the dark pt and all the needed variables from this particular combination
             try:
-                overlapping_factor[0] = ttbarSolution.overlapingFactor(ttbarSolution.N, ttbarSolution.n_)
-                #if ttbarSolution.overlapingFactor(ttbarSolution.N, ttbarSolution.n_) < 0.2: #TOCHECK: put back this cut and tweak it?
-                dark_pt[0] = ttbarSolution.darkPt('DarkPt')
+                overlapping_factor[0] = nuSol.overlapingFactor(nuSol.N, nuSol.n_)
+                #if nuSol.overlapingFactor(nuSol.N, nuSol.n_) < 0.2: #TOCHECK: put back this cut and tweak it?
+                dark_pt[0] = nuSol.darkPt('DarkPt')
+                
+                """
+                #Plot the ellipses if needed
+                m,b=nuSol.ellipseSeparation(nuSol.N,nuSol.n_,'LineParameters')
+                x=np.r_[-600:600]
+                plt.plot(x,m*x+b);
+                plt.show()
+                nuSol.darkPt('ttbarEllipse')
+                nuSol.plotEllipse(nuSol.N,'black')
+                nuSol.plotEllipse(nuSol.n_,'red')
+                
+                plt.savefig('ElipsesDARKPT/Elipse'+str(index)+'.png')
+                plt.clf()
+                """
+
             except:
                 overlapping_factor[0] = -99.0
                 dark_pt[0] = -99.0
-
-        #Keep the updated TLorentVectors in variables for the computation of the next variables
-        try:
-            Tb1Updated = ttbarSolution.b1
-            Tb2Updated = ttbarSolution.b2
-        except:
-            Tb1Updated = None
-            Tb2Updated = None
+        else: #Some variables have to be set the non-physical default values if the reconstruction did not work
+            overlapping_factor[0] = -999.0 #-999 is the default value if the reconstruction did not work
+            dark_pt[0] = -999.0
 
         #===================================================
         #MT2 computation
         #===================================================
 
         mt2ll[0] = computeMT2(Tlep1, Tlep2, TMET, 0) 
-        try:
-            mt2bl[0] = computeMT2(Tlep1 + Tb1Updated, Tlep2 + Tb2Updated, TMET, 0) 
-        except:
-            mt2bl[0] = -99.0
+        if recoWorked:
+            try:
+                mt2bl[0] = computeMT2(Tlep1 + Tb1Updated, Tlep2 + Tb2Updated, TMET, 0) 
+            except:
+                mt2bl[0] = -99.0
+        else:
+            mt2bl[0] = -999.0
 
         #===================================================
         #Additional variables computation
@@ -294,72 +311,156 @@ def createTree(inputDir, filename):
 
         #cos(theta_i)*cos(theta_j), where (i,j) = (l+l-, l-b, l+bbar)
         thetall[0] = math.cos(2*math.atan(math.exp(-Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-Tlep2.Eta())))
-        if ttbarSolution is not None:
-            if orderedCombination:
-                thetal1b1[0] = math.cos(2*math.atan(math.exp(-Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-Tb1Updated.Eta())))
-                thetal2b2[0] = math.cos(2*math.atan(math.exp(-Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-Tb2Updated.Eta())))
-            else:
-                thetal1b1[0] = math.cos(2*math.atan(math.exp(-Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-Tb2Updated.Eta())))
-                thetal2b2[0] = math.cos(2*math.atan(math.exp(-Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-Tb1Updated.Eta())))
+        if recoWorked:
+            thetal1b1[0] = math.cos(2*math.atan(math.exp(-Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-Tb1Updated.Eta())))
+            thetal2b2[0] = math.cos(2*math.atan(math.exp(-Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-Tb2Updated.Eta())))
         else:
-            thetal1b1[0] = -99.0
-            thetal2b2[0] = -99.0
+            thetal1b1[0] = -999.0
+            thetal2b2[0] = -999.0
 
         #cos(phi) for the same (i,j) but in the rest frame
+        if recoWorked:
+            Tmom1 = Tlep1 + Tnu1Updated #TLorentzVector of the W boson associated to the lepton 1 
+            Tmom2 = Tlep2 + Tnu2Updated
+
+            boostvector = Tmom1.BoostVector()
+            Tlep1RestFrame = Tlep1.Boost(boostvector)
+            boostvector = Tmom2.BoostVector()
+            Tlep2RestFrame = Tlep2.Boost(boostvector)
+
+            #cosphill[0] = math.cos(Tlep2RestFrame.Phi() - Tlep1RestFrame.Phi())
+        else:
+            cosphill[0] = -999.0
 
         outputTree.Fill()
 
-    print '\nThe ttbar reconstruction worked for ' + str(round((recoWorked/float(recoAttempts))*100, 2)) + '% of the events considered'
+    print '\nThe ttbar reconstruction worked for ' + str(round((nWorked/float(nAttempts))*100, 2)) + '% of the events considered'
 
     outputTree.Write()
     inputFile.Close()
     outputFile.Close()
 
-def runttbarReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes):
+
+def runReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes): 
+    """
+    Function performing the ttbar reconstruction and the smearing of the jets.
+    Returns a list with the two optimal b-jets and corresponding neutrinos TLorentzVector found. 
+    """
 
     Tb1   = TLorentzVector()
     Tb2   = TLorentzVector()
 
-    #We have different combinations to perform the reconstruction: we consider the association of the bjets with the two leptons, and we consider all the different bjets candidates
-    solution = None #The output of this function, containing a nuSol object and the winning lepton/b-jet combination
-    minInvariantMass = 10000. #The solution to return will be the one having the smallest ttbar invariant mass
+    rand = ROOT.TRandom3() #For the smearing
+
+    minInvMass = 9999999. #The best jet will be the one minimizing this value
+    Tnu1Optimal, Tnu2Optimal = None, None #Best is considered over the possible solution, optimal is additionally the best solution and the best jet
+    Tb2Optimal = None
+    nuSolOptimal = None #Return the nuSOl object as well
 
     for i, jet in enumerate(bJetCandidateIndexes):
         if i == 0:
-            Tb1.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[jet]) #By construction, we know that the first element of bJetCandidateIndexes is a b-jet
+            Tb1.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]]) #By construction, we know that the first element of bJetCandidateIndexes is a b-jet
         else:
-            Tb2.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[jet])
+            Tb2.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
+            
+            mW1, mW2 = 80.379, 80.379
+            mt1, mt2 = 173.0, 173.0 #TOCHECK: use a Breit-Wigner as well?
 
-            mW1 = 80.38 #Mass of the W
-            mW2 = 80.38
-            mt1 = 173.0 #Mass of the top
-            mt2 = 173.0
+            neutrinos = findBestSolution(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2) #Find the best solution for the jet considered
+            Tnu1Best, Tnu2Best = neutrinos[0][0], neutrinos[0][1]
+            nuSol = neutrinos[1]
 
-            if verbose:
-                print("Tb1: " + str(Tb1.Print()))
-                print("Tb2: " + str(Tb2.Print()))
-                print("Lep1: " + str(Tlep1.Print()))
-                print("Lep2: " + str(Tlep2.Print()))
-                print("MET: " + str(TMET.Print()))
-                
-            try: #The ttbar reco is going to overwrite the tlorentz vector given as input, so let's pass to the function a copy of these objects
-                nuSol = ttbar.solveNeutrino(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2)
-                if (Tnu1+Tlep1+Tb1).M() + (Tnu2+Tlep2+Tb2).M() < minInvariantMass:
-                    solution = [nuSol, True]
-            except : #The reconstruction did not work
-                if verbose: 
-                    print('There is no solution for the ttbar reconstruction for event number '+ str(index))
-                    
-            #Now we do the same by switching the two leptons since we do not know which lepton corresponds to which b-jet
-            try:
-                nuSol = ttbar.solveNeutrino(Tb1, Tb2, Tlep2, Tlep1, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2)
-                if (Tnu1+Tlep1+Tb1).M() + (Tnu2+Tlep2+Tb2).M() < minInvariantMass:
-                    solution = [nuSol, False]
-            except :
-                if verbose:
-                    print('There is no solution for the ttbar reconstruction for event number '+ str(index))
+            if Tnu1Best is not None and Tnu2Best is not None and nuSol is not None:
+                invMass = (Tnu1Best + Tlep1 + Tb1).M() + (Tnu2Best + Tlep2 + Tb2).M()
+                if invMass < minInvMass:
+                    minInvMass = minInvMass
+                    Tnu1Optimal, Tnu2Optimal = Tnu1Best, Tnu2Best
+                    Tb2Optimal = Tb2
+                    nuSolOptimal = nuSol
+
+        #We now have to access to the optimal b-jets and the optimal neutrino solution for these jets, so let's do the smearing
+        #runSmearing(Tb1, Tb2Optimal, Tlep1, Tlep2, Tnu1Optimal, Tnu2Optimal, TMET, mt1, mt2)
+
+    return [[Tnu1Optimal, Tnu2Optimal], [Tb1, Tb2Optimal], nuSolOptimal]
+
+
+def findBestSolution(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2):
+    """
+    Function that actually performs the reconstruction and returns the best possible solution found.
+    """
+
+    try:
+        nuSol = ttbar.solveNeutrino(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2)
+    except:
+        nuSol = None
+
+    Tnu1 = TLorentzVector()
+    Tnu2 = TLorentzVector()
+
+    Tnu1Best = None #Keep the best neutrinos to return them
+    Tnu2Best = None
+
+    minInvMass = 9999999.
+
+    if nuSol is not None:
+        for s, possibleSolution in enumerate(nuSol.solution): #The reconstruction can give either 0, 2 or 4 solutions
+            
+            Tnu1.SetPxPyPzE(possibleSolution[0][0], possibleSolution[0][1], possibleSolution[0][2], math.sqrt(possibleSolution[0][0]**2 + possibleSolution[0][1]**2 + possibleSolution[0][2]**2)) #TOCHECK: value of the total momentum (=energy) of a neutrino
+            Tnu2.SetPxPyPzE(possibleSolution[1][0], possibleSolution[1][1], possibleSolution[1][2], math.sqrt(possibleSolution[1][0]**2 + possibleSolution[1][1]**2 + possibleSolution[1][2]**2)) #possibleSolution[0] is the neutrino, possibleSolution[0][0] its momentum along the x-axis
+                            
+            if (((Tnu1 + Tlep1 + Tb1).M() - mt1) > 2.): #TOCHECK: tweak this value?
+                kk = Tlep1 #Invert the lepton1 and the lepton2 is we see this gives better results
+                Tlep1 = Tlep2
+                Tlep2 = kk
+                print("Lepton switch performed")
+
+            invMass = (Tnu1+Tlep1+Tb1).M() + (Tnu2+Tlep2+Tb2).M()
+            if invMass < minInvMass:
+                minInvMass = minInvMass
+                Tnu1Best, Tnu2Best = Tnu1, Tnu2
+
+    return [[Tnu1Best, Tnu2Best], nuSol]
+
+
+def runSmearing(Tb1, Tb2Optimal, Tlep1, Tlep2, Tnu1Optimal, Tnu2Optimal, TMET, mt1, mt2):
+    """
+    Run the reco multiple times by changing the input parameters.
+    """
+    Tb1Updated = TLorentzVector()
+    Tb2Updated = TLorentzVector()
+
+    for n in range(0, 100):
+        #Update the W mass
+        mW1 = rand.BreitWigner(80.379, 2.085)
+        mW2 = rand.BreitWigner(80.379, 2.085)
+
+        #Update the leptons?
+
+        #Update the jets
+        Tb1Uncertainty = rand.Gaus(0, 0.3) * Tb1.E() 
+        Tb2Uncertainty = rand.Gaus(0, 0.3) * Tb2Optimal.E() 
+        ptCorrection1 = math.sqrt((Tb1.E() + Tb1Uncertainty)**2 - tb1.M()**2)/Tb1.P()
+        ptCorrection2 = math.sqrt((Tb2.E() + Tb2Uncertainty)**2 - tb2.M()**2)/Tb2.P()
         
+        Tb1Updated.SetPtEtaPhi(Tb1.Pt()*ptCorrection1, Tb1.Eta(), Tb1.Phi(), Tb1.M())
+        Tb2Updated.SetPtEtaPhi(Tb2.Pt()*ptCorrection2, Tb2.Eta(), Tb2.Phi(), Tb2.M())
+            
+        #Update the MET
+        TVector2 deltaP1(Tb1Updated.Px() - Tb1.Px(), Tb1Updated.Py() - Tb1.Py())
+        TVector2 deltaP2(Tb2Updated.Px() - Tb2.Px(), Tb2Updated.Py() - Tb2.Py())
+        TMETUpdated = TMET + DeltaP1 + DeltaP2
+        
+        #Solve with the new parameters
+        findBestSolution(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2)
+
+        #Get the weights
+        #getWeight(lep1, lep2, newJet1, newJet2, nu1, nu2, localTop1, localTop2, localW)
+
     return solution
+
+
+def getWeight(params):
+    pass
 
 
 def computeMT2(VisibleA, VisibleB, Invisible, MT2Type = 0, MT2Precision = 0) :
