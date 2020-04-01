@@ -235,7 +235,7 @@ class doubleNeutrinoSolutions(object):
         v = intersections_ellipses(N, n_)
         v_ = [self.S.dot(sol) for sol in v]
 
-        doit = True
+        doit = False
         if not v and leastsq and doit:
             es = [ss.H_perp for ss in self.solutionSets]
             met = np.array([metX, metY, 1])

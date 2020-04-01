@@ -1,0 +1,87 @@
+
+import ROOT as r
+import os,  sys, fnmatch
+import math
+
+"""
+Code used to generate true mlb distribution from Latino ttbar files
+"""
+
+def updateProgress(progress):
+    barLength = 20 # Modify this to change the length of the progress bar                                                                                                                                          
+    status = ""
+    if isinstance(progress, int):
+        progress = float(progress)
+    if not isinstance(progress, float):
+        progress = 0
+        status = "error: progress var must be float\r\n"
+    if progress < 0:
+        progress = 0
+        status = "Halt...\r\n"
+    if progress >= 1:
+        progress = 1
+        status = "Done!\r\n"
+    block = int(round(barLength*progress))
+    text = "\rProgress: [{0}] {1}% {2}".format( "#"*block + "-"*(barLength-block), progress*100, status)
+    sys.stdout.write(text)
+    sys.stdout.flush()
+
+#Let's consider the ttbar files in a chain
+baseDir = os.getcwd()+"/"
+#baseDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
+filesChain = r.TChain("Events")
+listOfFiles = os.listdir(baseDir)
+pattern = "*"+"TTTo2L2Nu__part"+"*.root"
+
+for index, entry in enumerate(listOfFiles):
+    if fnmatch.fnmatch(entry, pattern):
+        filesChain.AddFile(baseDir+entry)
+
+#Define the histogram
+mlbhist = r.TH1F("mlb", "Mlb generation distribution", 50, 0, 200)
+nEvents = filesChain.GetEntries()
+
+for index, ev in enumerate(filesChain):
+    if index % 100 == 0: #Update the loading bar every 100 events                                                                                                                                              
+            updateProgress(round(index/float(nEvents), 2))
+
+    leptonsGrandMother = []
+    bjetsMother = []
+
+    for p, particle in enumerate(ev.GenPart_pdgId):
+
+        #If the particle is a lepton and its grandmother is a top, keep its grandmother ID
+        if abs(ev.GenPart_pdgId[p]) == 11 or abs(ev.GenPart_pdgId[p]) == 13:
+            if (ev.GenPart_pdgId[ev.GenPart_genPartIdxMother[ev.GenPart_genPartIdxMother[p]]]) == 6:
+                try: 
+                    leptonsGrandMother.append(ev.GenPart_pdgId[ev.GenPart_genPartIdxMother[ev.GenPart_genPartIdxMother[p]]])
+                except: #Not all the leptons have a grand mother
+                    pass
+
+        #If the particle is a bottom quark and its mother is a top, then keep its mother ID
+        if abs(ev.GenPart_pdgId[p]) == 5:
+            if abs(ev.GenPart_genPartIdxMother[ev.GenPart_genPartIdxMother[p]]) == 6:
+                try:
+                    bjetsMother.append(ev.GenPart_pdgId[ev.GenPart_genPartIdxMother[p]])
+                except:
+                    pass
+
+    print(leptonsGrandMother)
+
+            
+
+
+    """
+    l1 = r.TLorentzVector()
+    l2 = r.TLorentzVector()
+    j1 = r.TLorentzVector()    
+    j2 = r.TLorentzVector()
+
+    l1.SetPtEtaPhiM(ev.LeptonGen_pt[0], ev.LeptonGen_eta[0], ev.LeptonGen_phi[0], 0.000511 if (abs(ev.LeptonGen_pdgId[0]) == 11) else 0.106)
+    l2.SetPtEtaPhiM(ev.LeptonGen_pt[1], ev.LeptonGen_eta[1], ev.LeptonGen_phi[1], 0.000511 if (abs(ev.LeptonGen_pdgId[0]) == 11) else 0.106)
+
+    #Get the mothers of these two lepton gen
+    moth1 = ev.LeptonGen_MotherPID[0]
+    moth2 = ev.LeptonGen_MotherPID[1]
+    """
+    

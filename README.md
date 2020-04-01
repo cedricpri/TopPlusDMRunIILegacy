@@ -38,6 +38,8 @@ This process has been setup to be used with condor, thanks to createJobs.py. The
 - **t**: the search term to be found in the correct directory (eg, TTT02L2Nu__part can be used to process only TTbar MC files).
 Once the .sh files created, then can be launched using the command condor_submit condorjob.tcl.
 
+For the smearing involved in the ttbar reconstruction process, a mlb histogram need to be generated first of all using the generateMLB.py script.
+
 Then, the MVA can be run on these previously produced files using simply the following command.
       python dnn.py
 A signal and a background files can be given as arguments to this script.

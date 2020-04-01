@@ -159,6 +159,10 @@ def createTree(inputDir, filename):
     nEvents = inputFile.Events.GetEntries()
     nAttempts, nWorked = 0, 0
 
+    #Get the generation mlb shape, used to compute the weights and found in mlb.root after running the generateMLB.py script
+    mlbFile = ROOT.TFile("mlb.root", "r")
+    mlbshape = mlbFile.Get("mlb")
+
     #Compile the code for the mt2 calculation
     ROOT.gROOT.ProcessLine('.L '+os.getcwd()+'/mt2Calculation/lester_mt2_bisect.h+')
 
@@ -244,7 +248,7 @@ def createTree(inputDir, filename):
         else: #If we have exactly one -bjet, then we keep it as the first element while the rest of the list will be made out of usual jets for which we will try to apply the ttbar reconstruction, to try and recover some efficiency of the b-tagging
             bJetCandidateIndexes = bJetIndexes + jetIndexes
 
-        recoOutput = runReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes)
+        recoOutput = runReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes, mlbshape)
         Tb1Updated = recoOutput[0][0]
         Tb2Updated = recoOutput[0][1]
         Tnu1Updated = recoOutput[1][0]
@@ -341,7 +345,7 @@ def createTree(inputDir, filename):
     outputFile.Close()
 
 
-def runReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes): 
+def runReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes, mlbshape): 
     """
     Function performing the ttbar reconstruction and the smearing of the jets.
     Returns a list with the two optimal b-jets and corresponding neutrinos TLorentzVector found. 
@@ -350,9 +354,7 @@ def runReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes):
     Tb1   = TLorentzVector()
     Tb2   = TLorentzVector()
 
-    rand = ROOT.TRandom3() #For the smearing
-
-    minInvMass = 9999999. #The best jet will be the one minimizing this value
+    maxWeight = -1. #The best jet will be the one maximizing this value
     Tnu1Optimal, Tnu2Optimal = None, None #Best is considered over the possible solution, optimal is additionally the best solution and the best jet
     Tb2Optimal = None
     nuSolOptimal = None #Return the nuSOl object as well
@@ -366,27 +368,70 @@ def runReco(ev, Tlep1, Tlep2, Tnu1, Tnu2, TMET, bJetCandidateIndexes):
             mW1, mW2 = 80.379, 80.379
             mt1, mt2 = 173.0, 173.0 #TOCHECK: use a Breit-Wigner as well?
 
-            neutrinos = findBestSolution(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2) #Find the best solution for the jet considered
-            Tnu1Best, Tnu2Best = neutrinos[0][0], neutrinos[0][1]
-            nuSol = neutrinos[1]
-
-            if Tnu1Best is not None and Tnu2Best is not None and nuSol is not None:
-                invMass = (Tnu1Best + Tlep1 + Tb1).M() + (Tnu2Best + Tlep2 + Tb2).M()
-                if invMass < minInvMass:
-                    minInvMass = minInvMass
-                    Tnu1Optimal, Tnu2Optimal = Tnu1Best, Tnu2Best
-                    Tb2Optimal = Tb2
-                    nuSolOptimal = nuSol
-
-        #We now have to access to the optimal b-jets and the optimal neutrino solution for these jets, so let's do the smearing
-        #runSmearing(Tb1, Tb2Optimal, Tlep1, Tlep2, Tnu1Optimal, Tnu2Optimal, TMET, mt1, mt2)
+            smearing = runSmearing(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2, mlbshape) #Find the best solution for the jet considered
+            solution, sumWeight = smearing[0], smearing[1]
+            if sumWeight > maxWeight:
+                weightOptimal = sumWeight
+                Tnu1Optimal, Tnu2Optimal = solution[0][0], solution[0][1]
+                Tb2Optimal = Tb2
+                nuSolOptimal = solution[1]
 
     return [[Tnu1Optimal, Tnu2Optimal], [Tb1, Tb2Optimal], nuSolOptimal]
 
 
+def runSmearing(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2, mlbshape):
+    """
+    Run the reco multiple times by changing the input parameters.
+    Returns the sum of the weights obtained for the given lepton/b-jet combination given as input and the initial solution.
+    """
+
+    Tb1Updated = TLorentzVector()
+    Tb2Updated = TLorentzVector()
+
+    rand = ROOT.TRandom3() #For the smearing
+
+    sumWeight = 0
+    initialSolution = findBestSolution(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2)
+
+    for n in range(0, 100):
+        #Update the W mass
+        mW1Updated = rand.BreitWigner(mW1, 2.085)
+        mW2Updated = rand.BreitWigner(mW2, 2.085)
+
+        #Update the top mass?
+        mt1Updated = mt1
+        mt2Updated = mt2
+        
+        #Update the jets
+        Tb1Uncertainty = rand.Gaus(0, 0.3) * Tb1.E() 
+        Tb2Uncertainty = rand.Gaus(0, 0.3) * Tb2Optimal.E() 
+        ptCorrection1 = math.sqrt((Tb1.E() + Tb1Uncertainty)**2 - tb1.M()**2)/Tb1.P()
+        ptCorrection2 = math.sqrt((Tb2.E() + Tb2Uncertainty)**2 - tb2.M()**2)/Tb2.P()
+        
+        Tb1Updated.SetPtEtaPhi(Tb1.Pt()*ptCorrection1, Tb1.Eta(), Tb1.Phi(), Tb1.M())
+        Tb2Updated.SetPtEtaPhi(Tb2.Pt()*ptCorrection2, Tb2.Eta(), Tb2.Phi(), Tb2.M())
+
+        #TOCHECK: Update the leptons as wel?
+        Tlep1Updated = Tlep1
+        Tlep2Updated = Tlep2
+
+        #TODO: Perform the angular smearing
+            
+        #Update the MET
+        TVector2 deltaP1(Tb1Updated.Px() - Tb1.Px(), Tb1Updated.Py() - Tb1.Py())
+        TVector2 deltaP2(Tb2Updated.Px() - Tb2.Px(), Tb2Updated.Py() - Tb2.Py())
+        TMETUpdated = TMET + DeltaP1 + DeltaP2
+        
+        #Solve with the new parameters
+        solution = findBestSolution(Tb1Updated, Tb2Updated, Tlep1Updated, Tlep2Updated, Tnu1, Tnu2, TMETUpdated, mW1Updated, mW2Updated, mt1Updated, mt2Updated)
+        sumWeight = sumWeight + getWeight(solution)
+
+    return [initialSolution, sumWeight]
+
+
 def findBestSolution(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2):
     """
-    Function that actually performs the reconstruction and returns the best possible solution found.
+    Function that actually performs the reconstruction and returns the best possible solution found based on the invariant mass.
     """
 
     try:
@@ -407,12 +452,6 @@ def findBestSolution(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt
             
             Tnu1.SetPxPyPzE(possibleSolution[0][0], possibleSolution[0][1], possibleSolution[0][2], math.sqrt(possibleSolution[0][0]**2 + possibleSolution[0][1]**2 + possibleSolution[0][2]**2)) #TOCHECK: value of the total momentum (=energy) of a neutrino
             Tnu2.SetPxPyPzE(possibleSolution[1][0], possibleSolution[1][1], possibleSolution[1][2], math.sqrt(possibleSolution[1][0]**2 + possibleSolution[1][1]**2 + possibleSolution[1][2]**2)) #possibleSolution[0] is the neutrino, possibleSolution[0][0] its momentum along the x-axis
-                            
-            if (((Tnu1 + Tlep1 + Tb1).M() - mt1) > 2.): #TOCHECK: tweak this value?
-                kk = Tlep1 #Invert the lepton1 and the lepton2 is we see this gives better results
-                Tlep1 = Tlep2
-                Tlep2 = kk
-                print("Lepton switch performed")
 
             invMass = (Tnu1+Tlep1+Tb1).M() + (Tnu2+Tlep2+Tb2).M()
             if invMass < minInvMass:
@@ -422,45 +461,40 @@ def findBestSolution(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt
     return [[Tnu1Best, Tnu2Best], nuSol]
 
 
-def runSmearing(Tb1, Tb2Optimal, Tlep1, Tlep2, Tnu1Optimal, Tnu2Optimal, TMET, mt1, mt2):
+def findBestCombination(solution): #Takes as argument a [[Tnu1Best, Tnu2Best], nuSol] list, from which we can get all the parameters we need   
     """
-    Run the reco multiple times by changing the input parameters.
+    Function computing the best lepton/b-jet combination based on the invariant mass of the system.
     """
-    Tb1Updated = TLorentzVector()
-    Tb2Updated = TLorentzVector()
+    correctOrder = True #Boolean to keep if the lepton1 goes with b-jet 1 or not
 
-    for n in range(0, 100):
-        #Update the W mass
-        mW1 = rand.BreitWigner(80.379, 2.085)
-        mW2 = rand.BreitWigner(80.379, 2.085)
+    #Check which lepton/b-jet combination gives the lowest invariant mass
+    invMass1 = (solution[1].b1 + solution[1].mu1 + solution[0][0]).M() + (solution[1].b2 + solution[1].mu2 + solution[0][1]).M()
+    invMass2 = (solution[1].b1 + solution[1].mu2 + solution[0][1]).M() + (solution[1].b2 + solution[1].mu1 + solution[0][0]).M()
+    if invMass2 < invMass1:
+        correctOrder = False
 
-        #Update the leptons?
-
-        #Update the jets
-        Tb1Uncertainty = rand.Gaus(0, 0.3) * Tb1.E() 
-        Tb2Uncertainty = rand.Gaus(0, 0.3) * Tb2Optimal.E() 
-        ptCorrection1 = math.sqrt((Tb1.E() + Tb1Uncertainty)**2 - tb1.M()**2)/Tb1.P()
-        ptCorrection2 = math.sqrt((Tb2.E() + Tb2Uncertainty)**2 - tb2.M()**2)/Tb2.P()
-        
-        Tb1Updated.SetPtEtaPhi(Tb1.Pt()*ptCorrection1, Tb1.Eta(), Tb1.Phi(), Tb1.M())
-        Tb2Updated.SetPtEtaPhi(Tb2.Pt()*ptCorrection2, Tb2.Eta(), Tb2.Phi(), Tb2.M())
-            
-        #Update the MET
-        TVector2 deltaP1(Tb1Updated.Px() - Tb1.Px(), Tb1Updated.Py() - Tb1.Py())
-        TVector2 deltaP2(Tb2Updated.Px() - Tb2.Px(), Tb2Updated.Py() - Tb2.Py())
-        TMETUpdated = TMET + DeltaP1 + DeltaP2
-        
-        #Solve with the new parameters
-        findBestSolution(Tb1, Tb2, Tlep1, Tlep2, Tnu1, Tnu2, TMET, mW1, mW2, mt1, mt2)
-
-        #Get the weights
-        #getWeight(lep1, lep2, newJet1, newJet2, nu1, nu2, localTop1, localTop2, localW)
-
-    return solution
+    return correctOrder
+"""
 
 
-def getWeight(params):
-    pass
+def getWeight(solution, mlbshape): #Takes as argument a [[Tnu1Best, Tnu2Best], nuSol] list and the generation mlb histogram, from which we can get all the parameters we need
+    """
+    Function computing the weight associated to a solution by comparing the mlb and mlb_ obtained with the one obtained from generation (generateMLB.py)
+    """
+
+    #Let's compute mlb and mlb_ based on the correctOrder boolean
+    if correctOrder:
+        mlb = (solution[1].mu1 + solution[1].b1).M()
+        mlb_ = (solution[1].mu2 + solution[1].b2).M()
+    else:
+        mlb = (solution[1].mu1 + solution[1].b2).M()
+        mlb_ = (solution[1].mu2 + solution[1].b1).M()
+
+    #Compare these values with the one obtained from generation
+    truemlb = mlbshape.GetBinContent(mlbshape.FindBin(mlb))
+    truemlb_ = mlbshape.GetBinContent(mlbshape.FindBin(mlb_))
+    
+    return truemlb * truemlb_
 
 
 def computeMT2(VisibleA, VisibleB, Invisible, MT2Type = 0, MT2Precision = 0) :
