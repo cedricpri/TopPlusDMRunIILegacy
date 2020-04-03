@@ -2,7 +2,7 @@
 import ROOT as r
 from array import array
 import optparse
-import os, sys, fnmatch
+import os, sys, fnmatch, math
 
 #Class for the ttbar reconstruction
 from ttbarReco.eventKinematic import EventKinematic
@@ -172,7 +172,10 @@ def createTree(inputDir, filename):
 
     #Compile the code for the mt2 calculation
     r.gROOT.ProcessLine('.L '+os.getcwd()+'/mt2Calculation/lester_mt2_bisect.h+')
-    r.asymm_mt2_lester_bisect.disableCopyrightMessage()
+    try:
+        r.asymm_mt2_lester_bisect.disableCopyrightMessage()
+    except:
+        pass
 
     for index, ev in enumerate(inputFile.Events):
         if index % 100 == 0: #Update the loading bar every 100 events
@@ -277,6 +280,7 @@ def createTree(inputDir, filename):
 
                 eventKinematic1 = EventKinematic(Tlep1, Tlep2, Tb1, Tb2, Tnu1, Tnu2, TMET)
                 eventKinematic2 = EventKinematic(Tlep2, Tlep1, Tb1, Tb2, Tnu1, Tnu2, TMET)
+                eventKinematic1.fixOperations() #Needed for reasons explained in https://root-forum.cern.ch/t/cannot-perform-both-dot-product-and-scalar-multiplication-on-tvector2-in-pyroot/28207
 
                 #Perform first of all the reco without smearing
                 eventKinematic1.runReco()
@@ -292,7 +296,7 @@ def createTree(inputDir, filename):
                     bestReconstructedKinematic = eventKinematic2
                     inverseOrder = True
                     maxWeight = eventKinematic2.weight
-                """
+
                 #Run the smearing 100 times
                 for i in range(100): 
 
@@ -310,7 +314,7 @@ def createTree(inputDir, filename):
                         bestReconstructedKinematic = smearedEventKinematic
                         inverseOrder = True
                         maxWeight = smearedEventKinematic.weight
-                """
+
         recoWorked = False
         nAttempts = nAttempts + 1 #Count the number of event for which the reco worked
         if bestReconstructedKinematic is not None:
@@ -320,7 +324,7 @@ def createTree(inputDir, filename):
 
         if inverseOrder:
             eventKinematic = eventKinematic2
-        else: 
+        else:
             eventKinematic = eventKinematic1
 
         #===================================================
@@ -328,7 +332,11 @@ def createTree(inputDir, filename):
         #===================================================
 
         if recoWorked:
-            reco_weight[0] = bestReconstructedKinematic.weight * 1000 #Rescale to have reasonnable numbers
+            if bestReconstructedKinematic.weight > 0:
+                rescaledWeight = bestReconstructedKinematic.weight * 100 #Rescale to have reasonnable numbers
+            else:
+                rescaledWeight = bestReconstructedKinematic.weight
+            reco_weight[0] = rescaledWeight
             dark_pt[0] = bestReconstructedKinematic.dark_pt
             overlapping_factor[0] = bestReconstructedKinematic.overlapping_factor
         else:
@@ -340,45 +348,45 @@ def createTree(inputDir, filename):
         #MT2 computation
         #===================================================
 
-        mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET, 0) 
         if recoWorked:
-            try:
-                mt2bl[0] = computeMT2(eventKinematic.Tlep1 + bestReconstructedKinematic.Tb1, event.Tlep2 + bestReconstructedKinematic.Tb2, eventKinematic.TMET, 0) 
-            except:
-                mt2bl[0] = -9.0
-        else:
-            mt2bl[0] = -99.0
+            mt2ll[0] = computeMT2(bestReconstructedKinematic.Tlep1, bestReconstructedKinematic.Tlep2, bestReconstructedKinematic.TMET, 0) 
+            mt2bl[0] = computeMT2(bestReconstructedKinematic.Tlep1 + bestReconstructedKinematic.Tb1, bestReconstructedKinematic.Tlep2 + bestReconstructedKinematic.Tb2, bestReconstructedKinematic.TMET, 0) 
+        else: #TOCHECK: put default value instead?
+            mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET, 0) 
+            mt2bl[0] = computeMT2(eventKinematic.Tlep1 + eventKinematic.Tb1, eventKinematic.Tlep2 + eventKinematic.Tb2, eventKinematic.TMET, 0) 
 
         #===================================================
         #Additional variables computation
         #===================================================
-        """
+       
         #Variables bases on DESY's AN2016-240-v10
-
-        totalET[0] = ev.PuppiMET_sumEt + Tb1Updated.Pt() + Tb2Updated.Pt() + Tlep1.Pt() + Tlep2.Pt()
-        #cos(theta_i)*cos(theta_j), where (i,j) = (l+l-, l-b, l+bbar)
-        thetall[0] = math.cos(2*math.atan(math.exp(-Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-Tlep2.Eta())))
         if recoWorked:
-            thetal1b1[0] = math.cos(2*math.atan(math.exp(-Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-Tb1Updated.Eta())))
-            thetal2b2[0] = math.cos(2*math.atan(math.exp(-Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-Tb2Updated.Eta())))
-        else:
-            thetal1b1[0] = -999.0
-            thetal2b2[0] = -999.0
-
-        #cos(phi) for the same (i,j) but in the rest frame
-        if recoWorked:
-            Tmom1 = Tlep1 + Tnu1Updated #TLorentzVector of the W boson associated to the lepton 1 
-            Tmom2 = Tlep2 + Tnu2Updated
+            totalET[0] = ev.PuppiMET_sumEt + bestReconstructedKinematic.Tb1.Pt() + bestReconstructedKinematic.Tb2.Pt() + bestReconstructedKinematic.Tlep1.Pt() + bestReconstructedKinematic.Tlep2.Pt()
+            thetall[0] = math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep2.Eta())))
+            thetal1b1[0] = math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tb1.Eta())))
+            thetal2b2[0] = math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tb2.Eta())))
+            
+            #cos(phi) in the parent rest frame
+            Tmom1 = bestReconstructedKinematic.Tlep1 + bestReconstructedKinematic.Tnu1 #TLorentzVector of the W boson associated to the lepton 1 
+            Tmom2 = bestReconstructedKinematic.Tlep2 + bestReconstructedKinematic.Tnu2
 
             boostvector = Tmom1.BoostVector()
-            Tlep1RestFrame = Tlep1.Boost(boostvector)
+            bestReconstructedKinematic.Tlep1.Boost(boostvector)
             boostvector = Tmom2.BoostVector()
-            Tlep2RestFrame = Tlep2.Boost(boostvector)
+            bestReconstructedKinematic.Tlep2.Boost(boostvector)
+            try:
+                cosphill[0] = math.cos(bestReconstructedKinematic.Tlep1.Phi() - bestReconstructedKinematic.Tlep2.Phi()) #TOCHECK: is the substraction what is needed?
+            except:
+                cosphill[0] = -9.0
 
-            #cosphill[0] = math.cos(Tlep2RestFrame.Phi() - Tlep1RestFrame.Phi())
-        else:
-            cosphill[0] = -999.0
-        """
+        else: #TOCHECK: put default value instead?
+            totalET[0] = ev.PuppiMET_sumEt + eventKinematic.Tb1.Pt() + eventKinematic.Tb2.Pt() + eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt()
+            thetall[0] = math.cos(2*math.atan(math.exp(-eventKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-eventKinematic.Tlep2.Eta())))
+            thetal1b1[0] = math.cos(2*math.atan(math.exp(-eventKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-eventKinematic.Tb1.Eta())))
+            thetal2b2[0] = math.cos(2*math.atan(math.exp(-eventKinematic.Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-eventKinematic.Tb2.Eta())))
+        
+            cosphill[0] = -999.0 #We need the nu information for this variable, so default value if reco failed
+       
         outputTree.Fill()
 
     print '\nThe ttbar reconstruction worked for ' + str(round((nWorked/float(nAttempts))*100, 2)) + '% of the events considered'

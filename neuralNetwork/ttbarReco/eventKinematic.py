@@ -53,15 +53,15 @@ class EventKinematic():
         self.Tb2.SetPtEtaPhiM(self.Tb2.Pt()*ptCorrection2, self.Tb2.Eta(), self.Tb2.Phi(), self.Tb2.M())
         
         #Update the leptons
-        self.Tlep1.E() = self.Tlep1.E() * distributions['ler'].GetRandom()
-        self.Tlep2.E() = self.Tlep2.E() * distributions['ler'].GetRandom()
+        self.Tlep1.SetE(self.Tlep1.E() * distributions['ler'].GetRandom())
+        self.Tlep2.SetE(self.Tlep2.E() * distributions['ler'].GetRandom())
 
         #Perform the angular smearing by generating alpha a random number from distribution generated from generateDistributions.py
         #Find the new vector respecting the condition phat_RECO_new * phat_RECO = cos(alpha), and the perpendicular plane to phat_RECO (phat_RECO * x = cste) takes the rotation omega
-        self.Tlep1 = findVector(self.Tlep1, distributions['lphat'].GetRandom(), r.TVector2(rand.Uniform(2 * 3.1415)))
-        self.Tlep2 = findVector(self.Tlep2, distributions['lphat'].GetRandom(), r.TVector2(rand.Uniform(2 * 3.1415)))
-        self.Tb1 = findVector(self.Tb1, distributions['jphat'].GetRandom(), r.TVector2(rand.Uniform(2 * 3.1415)))
-        self.Tb2 = findVector(self.Tb2, distributions['jphat'].GetRandom(), r.TVector2(rand.Uniform(2 * 3.1415)))
+        self.Tlep1 = self.findVector(self.Tlep1, distributions['lphat'].GetRandom(), rand.Uniform(2 * 3.1415))
+        self.Tlep2 = self.findVector(self.Tlep2, distributions['lphat'].GetRandom(), rand.Uniform(2 * 3.1415))
+        self.Tb1 = self.findVector(self.Tb1, distributions['jphat'].GetRandom(), rand.Uniform(2 * 3.1415))
+        self.Tb2 = self.findVector(self.Tb2, distributions['jphat'].GetRandom(), rand.Uniform(2 * 3.1415))
 
         #Update the MET
         deltaP1 = r.TLorentzVector(self.Tb1.Px() - OldTb1.Px(), self.Tb1.Py() - OldTb1.Py(), 0, 0)
@@ -164,93 +164,63 @@ class EventKinematic():
             self.dark_pt = dark_pt
         return [overlapping_factor, dark_pt]
 
-    def findVector(oldObject, alpha, omega):
+    def findVector(self, oldObject, alpha, omega):
         """
-        Function computing the new TLorentzVector after applying a (alpha, omega) smearing.
+        Function computing the new TLorentzVector after applying a (alpha, omega) angular smearing.
         """
 
         rand = r.TRandom3()
 
-        #Find the direction of the two vectors defining the perpendicular plane to the momentum of oldObject
-        Position = r.TVector3(oldObject.X(), oldObject.Y(), oldObject.Z())
-        Direction = r.TVector3(math.cos(olbObject.Phi()) * math.sin(oldObject.Theta()), math.sin(oldObject.Phi()) * math.sin(oldObject.Theta()), math.cos(olbObject.Theta()))
-        Point = r.TVector3(Position - 1.0/Direction.Mag() * Direction)
-
-        Orthogonal1 = r.TVector3(0, 0, 0)
-        while abs(Orthogonal1 * Direction) > 0.001):
+        #Let's find the direction of our oldObject vector
+        Direction = r.TVector3(math.cos(oldObject.Phi()) * math.sin(oldObject.Theta()), math.sin(oldObject.Phi()) * math.sin(oldObject.Theta()), math.cos(oldObject.Theta()))
+        
+        #And now a perpendicular vector to this direction, by sampling random vectors from which we remove the direction component
+        Orthogonal1 = r.TVector3(-99.0, -99.0, -99.0)
+        
+        while (abs(Orthogonal1 * Direction) > 0.001):
             Orthogonal1.SetX(rand.Uniform(-1, 1))
             Orthogonal1.SetY(rand.Uniform(-1, 1))
             Orthogonal1.SetZ(rand.Uniform(-1, 1))
-            Orthogonal1 = Orthogonal1 - (Direction * Orthogonal1) / Direction.Mag2() * Direction
+            Orthogonal1 = Orthogonal1 - (Direction * Orthogonal1) * Direction
+        Orthogonal1 = 1.0/Orthogonal1.Mag() * Orthogonal1 #Normalize it
 
+        #Now, let's search another orthogonal vector to Direction and Orthogonal1 to define the orthogonal plane in which the omega rotation will be done
         Orthogonal2 = r.TVector3(Direction.Y() * Orthogonal1.Z() - Direction.Z() * Orthogonal1.Y(), Direction.Z() * Orthogonal1.X() - Direction.X() * Orthogonal1.Z(), Direction.X() * Orthogonal1.Y() - Direction.Y() * Orthogonal1.X())
+        Orthogonal2 = 1.0/Orthogonal2.Mag() * Orthogonal2
 
-        Orthogonal1 = 1.0/Orthogonal1.Mag() * Orthogonal1;
-        Orthogonal2 = 1.0/Orthogonal2.Mag() * Orthogonal2;
+        #Now, compute the equation of this plane s = a * Orthogonal1 + b * Orthogonal2
+        a = math.tan(alpha) * math.sqrt(1/(1 + math.tan(omega)**2))
+        b = a * math.tan(omega)
 
-        C = r.TMaxtrixF(3, 3)
-        C(0, 0) = Orthogonal1.X()
-        C(1, 0) = Orthogonal1.Y()
-        C(2, 0) = Orthogonal1.Z()
-        C(0, 1) = Orthogonal2.X()
-        C(1, 1) = Orthogonal2.Y()
-        C(2, 1) = Orthogonal2.Z()
-        C(0, 2) = Direction.X()
-        C(1, 2) = Direction.Y()
-        C(2, 2) = Direction.Z()
-
-        #Now, compute the equation of this plane s = a * orthogonal1 + b * orthogonal2
-        a = math.sqrt(math.sin(alpha)/((1+math.tan(omega)**2)))
-        b = a * tan(omega)
-
-        s = r.TVector3(a * Orthogonal1 + b * Orthogonal2)
+        Plane = r.TVector3(a * Orthogonal1 + b * Orthogonal2)
         
-        #The vector we are searching for is equal to the original vector p + the s we just calculated, normalized
-        newDirection = (Direction + s).(Direction + s).Mag()
+        #The vector we are searching for is equal to the original vector p + the plane we just calculated, normalized
+        newObject = (oldObject + r.TLorentzVector(Plane, 0)) * (1/((oldObject + r.TLorentzVector(Plane, 0)).Mag()))
+        return newObject
 
-    """
-    def findVector(oldObject, alpha, omega):
-       
-        rand = r.TRandom3()
+    def fixOperations(self):
 
-        Position = r.TVector3(oldObject.X(), oldObject.Y(), oldObject.Z()) #TODO: to be defined!
-        Direction = r.TVector3(math.cos(olbObject.Phi()) * math.sin(oldObject.Theta()), math.sin(oldObject.Phi()) * math.sin(oldObject.Theta()), math.cos(olbObject.Theta()))
-        Point = r.TVector3(Position - 1.0/Direction.Mag() * step * Direction)
+        #Addition
+        r.TVector3(1, 1, 1) + r.TVector3(2, 2, 1)
+        mvv = r.TVector3.__add__
+        del r.TVector3.__add__
 
-        Orthogonal1 = r.TVector3(0, 0, 0)
-        while abs(Orthogonal1 * Direction) > 0.001):
-            Orthogonal1.SetX(rand.Uniform(-1, 1))
-            Orthogonal1.SetY(rand.Uniform(-1, 1))
-            Orthogonal1.SetZ(rand.Uniform(-1, 1))
-            Orthogonal1 = Orthogonal1 - (Direction * Orthogonal1) / Direction.Mag2() * Direction
-
-        Orthogonal2 = r.TVector3(Direction.Y() * Orthogonal1.Z() - Direction.Z() * Orthogonal1.Y(), Direction.Z() * Orthogonal1.X() - Direction.X() * Orthogonal1.Z(), Direction.X() * Orthogonal1.Y() - Direction.Y() * Orthogonal1.X())
-
-        Orthogonal1 = 1.0/Orthogonal1.Mag() * Orthogonal1;
-        Orthogonal2 = 1.0/Orthogonal2.Mag() * Orthogonal2;
-
-        C = r.TMaxtrixF(3, 3)
-        C(0, 0) = Orthogonal1.X()
-        C(1, 0) = Orthogonal1.Y()
-        C(2, 0) = Orthogonal1.Z()
-        C(0, 1) = Orthogonal2.X()
-        C(1, 1) = Orthogonal2.Y()
-        C(2, 1) = Orthogonal2.Z()
-        C(0, 2) = Direction.X()
-        C(1, 2) = Direction.Y()
-        C(2, 2) = Direction.Z()
+        def fixadd(self, other, mvv=mvv):
+            if isinstance(other, self.__class__):
+                return mvv(self, other)
         
+        r.TVector3.__add__ = fixadd
 
-        getRandom(lambda, deltatheta1, deltax1, deltatheta2, deltax2, eig1, eig2, V);
-        Position = Point + deltax1 * Orthogonal1 + deltax2 * Orthogonal2;
+        #Multiplication
+        r.TVector3(1, 1, 1) * r.TVector3(2, 2, 1)
+        mvv = r.TVector3.__mul__
+        del r.TVector3.__mul__
+        r.TVector3(1, 1, 1) * 5
+        mvs = r.TVector3.__mul__
 
-        newDirection = r.TVector3(math.tan(omega.X()), math.tan(omega.Y(), 1.0)
-        auxDirection = C * newDirection
-        Direction.SetX(auxDirection(0)/auxDirection(2))
-        Direction.SetY(auxDirection(1)/auxDirection(2))
-        Direction.SetZ(1.0)
-
-        #Build the 
-
-        return None
-    """
+        def fixmul(self, other, mvv=mvv, mvs=mvs):
+            if isinstance(other, self.__class__):
+                return mvv(self, other)
+                return mvs(self, other)
+        
+        r.TVector3.__mul__ = fixmul
