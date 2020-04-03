@@ -31,18 +31,17 @@ These scripts need to be run within CMSSW_10_4_0 or higher to have access to ker
 
 First, the createTrees.py script needs to be run in order to read the latino rootfiles, to skim them, select variables and perform the top reconstruction.
 The top reconstruction is based on the one performed in https://github.com/alantero/ttbarDM.
-This process has been setup to be used with condor, thanks to createJobs.py. The job of this script is to read all the latino files matching some criterias in order to create a .sh file for each file we want to process with createTrees.py. The arguments taken are, among others:
-- **a**: whether you want to create a .sh for ALL the files found or just one for testing purposes
+This process has been setup to be used with condor, thanks to createJobsTrees.py. The job of this script is to read all the latino files matching some criterias in order to create a .sh file for each file we want to process with createTrees.py. The arguments taken are, among others:
+- **t**: whether you want to create a .sh for just one file for testing purposes or all the files found
 - **s**: whether the files to be processed are signals or not
 - **d**: whether the files to be processes are data or MC files
-- **t**: the search term to be found in the correct directory (eg, TTT02L2Nu__part can be used to process only TTbar MC files).
+- **q**: the search term to be found in the correct directory (eg, TTT02L2Nu__part can be used to process only TTbar MC files).
 Once the .sh files created, then can be launched using the command condor_submit condorjob.tcl.
 
 For the smearing involved in the ttbar reconstruction process, several histograms need to be generated first of all using the generateDistributions.py script.
 
-Then, the MVA can be run on these previously produced files using simply the following command.
-      python dnn.py
-A signal and a background files can be given as arguments to this script.
+Then, the MVA can be run on these previously produced files using a similar process, and the runMVA.py script.
+Both the createJobsTrainMVA.py and createJobsEvaluateMVA.py can be used in order to also generate .sh files and run this script on condor.
 
 ## Scripts
 

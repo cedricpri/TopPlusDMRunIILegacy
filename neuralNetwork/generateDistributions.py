@@ -45,8 +45,8 @@ for index, entry in enumerate(listOfFiles):
         filesChain.AddFile(baseDir+entry)
 
 #Define the histograms
-bwHist = t.TH1F("bw", "Breit-Wigner W boson distribution", 40, 60, 100)
-mlbHistTrue = r.TH1F("mlbTrue", "Mlb generation distribution", 100, 0, 200)
+bwHist = r.TH1F("bw", "Breit-Wigner W boson distribution", 40, 60, 100)
+mlbHist = r.TH1F("mlb", "Mlb generation distribution", 100, 0, 200)
 jerHistTrue = r.TH1F("jerTrue", "JER generation distribution", 100, 0, 500) #Jet energy resolution
 jerHistReco = r.TH1F("jerReco", "JER reco distribution", 100, 0, 500) 
 jerHist = r.TH1F("jer", "Jet energy correction factor", 100, 0, 3)
@@ -59,12 +59,12 @@ lphatHist = r.TH1F("lphat", "Lepton angular distribution", 200, 0, 0.02)
 
 #Start the loop
 #nEvents = filesChain.GetEntries()
-nEvents = 4000000
+nEvents = 100000
 for index, ev in enumerate(filesChain):
     if index % 100 == 0: #Update the loading bar every 100 events                                                                                                                                              
             updateProgress(round(index/float(nEvents), 2))
 
-    if index == 4000000: #For testing only
+    if index == 100000: #For testing only
         break
 
     #===================================================
@@ -93,7 +93,7 @@ for index, ev in enumerate(filesChain):
             try:
                 if leptons[i][1] * bjets[i][1] < 0:
                     #Fill the true histograms
-                    mlbHistTrue.Fill((leptons[i][0] + bjets[i][0]).M())
+                    mlbHist.Fill((leptons[i][0] + bjets[i][0]).M())
                     jerHistTrue.Fill(bjets[i][0].E())
                     lerHistTrue.Fill(leptons[i][0].E())
             except:
@@ -168,9 +168,9 @@ for index, ev in enumerate(filesChain):
         except:
             pass
 
-mlbHistTrue.Scale(1.0/mlbhist.Integral())
-mlbHistTrue.SetTitle("Generation mlb distribution")
-mlbHistTrue.GetXaxis().SetTitle("mlb [GeV]")
+mlbHist.Scale(1.0/mlbHist.Integral())
+mlbHist.SetTitle("Generation mlb distribution")
+mlbHist.GetXaxis().SetTitle("mlb [GeV]")
 
 jerHistTrue.SetTitle("Jet energy response true distribution")
 jerHistTrue.GetXaxis().SetTitle("E [GeV]")
@@ -199,16 +199,16 @@ lphatHist.GetXaxis().SetTitle("#alpha [rad]")
 rand = r.TRandom3()
 for i in range(100000):
     value = rand.BreitWigner(80.379, 2.085)
-    bwhist.Fill(value)
+    bwHist.Fill(value)
 
-bwHist.Scale(1.0/bwhist.Integral())
+bwHist.Scale(1.0/bwHist.Integral())
 bwHist.SetTitle("Breit-Wigner W boson distribution")
 bwHist.GetXaxis().SetTitle("W mass [GeV]")
 
 #Keep the histograms in a new file
 outputFile = r.TFile.Open("distributions.root", "recreate")
 
-mlbHistTrue.Write()
+mlbHist.Write()
 jerHistTrue.Write()
 lerHistTrue.Write()
 jerHistReco.Write()

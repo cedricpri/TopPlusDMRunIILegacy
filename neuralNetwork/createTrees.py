@@ -5,7 +5,7 @@ import optparse
 import os, sys, fnmatch
 
 #Class for the ttbar reconstruction
-from ttbar.eventKinematic import EventKinematic
+from ttbarReco.eventKinematic import EventKinematic
 
 #=========================================================================================================
 # HELPERS
@@ -41,8 +41,15 @@ def createTree(inputDir, filename):
     print("\n\n --> Now considering file... " + filename)
 
     #First, let's open the mlb histogram we are going to need
-    mlbFile = r.TFile("mlb.root", "r")
-    mlbHist = mlbFile.Get("mlb")
+    distFile = r.TFile("distributions.root", "r")
+    distributions = {
+        "mlb": distFile.Get("mlb"),
+        "bw": distFile.Get("bw"),
+        "jer": distFile.Get("jer"),
+        "ler": distFile.Get("ler"),
+        "jphat": distFile.Get("jphat"),
+        "lphat": distFile.Get("lphat")
+    }
 
     inputFile = r.TFile.Open(inputDir+filename, "r")
     inputTree = inputFile.Get("Events")
@@ -149,6 +156,8 @@ def createTree(inputDir, filename):
     overlapping_factor = array("f", [0.])
     outputTree.Branch("overlapping_factor", overlapping_factor, "overlapping_factor/F")
 
+    totalET = array("f", [0.])
+    outputTree.Branch("totalET", totalET, "totalET/F")
     thetall = array("f", [0.])
     outputTree.Branch("thetall", thetall, "thetall/F")
     thetal1b1 = array("f", [0.])
@@ -163,10 +172,14 @@ def createTree(inputDir, filename):
 
     #Compile the code for the mt2 calculation
     r.gROOT.ProcessLine('.L '+os.getcwd()+'/mt2Calculation/lester_mt2_bisect.h+')
+    r.asymm_mt2_lester_bisect.disableCopyrightMessage()
 
     for index, ev in enumerate(inputFile.Events):
         if index % 100 == 0: #Update the loading bar every 100 events
             updateProgress(round(index/float(nEvents), 2))
+
+        if index == 1000:
+            break #for testing only
     
         #===================================================
         #Skimming and preselection
@@ -267,23 +280,23 @@ def createTree(inputDir, filename):
 
                 #Perform first of all the reco without smearing
                 eventKinematic1.runReco()
-                eventKinematic1.findBestSolution(mlbHist)
+                eventKinematic1.findBestSolution(distributions)
                 if eventKinematic1.weight > maxWeight:
                     bestReconstructedKinematic = eventKinematic1
                     inverseOrder = False
                     maxWeight = eventKinematic1.weight
 
                 eventKinematic2.runReco()
-                eventKinematic2.findBestSolution(mlbHist)
+                eventKinematic2.findBestSolution(distributions)
                 if eventKinematic2.weight > maxWeight:
                     bestReconstructedKinematic = eventKinematic2
                     inverseOrder = True
                     maxWeight = eventKinematic2.weight
-
+                """
                 #Run the smearing 100 times
                 for i in range(100): 
 
-                    smearedEventKinematic = eventKinematic1.runSmearingOnce(mlbHist)
+                    smearedEventKinematic = eventKinematic1.runSmearingOnce(distributions)
                     #Keep the solution that has the higher weight
                     if smearedEventKinematic.weight > maxWeight:
                         bestReconstructedKinematic = smearedEventKinematic
@@ -291,13 +304,13 @@ def createTree(inputDir, filename):
                         maxWeight = smearedEventKinematic.weight
                         
                     #Do the same by reversing the leptons
-                    smearedEventKinematic = eventKinematic2.runSmearingOnce(mlbHist)
+                    smearedEventKinematic = eventKinematic2.runSmearingOnce(distributions)
                     #Keep the solution that has the higher weight
                     if smearedEventKinematic.weight > maxWeight:
                         bestReconstructedKinematic = smearedEventKinematic
                         inverseOrder = True
                         maxWeight = smearedEventKinematic.weight
-
+                """
         recoWorked = False
         nAttempts = nAttempts + 1 #Count the number of event for which the reco worked
         if bestReconstructedKinematic is not None:
@@ -315,7 +328,7 @@ def createTree(inputDir, filename):
         #===================================================
 
         if recoWorked:
-            reco_weight[0] = bestReconstructedKinematic.weight
+            reco_weight[0] = bestReconstructedKinematic.weight * 1000 #Rescale to have reasonnable numbers
             dark_pt[0] = bestReconstructedKinematic.dark_pt
             overlapping_factor[0] = bestReconstructedKinematic.overlapping_factor
         else:
@@ -342,6 +355,7 @@ def createTree(inputDir, filename):
         """
         #Variables bases on DESY's AN2016-240-v10
 
+        totalET[0] = ev.PuppiMET_sumEt + Tb1Updated.Pt() + Tb2Updated.Pt() + Tlep1.Pt() + Tlep2.Pt()
         #cos(theta_i)*cos(theta_j), where (i,j) = (l+l-, l-b, l+bbar)
         thetall[0] = math.cos(2*math.atan(math.exp(-Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-Tlep2.Eta())))
         if recoWorked:
@@ -373,7 +387,7 @@ def createTree(inputDir, filename):
     outputTree.Write()
     inputFile.Close()
     outputFile.Close()
-    mlbFile.Close()
+    distFile.Close()
 
 def computeMT2(VisibleA, VisibleB, Invisible, MT2Type = 0, MT2Precision = 0) :
 
@@ -427,5 +441,6 @@ if __name__ == "__main__":
     filename = opts.filename
     inputDir = opts.inputDir
     verbose = opts.verbose
+
     createTree(inputDir, filename)
     

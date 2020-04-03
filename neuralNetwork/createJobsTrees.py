@@ -17,38 +17,41 @@ if __name__ == "__main__":
     # Argument parser                                                                                    
     # ===========================================                                                        
     parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0')
-    parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
-    parser.add_option('-c', '--cmssw', action='store', type=str, dest='cmssw', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/") #Cmssw release
+    parser.add_option('-c', '--cmssw', action='store', type=str, dest='cmssw', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/") #CMSSW release
     parser.add_option('-s', '--signal', action='store_true', dest='signal', default=False) #Process the signal or background files?
-    parser.add_option('-d', '--data', action='store_true', dest='data', default=False) #Process the data?
-    parser.add_option('-a', '--allFiles', action='store_true', dest='allFiles', default=False) #Process all the files or just one?
-    parser.add_option('-t', '--searchTerm', action='store', type=str, dest='searchTerm', default="*") #String to be matched when searching for the files
+    parser.add_option('-d', '--data', action='store_true', dest='data', default=False) #Process the data or background files?
+    parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
+    parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files
+
+    parser.add_option('-t', '--test', action='store_true', dest='test') #Only process a few files and a few events, for testing purposes
     parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
     (opts, args) = parser.parse_args()
 
-    year = opts.year
     cmssw = opts.cmssw
     signal = opts.signal
     data = opts.data
-    allFiles = opts.allFiles #Launch the processing of all the files found
-    searchTerm = opts.searchTerm
+    year = opts.year
+    query = opts.query
+
+    test = opts.test
     resubmit = opts.resubmit
     verbose = opts.verbose
 
     if signal:
         data = False
 
-    print("=================================================")
-    print("-> OPTIONS USED:")
-    print("Year: " + str(year))
-    print("CMSSW: " + str(cmssw))
-    print("Signal: " + str(signal))
-    print("Data: " + str(data))
-    print("All files: " + str(allFiles))
-    print("searchTerm: " + str(searchTerm))
-    print("resubmit: " + str(resubmit))
-    print("=================================================")
+    if verbose:
+        print("=================================================")
+        print("-> OPTIONS USED:")
+        print("CMSSW: " + str(cmssw))
+        print("Signal: " + str(signal))
+        print("Data: " + str(data))
+        print("Year: " + str(year))
+        print("Test: " + str(test))
+        print("Query: " + str(query))
+        print("Resubmit: " + str(resubmit))
+        print("=================================================")
 
     workingpath = os.getcwd()
  
@@ -79,12 +82,9 @@ if __name__ == "__main__":
 
     filesToProcess = []
     if inputDir != "":
-        if signal:
-            filesToProcess = fnmatch.filter(os.listdir(inputDir), 'nanoLatino*'+searchTerm+'*')
-        else:
-            filesToProcess = fnmatch.filter(os.listdir(inputDir), 'nanoLatino*'+searchTerm+'*')
+        filesToProcess = fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + query + '*')
 
-    if not allFiles:
+    if test: #If the test option is used, then only process a single file
         try:
             filesToProcess = [filesToProcess[0]]
         except:
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     except:
         pass #Directory already exists, this is fine
 
-    #If the resubmit option is set, the remove from this list the files that are already found in the output directory
+    #If the resubmit option is set, then remove from this list the files that are already found in the output directory
     if resubmit:
         outputDirectory = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/"
         outputDirectoryProduction = "/".join(inputDir.split('/')[-3:-1])+"/"
