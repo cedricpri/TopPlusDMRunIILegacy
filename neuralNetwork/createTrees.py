@@ -3,9 +3,17 @@ import ROOT as r
 from array import array
 import optparse
 import os, sys, fnmatch, math
+from copy import deepcopy
 
 #Class for the ttbar reconstruction
 from ttbarReco.eventKinematic import EventKinematic
+
+#For condor
+baseDir = "/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/src/neuralNetwork/"
+
+#Smearing parameters
+runSmearing = True
+runSmearingNumber = 5
 
 #=========================================================================================================
 # HELPERS
@@ -41,7 +49,7 @@ def createTree(inputDir, filename):
     print("\n\n --> Now considering file... " + filename)
 
     #First, let's open the mlb histogram we are going to need
-    distFile = r.TFile("distributions.root", "r")
+    distFile = r.TFile(baseDir+"distributions.root", "r")
     distributions = {
         "mlb": distFile.Get("mlb"),
         "bw": distFile.Get("bw"),
@@ -168,10 +176,12 @@ def createTree(inputDir, filename):
     outputTree.Branch("cosphill", cosphill, "cosphill/F")
 
     nEvents = inputFile.Events.GetEntries()
+    if test:
+        nEvents = 5000
     nAttempts, nWorked = 0, 0
 
     #Compile the code for the mt2 calculation
-    r.gROOT.ProcessLine('.L '+os.getcwd()+'/mt2Calculation/lester_mt2_bisect.h+')
+    r.gROOT.ProcessLine('.L '+baseDir+'/mt2Calculation/lester_mt2_bisect.h+')
     try:
         r.asymm_mt2_lester_bisect.disableCopyrightMessage()
     except:
@@ -181,7 +191,7 @@ def createTree(inputDir, filename):
         if index % 100 == 0: #Update the loading bar every 100 events
             updateProgress(round(index/float(nEvents), 2))
 
-        if index == 1000:
+        if test and index == nEvents:
             break #for testing only
     
         #===================================================
@@ -267,58 +277,63 @@ def createTree(inputDir, filename):
         #Remove the duplicates to avoid counting the same jet twice
         bJetCandidateIndexes = list(set(bJetCandidateIndexes))
 
-        maxWeight = -99.0 #Criteria to know which b-jet/lepton combination to keep
+        maxWeight = 0.0 #Criteria to know which b-jet/lepton combination to keep
         bestReconstructedKinematic = None
         inverseOrder = False #Keep track of the b-jet/lepton combination used
 
-        for i, jet in enumerate(bJetCandidateIndexes):
-            if i == 0:
+        if len(bJetCandidateIndexes) < 2:
+            continue
+
+        for j, jet in enumerate(bJetCandidateIndexes):
+            if j == 0:
                 #By construction, we know that the first element of bJetCandidateIndexes is a b-jet
                 Tb1.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
             else:
                 Tb2.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
 
                 eventKinematic1 = EventKinematic(Tlep1, Tlep2, Tb1, Tb2, Tnu1, Tnu2, TMET)
+                eventKinematic1Original = deepcopy(eventKinematic1)
                 eventKinematic2 = EventKinematic(Tlep2, Tlep1, Tb1, Tb2, Tnu1, Tnu2, TMET)
-                eventKinematic1.fixOperations() #Needed for reasons explained in https://root-forum.cern.ch/t/cannot-perform-both-dot-product-and-scalar-multiplication-on-tvector2-in-pyroot/28207
+                eventKinematic2Original = deepcopy(eventKinematic2)
 
                 #Perform first of all the reco without smearing
                 eventKinematic1.runReco()
-                eventKinematic1.findBestSolution(distributions)
+                eventKinematic1.findBestSolution(distributions["mlb"])
                 if eventKinematic1.weight > maxWeight:
                     bestReconstructedKinematic = eventKinematic1
                     inverseOrder = False
                     maxWeight = eventKinematic1.weight
 
                 eventKinematic2.runReco()
-                eventKinematic2.findBestSolution(distributions)
+                eventKinematic2.findBestSolution(distributions["mlb"])
                 if eventKinematic2.weight > maxWeight:
                     bestReconstructedKinematic = eventKinematic2
                     inverseOrder = True
                     maxWeight = eventKinematic2.weight
 
-                #Run the smearing 100 times
-                for i in range(100): 
+                #Run the smearing if needed
+                if runSmearing:
+                    for i in range(runSmearingNumber): 
 
-                    smearedEventKinematic = eventKinematic1.runSmearingOnce(distributions)
-                    #Keep the solution that has the higher weight
-                    if smearedEventKinematic.weight > maxWeight:
-                        bestReconstructedKinematic = smearedEventKinematic
-                        inverseOrder = False
-                        maxWeight = smearedEventKinematic.weight
-                        
-                    #Do the same by reversing the leptons
-                    smearedEventKinematic = eventKinematic2.runSmearingOnce(distributions)
-                    #Keep the solution that has the higher weight
-                    if smearedEventKinematic.weight > maxWeight:
-                        bestReconstructedKinematic = smearedEventKinematic
-                        inverseOrder = True
-                        maxWeight = smearedEventKinematic.weight
+                        smearedEventKinematic1 = deepcopy(eventKinematic1Original).runSmearingOnce(distributions) #Get a new object by copying the original one
+                        #Keep the solution that has the higher weight
+                        if smearedEventKinematic1 is not None and smearedEventKinematic1.weight > maxWeight:
+                            bestReconstructedKinematic = smearedEventKinematic1
+                            inverseOrder = False
+                            maxWeight = smearedEventKinematic1.weight
+                            
+                        #Do the same by reversing the leptons
+                        smearedEventKinematic2 = deepcopy(eventKinematic2Original).runSmearingOnce(distributions)
+                        #Keep the solution that has the higher weight
+                        if smearedEventKinematic2 is not None and smearedEventKinematic2.weight > maxWeight:
+                            bestReconstructedKinematic = smearedEventKinematic2
+                            inverseOrder = True
+                            maxWeight = smearedEventKinematic2.weight
 
         recoWorked = False
         nAttempts = nAttempts + 1 #Count the number of event for which the reco worked
         if bestReconstructedKinematic is not None:
-            if bestReconstructedKinematic.weight != -99.0:
+            if bestReconstructedKinematic.weight > 0:
                 recoWorked = True
                 nWorked = nWorked + 1
 
@@ -333,7 +348,7 @@ def createTree(inputDir, filename):
 
         if recoWorked:
             if bestReconstructedKinematic.weight > 0:
-                rescaledWeight = bestReconstructedKinematic.weight * 100 #Rescale to have reasonnable numbers
+                rescaledWeight = bestReconstructedKinematic.weight * 1000 #Rescale to have reasonnable numbers
             else:
                 rescaledWeight = bestReconstructedKinematic.weight
             reco_weight[0] = rescaledWeight
@@ -435,6 +450,37 @@ def computeMT2(VisibleA, VisibleB, Invisible, MT2Type = 0, MT2Precision = 0) :
     return mT2
 
 
+def fixOperations():
+    """
+    Needed for reasons explained in https://root-forum.cern.ch/t/cannot-perform-both-dot-product-and-scalar-multiplication-on-tvector2-in-pyroot/28207
+    """
+
+    #Addition                                                                                                                                                   
+    r.TVector3(1, 1, 1) + r.TVector3(2, 2, 1)
+    mvv = r.TVector3.__add__
+    del r.TVector3.__add__
+
+    def fixadd(self, other, mvv=mvv):
+        if isinstance(other, self.__class__):
+            return mvv(self, other)
+
+    r.TVector3.__add__ = fixadd
+
+    #Multiplication                                                                                                                                             
+    r.TVector3(1, 1, 1) * r.TVector3(2, 2, 1)
+    mvv = r.TVector3.__mul__
+    del r.TVector3.__mul__
+    r.TVector3(1, 1, 1) * 5
+    mvs = r.TVector3.__mul__
+
+    def fixmul(self, other, mvv=mvv, mvs=mvs):
+        if isinstance(other, self.__class__):
+            return mvv(self, other)
+            return mvs(self, other)
+
+    r.TVector3.__mul__ = fixmul
+
+
 if __name__ == "__main__":
     # =========================================== 
     # Argument parser                            
@@ -443,12 +489,17 @@ if __name__ == "__main__":
     parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0')
     parser.add_option('-f', '--filename', action='store', type=str, dest='filename', default="")
     parser.add_option('-d', '--inputDir', action='store', type=str, dest='inputDir', default="")
+    parser.add_option('-t', '--test', action='store_true', dest='test')
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
     (opts, args) = parser.parse_args()
 
     filename = opts.filename
     inputDir = opts.inputDir
+    test = opts.test
     verbose = opts.verbose
+
+    #Needed for reasons explained in https://root-forum.cern.ch/t/cannot-perform-both-dot-product-and-scalar-multiplication-on-tvector2-in-pyroot/28207
+    fixOperations()
 
     createTree(inputDir, filename)
     

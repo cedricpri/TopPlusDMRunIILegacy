@@ -14,20 +14,7 @@ from array import array
 # ===========================================
 
 #Training variables
-#variables = ["PuppiMET_pt", "mT2", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]", "Lepton_eta[1]", "Lepton_phi[0]", "Lepton_phi[1]", "thetall", "thetal1b1", "thetal2b2", "cosphill", "totalET", "dark_pt", "overlapping_factor"]
-#DESY variables
-thetal0 = "TMath::Cos(2*TMath::ATan(exp(-Lepton_eta[0])))"
-thetal1 = "TMath::Cos(2*TMath::ATan(exp(-Lepton_eta[1])))"
-thetab = "TMath::Cos(2*TMath::ATan(exp(-CleanJet_eta[bJetsIdx[0]])))"
-thetab2 = "TMath::Cos(2*TMath::ATan(exp(-CleanJet_eta[bJetsIdx[1]])))"
-thetal0l1 = thetal0 + "*" + thetal1
-thetal0b = thetal0 + "*" + thetab
-thetal1b = thetal1 + "*" + thetab
-
-#IFCA variables
-totalET = "PuppiMET_sumEt + Lepton_pt[0] + Lepton_pt[1] + CleanJet_p[0]t + CleanJet_pt[1]"
-
-variables = ["PuppiMET_pt", "mT2", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]-Lepton_eta[1]", "Lepton_phi[0]-Lepton_phi[1]", "thetal0l1 := "+thetal0l1, "thetal0b := "+thetal0b, "thetal1b := "+thetal1b, "totalET :="+totalET, "dark_pt", "overlapping_factor"]
+variables = ["PuppiMET_pt", "mt2ll", "mt2bl", "totalET", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]", "Lepton_eta[1]", "Lepton_phi[0]", "Lepton_phi[1]", "thetall", "thetal1b1", "thetal2b2", "dark_pt", "overlapping_factor", "reco_weight"]
 
 #=========================================================================================================
 # HELPERS
@@ -122,15 +109,15 @@ def trainMVA(inputDir, signalFiles, backgroundFiles):
     model.compile(loss='categorical_crossentropy', optimizer=RMSprop(), metrics=['accuracy', 'mse'])
 
     #Move to the correct directory to save the model and its weights
-    #outputDirectory = "training/"
-    #try:
-    #    os.stat(outputDirectory)
-    #except:
-    #    os.makedirs(outputDirectory)
+    outputDirectory = "training/"
+    try:
+        os.stat(outputDirectory)
+    except:
+        os.makedirs(outputDirectory)
 
     # Store model
     #plot_model(model, to_file=outputDirectory+'model.png')
-    #model.save(outputDirectory+'model.h5')
+    model.save(outputDirectory+'model.h5')
     model.summary() #Print the summary of the model compiled
 
     # Book method
@@ -161,7 +148,7 @@ def evaluateMVA(inputDir, filename, test):
     ROOT.TMVA.Tools.Instance()
     ROOT.TMVA.PyMethodBase.PyInitialize()
 
-    reader = ROOT.TMVA.Reader("!Color:!Silent")
+    reader = ROOT.TMVA.Reader("Color:!Silent")
     for variable in variables:
         reader.AddVariable(variable, array('f',[0.]))
 
@@ -173,20 +160,19 @@ def evaluateMVA(inputDir, filename, test):
     #Write the new branches in the tree
     rootfile = ROOT.TFile.Open(inputDir+filename, "UPDATE")
     inputTree = rootfile.Get("Events")
-    outputTree = inputTree.CloneTree(0)
 
     BDT_output = array("f", [0.])
-    outputTree.Branch("BDT_output", BDT_output, "BDT_output/F")
+    inputTree.Branch("BDT_output", BDT_output, "BDT_output/F")
     Fisher_output = array("f", [0.])
-    outputTree.Branch("Fisher_output", Fisher_output, "Fisher_output/F")
+    inputTree.Branch("Fisher_output", Fisher_output, "Fisher_output/F")
     PyKeras_output = array("f", [0.])
-    outputTree.Branch("PyKeras_output", PyKeras_output, "PyKeras_output/F")
+    inputTree.Branch("PyKeras_output", PyKeras_output, "PyKeras_output/F")
     LikelihoodD_output = array("f", [0.])
-    outputTree.Branch("LikelihoodD_output", LikelihoodD_output, "LikelihoodD_output/F")
+    inputTree.Branch("LikelihoodD_output", LikelihoodD_output, "LikelihoodD_output/F")
 
     nEvents = rootfile.Events.GetEntries()
     if test:
-        mEvents = 1000
+        nmEvents = 1000
 
     for index, ev in enumerate(rootfile.Events):
         
@@ -205,10 +191,10 @@ def evaluateMVA(inputDir, filename, test):
         PyKeras_output[0] = PyKerasValue
         LikelihoodDValue = reader.EvaluateMVA("LikelihoodD")
         LikelihoodD_output[0] = LikelihoodDValue
-        
-        outputTree.Fill()
 
-    outputTree.Write()
+        inputTree.Fill()
+
+    inputTree.Write()
     rootfile.Close()
         
     

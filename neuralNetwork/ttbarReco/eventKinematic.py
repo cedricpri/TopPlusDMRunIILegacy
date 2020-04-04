@@ -33,9 +33,9 @@ class EventKinematic():
         """
         Run the smearinby modifying the lepton, jets, masses, angles and MET.
         """
-        
+
         rand = r.TRandom3()
-        
+
         #Update the jets
         OldTb1, OldTb2 = self.Tb1, self.Tb2
 
@@ -51,11 +51,11 @@ class EventKinematic():
 
         self.Tb1.SetPtEtaPhiM(self.Tb1.Pt()*ptCorrection1, self.Tb1.Eta(), self.Tb1.Phi(), self.Tb1.M())
         self.Tb2.SetPtEtaPhiM(self.Tb2.Pt()*ptCorrection2, self.Tb2.Eta(), self.Tb2.Phi(), self.Tb2.M())
-        
+        """
         #Update the leptons
         self.Tlep1.SetE(self.Tlep1.E() * distributions['ler'].GetRandom())
         self.Tlep2.SetE(self.Tlep2.E() * distributions['ler'].GetRandom())
-
+        """
         #Perform the angular smearing by generating alpha a random number from distribution generated from generateDistributions.py
         #Find the new vector respecting the condition phat_RECO_new * phat_RECO = cos(alpha), and the perpendicular plane to phat_RECO (phat_RECO * x = cste) takes the rotation omega
         self.Tlep1 = self.findVector(self.Tlep1, distributions['lphat'].GetRandom(), rand.Uniform(2 * 3.1415))
@@ -195,32 +195,9 @@ class EventKinematic():
         Plane = r.TVector3(a * Orthogonal1 + b * Orthogonal2)
         
         #The vector we are searching for is equal to the original vector p + the plane we just calculated, normalized
-        newObject = (oldObject + r.TLorentzVector(Plane, 0)) * (1/((oldObject + r.TLorentzVector(Plane, 0)).Mag()))
+        try:
+            newObject = (oldObject + r.TLorentzVector(Plane, 0)) * (1/((oldObject + r.TLorentzVector(Plane, 0)).Mag()))
+        except: 
+            newObject = oldObject
+
         return newObject
-
-    def fixOperations(self):
-
-        #Addition
-        r.TVector3(1, 1, 1) + r.TVector3(2, 2, 1)
-        mvv = r.TVector3.__add__
-        del r.TVector3.__add__
-
-        def fixadd(self, other, mvv=mvv):
-            if isinstance(other, self.__class__):
-                return mvv(self, other)
-        
-        r.TVector3.__add__ = fixadd
-
-        #Multiplication
-        r.TVector3(1, 1, 1) * r.TVector3(2, 2, 1)
-        mvv = r.TVector3.__mul__
-        del r.TVector3.__mul__
-        r.TVector3(1, 1, 1) * 5
-        mvs = r.TVector3.__mul__
-
-        def fixmul(self, other, mvv=mvv, mvs=mvs):
-            if isinstance(other, self.__class__):
-                return mvv(self, other)
-                return mvs(self, other)
-        
-        r.TVector3.__mul__ = fixmul
