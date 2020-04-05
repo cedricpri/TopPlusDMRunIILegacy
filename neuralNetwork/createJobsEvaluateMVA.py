@@ -7,7 +7,7 @@ templateCONDOR = """#!/bin/bash
 pushd CMSSWRELEASE/src
 eval `scramv1 runtime -sh`
 pushd
-python EXENAME WORKINGPATH 
+python EXENAME
 """
 
 ########################## Main program #####################################
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser.add_option('-c', '--cmssw', action='store', type=str, dest='cmssw', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/") #CMSSW release
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
     parser.add_option('-d', '--data', action='store_true', dest='data') #Process a data file or background/signal?
-    parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files
+    parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files (do not use the nanoLatino prefix!)
 
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only process a few files and a few events, for testing purposes
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         print("Test: " + str(test))
         print("=================================================")
 
-    workingpath = os.getcwd()
+    baseDir = os.getcwd()
  
     if year == 2018:
         if data:
@@ -54,13 +54,13 @@ if __name__ == "__main__":
                     
     elif year == 2017:
         if data:
-            inputDir = "" #To be defined
+            inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Run2017_102X_nAODv5_Full2017v6/DATAl1loose2017v6__l2loose__l2tightOR2017v6/"
         else:
             inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6/"
 
     elif year == 2016:
         if data:
-            inputDir = "" #To be defined
+            inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Run2016_102X_nAODv5_Full2016v6/DATAl1loose2016v6__l2loose__l2tightOR2016v6/"
         else:            
             inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv5_Full2016v6/MCl1loose2016v6__MCCorr2016v6__l2loose__l2tightOR2016v6/" 
 
@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
     for i in filesToProcess:
 
-        executable = workingpath + "/runMVA.py -e -f " + i + " -d " + inputDir
+        executable = baseDir + "/runMVA.py -e -f " + i + " -i " + inputDir + " -d " + baseDir
         
         if test:
             executable = executable + " -t"
@@ -94,7 +94,6 @@ if __name__ == "__main__":
         template = templateCONDOR
         template = template.replace('CMSSWRELEASE', cmssw)
         template = template.replace('EXENAME', executable) 
-        template = template.replace('WORKINGPATH', workingpath) 
 
         f = open('sh/send_' + i.replace('.root', '') + '.sh', 'w')
         f.write(template)

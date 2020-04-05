@@ -51,11 +51,11 @@ class EventKinematic():
 
         self.Tb1.SetPtEtaPhiM(self.Tb1.Pt()*ptCorrection1, self.Tb1.Eta(), self.Tb1.Phi(), self.Tb1.M())
         self.Tb2.SetPtEtaPhiM(self.Tb2.Pt()*ptCorrection2, self.Tb2.Eta(), self.Tb2.Phi(), self.Tb2.M())
-        """
+
         #Update the leptons
         self.Tlep1.SetE(self.Tlep1.E() * distributions['ler'].GetRandom())
         self.Tlep2.SetE(self.Tlep2.E() * distributions['ler'].GetRandom())
-        """
+
         #Perform the angular smearing by generating alpha a random number from distribution generated from generateDistributions.py
         #Find the new vector respecting the condition phat_RECO_new * phat_RECO = cos(alpha), and the perpendicular plane to phat_RECO (phat_RECO * x = cste) takes the rotation omega
         self.Tlep1 = self.findVector(self.Tlep1, distributions['lphat'].GetRandom(), rand.Uniform(2 * 3.1415))
@@ -137,9 +137,9 @@ class EventKinematic():
                 #Compare these values with the one obtained from generation
                 truemlb = mlbHist.GetBinContent(mlbHist.FindBin(mlb))
                 truemlb_ = mlbHist.GetBinContent(mlbHist.FindBin(mlb_))
-                weight = truemlb * truemlb_
+                weight = truemlb * truemlb_ * 10000 #Rescale applied to have reasonable numbers to deal with
             except:
-                weight = -9.0
+                weight = -49.0
 
             self.weight = weight
         return weight
@@ -157,8 +157,8 @@ class EventKinematic():
                 #if self.nuSol.overlapingFactor(self.nuSol.N, self.nuSol.n_) < 0.2: #TOCHECK: put back this cut and tweak it?
                 dark_pt = self.nuSol.darkPt('DarkPt')
             except:
-                overlapping_factor = -9.0
-                dark_pt = -9.0
+                overlapping_factor = -49.0
+                dark_pt = -49.0
 
             self.overlapping_factor = overlapping_factor
             self.dark_pt = dark_pt

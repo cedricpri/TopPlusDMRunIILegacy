@@ -7,7 +7,7 @@ templateCONDOR = """#!/bin/bash
 pushd CMSSWRELEASE/src
 eval `scramv1 runtime -sh`
 pushd
-python EXENAME INPUTFILE MODEL WORKINGPATH 
+python EXENAME
 """
 
 ########################## Main program #####################################
@@ -21,7 +21,8 @@ if __name__ == "__main__":
     parser.add_option('-s', '--signal', action='store_true', dest='signal', default=False) #Process the signal or background files?
     parser.add_option('-d', '--data', action='store_true', dest='data', default=False) #Process the data or background files?
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
-    parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files
+    parser.add_option('-o', '--outputDir', action='store', type=str, dest='outputDir', default="/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/") #Output directory where to keep the files
+    parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files (without the nanoLatino prefix)
 
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only process a few files and a few events, for testing purposes
     parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed
@@ -32,6 +33,7 @@ if __name__ == "__main__":
     signal = opts.signal
     data = opts.data
     year = opts.year
+    outputDir = opts.outputDir
     query = opts.query
 
     test = opts.test
@@ -43,17 +45,19 @@ if __name__ == "__main__":
 
     if verbose:
         print("=================================================")
-        print("-> OPTIONS USED:")
-        print("CMSSW: " + str(cmssw))
+        print("OPTIONS USED:")
+        print("CMSSW release: " + str(cmssw))
         print("Signal: " + str(signal))
         print("Data: " + str(data))
         print("Year: " + str(year))
+        print("Output directory: " + str(outputDir))
         print("Test: " + str(test))
         print("Query: " + str(query))
         print("Resubmit: " + str(resubmit))
         print("=================================================")
 
-    workingpath = os.getcwd()
+    #Three different directories are used: the inputDir, where the original latino files are, the outputDir, where to keep the output, and baseDir, the current path where the distributions.root file is.
+    baseDir = os.getcwd()
  
     if year == 2018:
         if signal:
@@ -98,25 +102,21 @@ if __name__ == "__main__":
 
     #If the resubmit option is set, then remove from this list the files that are already found in the output directory
     if resubmit:
-        outputDirectory = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/"
-        outputDirectoryProduction = "/".join(inputDir.split('/')[-3:-1])+"/"
-        outputDirectory = outputDirectory + outputDirectoryProduction
-        alreadyFound = os.listdir(outputDirectory)
+        outputDirProduction = "/".join(inputDir.split('/')[-3:-1])+"/"
+        outputDirComplete = outputDir + outputDirProduction
+        alreadyFound = os.listdir(outputDirComplete)
 
         filesToProcess = [x for x in filesToProcess if x not in alreadyFound] #Remove the files not needed
 
     for i in filesToProcess:
 
-        executable = workingpath + "/createTrees.py -f " + i + " -d " + inputDir
+        executable = baseDir + "/createTrees.py -f " + i + " -i " + inputDir + " -o " + outputDir + " -b " + baseDir 
         if verbose:
             executable = executable + " -v"
 
         template = templateCONDOR
         template = template.replace('CMSSWRELEASE', cmssw)
         template = template.replace('EXENAME', executable) 
-        template = template.replace('INPUTFILE', i) 
-        template = template.replace('MODEL', i) 
-        template = template.replace('WORKINGPATH', workingpath) 
 
         f = open('sh/send_' + i.replace('.root', '') + '.sh', 'w')
         f.write(template)

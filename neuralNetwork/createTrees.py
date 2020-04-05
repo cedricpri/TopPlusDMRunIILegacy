@@ -8,9 +8,6 @@ from copy import deepcopy
 #Class for the ttbar reconstruction
 from ttbarReco.eventKinematic import EventKinematic
 
-#For condor
-baseDir = "/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/src/neuralNetwork/"
-
 #Smearing parameters
 runSmearing = True
 runSmearingNumber = 5
@@ -41,7 +38,7 @@ def updateProgress(progress):
 #=========================================================================================================
 # TREE CREATION
 #=========================================================================================================
-def createTree(inputDir, filename):
+def createTree(inputDir, outputDir, baseDir, filename):
     #===================================================
     #Global setup
     #===================================================
@@ -63,15 +60,14 @@ def createTree(inputDir, filename):
     inputTree = inputFile.Get("Events")
 
     #Create a directory to keep the files if it does not already exist
-    outputDirectory = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/"
-    outputDirectoryProduction = "/".join(inputDir.split('/')[-3:-1])+"/"
-    outputDirectory = outputDirectory + outputDirectoryProduction #Add a final name to distinguish between 2016, 2017 and 2018 files
+    outputDirProduction = "/".join(inputDir.split('/')[-3:-1])+"/"
+    outputDir = outputDir + outputDirProduction #Add a final name to distinguish between 2016, 2017 and 2018 files
     try:
-        os.stat(outputDirectory)
+        os.stat(outputDir)
     except:
-        os.makedirs(outputDirectory)
+        os.makedirs(outputDir)
 
-    outputFile = r.TFile.Open(outputDirectory + filename, "recreate")
+    outputFile = r.TFile.Open(outputDir + filename, "recreate")
     outputTree = inputTree.CloneTree(0)
 
     #===================================================
@@ -166,12 +162,12 @@ def createTree(inputDir, filename):
 
     totalET = array("f", [0.])
     outputTree.Branch("totalET", totalET, "totalET/F")
-    thetall = array("f", [0.])
-    outputTree.Branch("thetall", thetall, "thetall/F")
-    thetal1b1 = array("f", [0.])
-    outputTree.Branch("thetal1b1", thetal1b1, "thetal1b1/F")
-    thetal2b2 = array("f", [0.])
-    outputTree.Branch("thetal2b2", thetal2b2, "thetal2b2/F")
+    costhetall = array("f", [0.])
+    outputTree.Branch("costhetall", costhetall, "costhetall/F")
+    costhetal1b1 = array("f", [0.])
+    outputTree.Branch("costhetal1b1", costhetal1b1, "costhetal1b1/F")
+    costhetal2b2 = array("f", [0.])
+    outputTree.Branch("costhetal2b2", costhetal2b2, "costhetal2b2/F")
     cosphill = array("f", [0.])
     outputTree.Branch("cosphill", cosphill, "cosphill/F")
 
@@ -292,7 +288,7 @@ def createTree(inputDir, filename):
                 Tb2.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
 
                 eventKinematic1 = EventKinematic(Tlep1, Tlep2, Tb1, Tb2, Tnu1, Tnu2, TMET)
-                eventKinematic1Original = deepcopy(eventKinematic1)
+                eventKinematic1Original = deepcopy(eventKinematic1) #We will need the original object afterwards for the smearing
                 eventKinematic2 = EventKinematic(Tlep2, Tlep1, Tb1, Tb2, Tnu1, Tnu2, TMET)
                 eventKinematic2Original = deepcopy(eventKinematic2)
 
@@ -347,11 +343,7 @@ def createTree(inputDir, filename):
         #===================================================
 
         if recoWorked:
-            if bestReconstructedKinematic.weight > 0:
-                rescaledWeight = bestReconstructedKinematic.weight * 1000 #Rescale to have reasonnable numbers
-            else:
-                rescaledWeight = bestReconstructedKinematic.weight
-            reco_weight[0] = rescaledWeight
+            reco_weight[0] = bestReconstructedKinematic.weight
             dark_pt[0] = bestReconstructedKinematic.dark_pt
             overlapping_factor[0] = bestReconstructedKinematic.overlapping_factor
         else:
@@ -364,11 +356,11 @@ def createTree(inputDir, filename):
         #===================================================
 
         if recoWorked:
-            mt2ll[0] = computeMT2(bestReconstructedKinematic.Tlep1, bestReconstructedKinematic.Tlep2, bestReconstructedKinematic.TMET, 0) 
-            mt2bl[0] = computeMT2(bestReconstructedKinematic.Tlep1 + bestReconstructedKinematic.Tb1, bestReconstructedKinematic.Tlep2 + bestReconstructedKinematic.Tb2, bestReconstructedKinematic.TMET, 0) 
+            mt2ll[0] = computeMT2(bestReconstructedKinematic.Tlep1, bestReconstructedKinematic.Tlep2, bestReconstructedKinematic.TMET) 
+            mt2bl[0] = computeMT2(bestReconstructedKinematic.Tlep1 + bestReconstructedKinematic.Tb1, bestReconstructedKinematic.Tlep2 + bestReconstructedKinematic.Tb2, bestReconstructedKinematic.TMET) 
         else: #TOCHECK: put default value instead?
-            mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET, 0) 
-            mt2bl[0] = computeMT2(eventKinematic.Tlep1 + eventKinematic.Tb1, eventKinematic.Tlep2 + eventKinematic.Tb2, eventKinematic.TMET, 0) 
+            mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET) 
+            mt2bl[0] = computeMT2(eventKinematic.Tlep1 + eventKinematic.Tb1, eventKinematic.Tlep2 + eventKinematic.Tb2, eventKinematic.TMET) 
 
         #===================================================
         #Additional variables computation
@@ -377,9 +369,9 @@ def createTree(inputDir, filename):
         #Variables bases on DESY's AN2016-240-v10
         if recoWorked:
             totalET[0] = ev.PuppiMET_sumEt + bestReconstructedKinematic.Tb1.Pt() + bestReconstructedKinematic.Tb2.Pt() + bestReconstructedKinematic.Tlep1.Pt() + bestReconstructedKinematic.Tlep2.Pt()
-            thetall[0] = math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep2.Eta())))
-            thetal1b1[0] = math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tb1.Eta())))
-            thetal2b2[0] = math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tb2.Eta())))
+            costhetall[0] = math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep2.Eta())))
+            costhetal1b1[0] = math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tb1.Eta())))
+            costhetal2b2[0] = math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tb2.Eta())))
             
             #cos(phi) in the parent rest frame
             Tmom1 = bestReconstructedKinematic.Tlep1 + bestReconstructedKinematic.Tnu1 #TLorentzVector of the W boson associated to the lepton 1 
@@ -392,15 +384,15 @@ def createTree(inputDir, filename):
             try:
                 cosphill[0] = math.cos(bestReconstructedKinematic.Tlep1.Phi() - bestReconstructedKinematic.Tlep2.Phi()) #TOCHECK: is the substraction what is needed?
             except:
-                cosphill[0] = -9.0
+                cosphill[0] = -49.0
 
         else: #TOCHECK: put default value instead?
             totalET[0] = ev.PuppiMET_sumEt + eventKinematic.Tb1.Pt() + eventKinematic.Tb2.Pt() + eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt()
-            thetall[0] = math.cos(2*math.atan(math.exp(-eventKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-eventKinematic.Tlep2.Eta())))
-            thetal1b1[0] = math.cos(2*math.atan(math.exp(-eventKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-eventKinematic.Tb1.Eta())))
-            thetal2b2[0] = math.cos(2*math.atan(math.exp(-eventKinematic.Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-eventKinematic.Tb2.Eta())))
+            costhetall[0] = math.cos(2*math.atan(math.exp(-eventKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-eventKinematic.Tlep2.Eta())))
+            costhetal1b1[0] = math.cos(2*math.atan(math.exp(-eventKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-eventKinematic.Tb1.Eta())))
+            costhetal2b2[0] = math.cos(2*math.atan(math.exp(-eventKinematic.Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-eventKinematic.Tb2.Eta())))
         
-            cosphill[0] = -999.0 #We need the nu information for this variable, so default value if reco failed
+            cosphill[0] = -99.0 #We need the nu information for this variable, so default value if reco failed
        
         outputTree.Fill()
 
@@ -420,7 +412,7 @@ def computeMT2(VisibleA, VisibleB, Invisible, MT2Type = 0, MT2Precision = 0) :
     chiA = 0.  # Hypothesized mass of invisible on side A. Must be >= 0
     chiB = 0.  # Hypothesized mass of invisible on side B. Must be >= 0
   
-    if MT2Type== 1 : # This is for mt2 with b jets
+    if MT2Type == 1: # This is for mt2 with b jets
 
         mVisA =  5.
         mVisB =  5.
@@ -482,24 +474,28 @@ def fixOperations():
 
 
 if __name__ == "__main__":
+
     # =========================================== 
     # Argument parser                            
     # ===========================================
     
     parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0')
     parser.add_option('-f', '--filename', action='store', type=str, dest='filename', default="")
-    parser.add_option('-d', '--inputDir', action='store', type=str, dest='inputDir', default="")
+    parser.add_option('-i', '--inputDir', action='store', type=str, dest='inputDir', default="")
+    parser.add_option('-o', '--outputDir', action='store', type=str, dest='outputDir', default="/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/")
+    parser.add_option('-b', '--baseDir', action='store', type=str, dest='baseDir', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/src/neuralNetwork/")
     parser.add_option('-t', '--test', action='store_true', dest='test')
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
     (opts, args) = parser.parse_args()
 
     filename = opts.filename
     inputDir = opts.inputDir
+    outputDir = opts.outputDir
+    baseDir = opts.baseDir
     test = opts.test
     verbose = opts.verbose
 
     #Needed for reasons explained in https://root-forum.cern.ch/t/cannot-perform-both-dot-product-and-scalar-multiplication-on-tvector2-in-pyroot/28207
     fixOperations()
-
-    createTree(inputDir, filename)
+    createTree(inputDir, outputDir, baseDir, filename)
     
