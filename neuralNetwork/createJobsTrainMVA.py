@@ -41,7 +41,7 @@ if __name__ == "__main__":
         print("Background query: " + str(backgroundQuery))
         print("=================================================")
 
-    baseDir = os.getcwd()
+    baseDir = os.getcwd() + "/"
  
     if year == 2018:
         inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"

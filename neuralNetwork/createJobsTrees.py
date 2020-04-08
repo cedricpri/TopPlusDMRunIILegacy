@@ -57,7 +57,7 @@ if __name__ == "__main__":
         print("=================================================")
 
     #Three different directories are used: the inputDir, where the original latino files are, the outputDir, where to keep the output, and baseDir, the current path where the distributions.root file is.
-    baseDir = os.getcwd()
+    baseDir = os.getcwd() + "/"
  
     if year == 2018:
         if signal:

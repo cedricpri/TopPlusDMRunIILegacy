@@ -53,6 +53,8 @@ class EventKinematic():
         self.Tb2.SetPtEtaPhiM(self.Tb2.Pt()*ptCorrection2, self.Tb2.Eta(), self.Tb2.Phi(), self.Tb2.M())
 
         #Update the leptons
+        OldTlep1, OldTlep2 = self.Tlep1, self.Tlep2
+
         self.Tlep1.SetE(self.Tlep1.E() * distributions['ler'].GetRandom())
         self.Tlep2.SetE(self.Tlep2.E() * distributions['ler'].GetRandom())
 
@@ -64,9 +66,12 @@ class EventKinematic():
         self.Tb2 = self.findVector(self.Tb2, distributions['jphat'].GetRandom(), rand.Uniform(2 * 3.1415))
 
         #Update the MET
-        deltaP1 = r.TLorentzVector(self.Tb1.Px() - OldTb1.Px(), self.Tb1.Py() - OldTb1.Py(), 0, 0)
-        deltaP2 = r.TLorentzVector(self.Tb2.Px() - OldTb2.Px(), self.Tb2.Py() - OldTb2.Py(), 0, 0)
-        self.TMET = self.TMET + deltaP1 + deltaP2
+        deltaJet1 = r.TLorentzVector(self.Tb1.Px() - OldTb1.Px(), self.Tb1.Py() - OldTb1.Py(), 0, 0)
+        deltaJet2 = r.TLorentzVector(self.Tb2.Px() - OldTb2.Px(), self.Tb2.Py() - OldTb2.Py(), 0, 0)
+        deltaLep1 = r.TLorentzVector(self.Tlep1.Px() - OldTlep1.Px(), self.Tlep1.Py() - OldTlep1.Py(), 0, 0)
+        deltaLep2 = r.TLorentzVector(self.Tlep2.Px() - OldTlep2.Px(), self.Tlep2.Py() - OldTlep2.Py(), 0, 0)
+        
+        self.TMET = self.TMET + deltaJet1 + deltaJet2 + deltaLep1 + deltaLep2
 
         #Update the W mass
         self.mW1 = rand.BreitWigner(80.379, 2.085)

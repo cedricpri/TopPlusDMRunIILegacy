@@ -18,6 +18,7 @@ if __name__ == "__main__":
     # ===========================================                                                        
     parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0')
     parser.add_option('-c', '--cmssw', action='store', type=str, dest='cmssw', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/") #CMSSW release
+    parser.add_option('-m', '--massPoints', action='store', type=str, dest='massPoints', default="scalar_LO_Mchi_1_Mphi_100") #Mass points training to be read (comma separated string)
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
     parser.add_option('-d', '--data', action='store_true', dest='data') #Process a data file or background/signal?
     parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files (do not use the nanoLatino prefix!)
@@ -27,6 +28,7 @@ if __name__ == "__main__":
     (opts, args) = parser.parse_args()
 
     cmssw = opts.cmssw
+    massPoints = opts.massPoints
     year = opts.year
     data = opts.data
     query = opts.query
@@ -39,12 +41,13 @@ if __name__ == "__main__":
         print("-> OPTIONS USED:")
         print("CMSSW: " + str(cmssw))
         print("Data: " + str(data))
+        print("Mass points: " + str(massPoints))
         print("Year: " + str(year))
         print("Query: " + str(query))
         print("Test: " + str(test))
         print("=================================================")
 
-    baseDir = os.getcwd()
+    baseDir = os.getcwd() + "/"
  
     if year == 2018:
         if data:
@@ -86,7 +89,7 @@ if __name__ == "__main__":
 
     for i in filesToProcess:
 
-        executable = baseDir + "/runMVA.py -e -f " + i + " -i " + inputDir + " -d " + baseDir
+        executable = baseDir + "/runMVA.py -e -f " + i + " -i " + inputDir + " -d " + baseDir + " -m " + massPoints
         
         if test:
             executable = executable + " -t"

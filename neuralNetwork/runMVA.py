@@ -14,7 +14,8 @@ from array import array
 # ===========================================
 
 #Training variables
-variables = ["PuppiMET_pt", "mt2ll", "mt2bl", "totalET", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]", "Lepton_eta[1]", "Lepton_phi[0]", "Lepton_phi[1]", "thetall", "thetal1b1", "thetal2b2", "cosphill", "dark_pt", "overlapping_factor", "reco_weight"]
+#variables = ["PuppiMET_pt", "mt2ll", "totalET", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]", "Lepton_eta[1]", "Lepton_phi[0]", "Lepton_phi[1]", "thetall", "thetal1b1", "thetal2b2", "dark_pt", "overlapping_factor", "reco_weight"] #cosphill missing, mt2bl as well
+variables = ["PuppiMET_pt", "MET_significance", "mt2ll", "mt2bl", "dphillmet", "Lepton_eta[0]-Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight"] #DESY-like, cosphill missing
 
 #=========================================================================================================
 # HELPERS
@@ -47,15 +48,22 @@ def trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year):
     Function used to train the MVA based on the signal given
     """
 
-    massPoint = signalFiles[0].split("_")[3:8].replace(".root", "")
+    massPoint = signalFiles[0].split("_")[3:9]
+    massPoint = "_".join(massPoint).replace(".root", "")
 
     #Move to the correct directory to save the model and its weights
-    outputDirectory = baseDir + "/training" + year + "/"
+    outputDirTraining = baseDir + "/" + str(year) + "/" + massPoint + "/training/"
+    outputDirWeights = baseDir + "/" + str(year) + "/" + massPoint
     try:
-        os.stat(outputDirectory)
+        os.stat(outputDirTraining)
     except:
-        os.makedirs(outputDirectory)
-    output = TFile.Open(outputDirectory+'TMVA_'+mass_point+'.root', 'RECREATE')
+        os.makedirs(outputDirTraining)
+    output = ROOT.TFile.Open(outputDirTraining+'TMVA.root', 'RECREATE')
+
+    try:
+        os.stat(outputDirWeights)
+    except:
+        os.makedirs(outputDirWeights)
 
     # ===========================================
     # Setup TMVA
@@ -67,6 +75,7 @@ def trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year):
     # ===========================================
     # Load data
     # ===========================================
+    os.chdir(outputDirWeights)
     dataloader = ROOT.TMVA.DataLoader('dataset')
     for variable in variables:
         dataloader.AddVariable(variable)
@@ -102,7 +111,7 @@ def trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year):
     # Generate keras model
     # ===========================================
     model = Sequential()
-    model.add(Dense(50, activation='relu', input_dim=len(variables)))
+    model.add(Dense(40, activation='relu', input_dim=len(variables)))
     model.add(Dropout(0.2))
     model.add(Dense(20, activation='relu'))
     model.add(Dropout(0.2))
@@ -116,15 +125,15 @@ def trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year):
     model.compile(loss='categorical_crossentropy', optimizer=RMSprop(), metrics=['accuracy', 'mse'])
 
     # Store model
-    #plot_model(model, to_file=outputDirectory+'model.png')
-    model.save(outputDirectory+'model.h5')
+    #plot_model(model, to_file=outputDir+'model.png')
+    model.save(outputDirTraining+'model.h5')
     model.summary() #Print the summary of the model compiled
 
     # Book method
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=100:MaxDepth=10:AdaBoostBeta=0.5:!H:!V')
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kFisher, 'Fisher', '!H:!V:Fisher')
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel='+outputDirectory+'model.h5:NumEpochs=30:BatchSize=64:TriesEarlyStopping=5')
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kLikelihood, 'LikelihoodD', '!H:!V:!TransformOutput:PDFInterpol=Spline2:NSmoothSig[0]=20:NSmoothBkg[0]=20:NSmooth=5:NAvEvtPerBin=50')
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=1000000:MinNodeSize=1%:!H:!V')
+    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kFisher, 'Fisher', '!H:!V:Fisher')
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'model.h5:FilenameTrainedModel=' + outputDirTraining + 'modelTrained.h5:NumEpochs=30:BatchSize=64:TriesEarlyStopping=5:VarTransform=N')
+    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kLikelihood, 'LikelihoodD', '!H:!V:!TransformOutput:PDFInterpol=Spline2:NSmoothSig[0]=20:NSmoothBkg[0]=20:NSmooth=5:NAvEvtPerBin=50')
 
     # ===========================================
     # Run training, test and evaluation
@@ -137,7 +146,7 @@ def trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year):
 #=========================================================================================================
 # APPLICATION
 #=========================================================================================================
-def evaluateMVA(baseDir, inputDir, filename, year, test):
+def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
     """
     Function used to evaluate the MVA after being trained
     """
@@ -152,47 +161,51 @@ def evaluateMVA(baseDir, inputDir, filename, year, test):
     for variable in variables:
         reader.AddVariable(variable, array('f',[0.]))
         
-    reader.BookMVA("BDT", baseDir + "dataset/weights/TMVAClassification_BDT.weights.xml")
-    reader.BookMVA("Fisher", baseDir + "dataset/weights/TMVAClassification_Fisher.weights.xml")
-    reader.BookMVA("PyKeras", baseDir + "dataset/weights/TMVAClassification_PyKeras.weights.xml")
-    reader.BookMVA("LikelihoodD", baseDir + "dataset/weights/TMVAClassification_LikelihoodD.weights.xml")
-
     #Write the new branches in the tree
     rootfile = ROOT.TFile.Open(inputDir+filename, "UPDATE")
     inputTree = rootfile.Get("Events")
 
-    BDT_output = array("f", [0.])
-    inputTree.Branch("BDT_output", BDT_output, "BDT_output/F")
-    Fisher_output = array("f", [0.])
-    inputTree.Branch("Fisher_output", Fisher_output, "Fisher_output/F")
-    PyKeras_output = array("f", [0.])
-    inputTree.Branch("PyKeras_output", PyKeras_output, "PyKeras_output/F")
-    LikelihoodD_output = array("f", [0.])
-    inputTree.Branch("LikelihoodD_output", LikelihoodD_output, "LikelihoodD_output/F")
+    for massPoint in massPoints:
 
-    nEvents = rootfile.Events.GetEntries()
-    if test:
-        nEvents = 1000
+        weightsDir = baseDir + "/" + str(year) + "/" + massPoint
 
-    for index, ev in enumerate(rootfile.Events):
+        reader.BookMVA("BDT", weightsDir + "/dataset/weights/TMVAClassification_BDT.weights.xml")
+        #reader.BookMVA("Fisher", weightsDir + "/dataset/weights/TMVAClassification_Fisher.weights.xml")
+        reader.BookMVA("PyKeras", weightsDir + "/dataset/weights/TMVAClassification_PyKeras.weights.xml")
+        #reader.BookMVA("LikelihoodD", weightsDir + "/dataset/weights/TMVAClassification_LikelihoodD.weights.xml")
+
+        BDT_output = array("f", [0.])
+        inputTree.Branch("BDT_output", BDT_output, "BDT_output/F")
+        #Fisher_output = array("f", [0.])
+        #inputTree.Branch("Fisher_output", Fisher_output, "Fisher_output/F")
+        PyKeras_output = array("f", [0.])
+        inputTree.Branch("PyKeras_output", PyKeras_output, "PyKeras_output/F")
+        #LikelihoodD_output = array("f", [0.])
+        #inputTree.Branch("LikelihoodD_output", LikelihoodD_output, "LikelihoodD_output/F")
+
+        nEvents = rootfile.Events.GetEntries()
+        if test:
+            nEvents = 1000
+
+        for index, ev in enumerate(rootfile.Events):
         
-        if index % 100 == 0: #Update the loading bar every 100 events
-            updateProgress(round(index/float(nEvents), 2))
+            if index % 100 == 0: #Update the loading bar every 100 events
+                updateProgress(round(index/float(nEvents), 2))
     
-        #For testing only
-        if test and index == nEvents:
-            break
+            #For testing only
+            if test and index == nEvents:
+                break
 
-        BDTValue = reader.EvaluateMVA("BDT")
-        BDT_output[0] = BDTValue
-        FisherValue = reader.EvaluateMVA("Fisher")
-        Fisher_output[0] = FisherValue
-        PyKerasValue = reader.EvaluateMVA("PyKeras")
-        PyKeras_output[0] = PyKerasValue
-        LikelihoodDValue = reader.EvaluateMVA("LikelihoodD")
-        LikelihoodD_output[0] = LikelihoodDValue
+            BDTValue = reader.EvaluateMVA("BDT")
+            BDT_output[0] = BDTValue
+            #FisherValue = reader.EvaluateMVA("Fisher")
+            #Fisher_output[0] = FisherValue
+            PyKerasValue = reader.EvaluateMVA("PyKeras")
+            PyKeras_output[0] = PyKerasValue
+            #LikelihoodDValue = reader.EvaluateMVA("LikelihoodD")
+            #LikelihoodD_output[0] = LikelihoodDValue
 
-        inputTree.Fill()
+            inputTree.Fill()
 
     inputTree.Write()
     rootfile.Close()
@@ -207,8 +220,9 @@ if __name__ == "__main__":
     parser.add_option('-s', '--signalFiles', action='store', type=str, dest='signalFiles', default=[], help='Name of the signal files to be used to train the MVA')
     parser.add_option('-b', '--backgroundFiles', action='store', type=str, dest='backgroundFiles', default=[], help='Name of the background files samples to train the MVA')
     parser.add_option('-f', '--filename', action='store', type=str, dest='filename', default='', help='Name of the file to be evaluated')
-    parser.add_option('-i', '--inputDir', action='store', type=str, dest='inputDir', default="") #OutputDir will be the same in this case
+    parser.add_option('-i', '--inputDir', action='store', type=str, dest='inputDir', default="") 
     parser.add_option('-d', '--baseDir', action='store', type=str, dest='baseDir', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/src/neuralNetwork/")
+    parser.add_option('-m', '--massPoints', action='store', type=str, dest='massPoints', default="scalar_LO_Mchi_1_Mphi_100")
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
     parser.add_option('-e', '--evaluate', action='store_true', dest='evaluate') #Evaluate the MVA or train it?
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only run on a single file
@@ -219,13 +233,17 @@ if __name__ == "__main__":
     filename = opts.filename
     inputDir = opts.inputDir
     baseDir = opts.baseDir
+    massPoints= opts.massPoints
     year = opts.year
     evaluate = opts.evaluate
     test = opts.test
 
     #To evaluate the MVA, we pass as argument one file name each time, to parallelize the jobs
     if(evaluate):
-        evaluateMVA(baseDir, inputDir, filename, year, test)
+        #The mass points to be added to the trees are also passed as comma separated values
+        massPointsList = [str(item) for item in massPoints.split(",")]
+
+        evaluateMVA(baseDir, inputDir, filename, massPointsList, year, test)
     else: #To train, we need to pass a list containing all the files at once
         #Split the comaseparated string for the files into lists
         signalFiles = [str(item) for item in signalFiles.split(',')]
