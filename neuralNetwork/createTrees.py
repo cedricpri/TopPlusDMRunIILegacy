@@ -10,7 +10,7 @@ from ttbarReco.eventKinematic import EventKinematic
 
 #Smearing parameters
 runSmearing = True
-runSmearingNumber = 5
+runSmearingNumber = 100
 
 #=========================================================================================================
 # HELPERS
@@ -292,12 +292,23 @@ def createTree(inputDir, outputDir, baseDir, filename):
                 eventKinematic2 = EventKinematic(Tlep2, Tlep1, Tb1, Tb2, Tnu1, Tnu2, TMET)
                 eventKinematic2Original = deepcopy(eventKinematic2)
 
+                #Keep track of all the weights for each bjet/lepton combination, needed to computed the top quark pt later on
+                orderWeights = []
+                orderTop1Pts = [] #Top 1 pts given by the combination using the correct lepton/b-jet order
+                orderTop2Pts = []
+                inverseOrderWeights = []
+                inverseOrderTop1Pts = []
+                inverseOrderTop2Pts = []
+
                 #Perform first of all the reco without smearing
                 eventKinematic1.runReco()
                 eventKinematic1.findBestSolution(distributions["mlb"])
                 if eventKinematic1.weight > maxWeight:
                     bestReconstructedKinematic = eventKinematic1
                     inverseOrder = False
+                    orderWeights.append(eventKinematic1.weight)
+                    orderTop1Pts.append(eventKinematic1.Tlep1 + eventKinematic1.Tnu1 + eventKinematic1.Tb1)
+                    orderTop2Pts.append(eventKinematic1.Tlep2 + eventKinematic1.Tnu2 + eventKinematic1.Tb2)
                     maxWeight = eventKinematic1.weight
 
                 eventKinematic2.runReco()
@@ -305,17 +316,22 @@ def createTree(inputDir, outputDir, baseDir, filename):
                 if eventKinematic2.weight > maxWeight:
                     bestReconstructedKinematic = eventKinematic2
                     inverseOrder = True
+                    inverseOrderWeights.append(eventKinematic2.weight)
+                    inverseOrderTop1Pts.append(eventKinematic2.Tlep2 + eventKinematic2.Tnu1 + eventKinematic2.Tb1)
+                    inverseOrderTop2Pts.append(eventKinematic2.Tlep1 + eventKinematic2.Tnu2 + eventKinematic2.Tb2)
                     maxWeight = eventKinematic2.weight
 
                 #Run the smearing if needed
                 if runSmearing:
                     for i in range(runSmearingNumber): 
-
                         smearedEventKinematic1 = deepcopy(eventKinematic1Original).runSmearingOnce(distributions) #Get a new object by copying the original one
                         #Keep the solution that has the higher weight
                         if smearedEventKinematic1 is not None and smearedEventKinematic1.weight > maxWeight:
                             bestReconstructedKinematic = smearedEventKinematic1
                             inverseOrder = False
+                            orderWeights.append(smearedEventKinematic1.weight)
+                            orderTop1Pts.append(smearedEventKinematic1.Tlep1 + smearedEventKinematic1.Tnu1 + smearedEventKinematic1.Tb1)
+                            orderTop2Pts.append(smearedEventKinematic1.Tlep2 + smearedEventKinematic1.Tnu2 + smearedEventKinematic1.Tb2)
                             maxWeight = smearedEventKinematic1.weight
                             
                         #Do the same by reversing the leptons
@@ -324,6 +340,9 @@ def createTree(inputDir, outputDir, baseDir, filename):
                         if smearedEventKinematic2 is not None and smearedEventKinematic2.weight > maxWeight:
                             bestReconstructedKinematic = smearedEventKinematic2
                             inverseOrder = True
+                            inverseOrderWeights.append(smearedEventKinematic2.weight)
+                            inverseOrderTop1Pts.append(smearedEventKinematic2.Tlep2 + smearedEventKinematic2.Tnu1 + smearedEventKinematic2.Tb1)
+                            inverseOrderTop2Pts.append(smearedEventKinematic2.Tlep1 + smearedEventKinematic2.Tnu2 + smearedEventKinematic2.Tb2)
                             maxWeight = smearedEventKinematic2.weight
 
         recoWorked = False
@@ -369,28 +388,56 @@ def createTree(inputDir, outputDir, baseDir, filename):
         #Variables bases on DESY's AN2016-240-v10
         if recoWorked:
             totalET[0] = ev.PuppiMET_sumEt + bestReconstructedKinematic.Tb1.Pt() + bestReconstructedKinematic.Tb2.Pt() + bestReconstructedKinematic.Tlep1.Pt() + bestReconstructedKinematic.Tlep2.Pt()
-            costhetall[0] = math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep2.Eta())))
-            costhetal1b1[0] = math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tb1.Eta())))
-            costhetal2b2[0] = math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-bestReconstructedKinematic.Tb2.Eta())))
-            
-            #cos(phi) in the parent rest frame
-            Tmom1 = bestReconstructedKinematic.Tlep1 + bestReconstructedKinematic.Tnu1 #TLorentzVector of the W boson associated to the lepton 1 
-            Tmom2 = bestReconstructedKinematic.Tlep2 + bestReconstructedKinematic.Tnu2
+            costhetall[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tlep2.CosTheta()
+            if inverseOrder:
+                costhetal1b1[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tb2.CosTheta()
+                costhetal2b2[0] = bestReconstructedKinematic.Tlep2.CosTheta() * bestReconstructedKinematic.Tb1.CosTheta()
+            else:
+                costhetal1b1[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tb1.CosTheta()
+                costhetal2b2[0] = bestReconstructedKinematic.Tlep2.CosTheta() * bestReconstructedKinematic.Tb2.CosTheta()
 
-            boostvector = Tmom1.BoostVector()
-            bestReconstructedKinematic.Tlep1.Boost(boostvector)
-            boostvector = Tmom2.BoostVector()
-            bestReconstructedKinematic.Tlep2.Boost(boostvector)
+            #cos(phi) in the parent rest frame
             try:
-                cosphill[0] = math.cos(bestReconstructedKinematic.Tlep1.Phi() - bestReconstructedKinematic.Tlep2.Phi()) #TOCHECK: is the substraction what is needed?
+                if inverseOrder:
+                    num1 = [a * b for a, b in zip(inverseOrderTop1Pts, inverseOrderWeights)]
+                    Tnum1 = r.TLorentzVector()
+                    for vec in num1: #Unfortunately, in Pyroot the sum() function does not work
+                        Tnum1 += vec
+                    Ttop1 = Tnum1 * (1./sum(inverseOrderWeights))
+
+                    num2 = [a * b for a, b in zip(inverseOrderTop2Pts, inverseOrderWeights)]
+                    Tnum2 = r.TLorentzVector()
+                    for vec in num2: 
+                        Tnum2 += vec
+                    Ttop2 = Tnum2 * (1./sum(inverseOrderWeights))
+
+                else:
+                    num1 = [a * b for a, b in zip(orderTop1Pts, orderWeights)]
+                    Tnum1 = r.TLorentzVector()
+                    for vec in num1:
+                        Tnum1 += vec
+                    Ttop1 = Tnum1 * (1./sum(orderWeights))
+
+                    num2 = [a * b for a, b in zip(orderTop2Pts, orderWeights)]
+                    Tnum2 = r.TLorentzVector()
+                    for vec in num2:
+                        Tnum2 += vec
+                    Ttop2 = Tnum2 * (1./sum(orderWeights))
+
+                boostvector = Ttop1.BoostVector()
+                bestReconstructedKinematic.Tlep1.Boost(boostvector)
+                boostvector = Ttop2.BoostVector()
+                bestReconstructedKinematic.Tlep2.Boost(boostvector)
+
+                cosphill[0] = math.cos(bestReconstructedKinematic.Tlep1.Vect().Unit().Dot(bestReconstructedKinematic.Tlep2.Vect().Unit()))
             except:
                 cosphill[0] = -49.0
 
         else: #TOCHECK: put default value instead?
             totalET[0] = ev.PuppiMET_sumEt + eventKinematic.Tb1.Pt() + eventKinematic.Tb2.Pt() + eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt()
-            costhetall[0] = math.cos(2*math.atan(math.exp(-eventKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-eventKinematic.Tlep2.Eta())))
-            costhetal1b1[0] = math.cos(2*math.atan(math.exp(-eventKinematic.Tlep1.Eta()))) * math.cos(2*math.atan(math.exp(-eventKinematic.Tb1.Eta())))
-            costhetal2b2[0] = math.cos(2*math.atan(math.exp(-eventKinematic.Tlep2.Eta()))) * math.cos(2*math.atan(math.exp(-eventKinematic.Tb2.Eta())))
+            costhetall[0] = -99.0
+            costhetal1b1[0] = -99.0
+            costhetal2b2[0] = -99.0
         
             cosphill[0] = -99.0 #We need the nu information for this variable, so default value if reco failed
        
@@ -451,10 +498,13 @@ def fixOperations():
     r.TVector3(1, 1, 1) + r.TVector3(2, 2, 1)
     mvv = r.TVector3.__add__
     del r.TVector3.__add__
+    #r.TVector3(1, 1, 1) + 5
+    #mvs = r.TVector3.__add__
 
     def fixadd(self, other, mvv=mvv):
         if isinstance(other, self.__class__):
             return mvv(self, other)
+            #return mvs(self, other)
 
     r.TVector3.__add__ = fixadd
 

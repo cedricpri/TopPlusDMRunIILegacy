@@ -142,7 +142,7 @@ class EventKinematic():
                 #Compare these values with the one obtained from generation
                 truemlb = mlbHist.GetBinContent(mlbHist.FindBin(mlb))
                 truemlb_ = mlbHist.GetBinContent(mlbHist.FindBin(mlb_))
-                weight = truemlb * truemlb_ * 10000 #Rescale applied to have reasonable numbers to deal with
+                weight = math.log(truemlb * truemlb_ * 1000000) #Rescale applied to have reasonable numbers to deal with
             except:
                 weight = -49.0
 
