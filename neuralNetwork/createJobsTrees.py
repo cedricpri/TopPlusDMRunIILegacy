@@ -1,7 +1,7 @@
 import os, sys, stat, fnmatch, shutil
 import ROOT as r
 from array import array
-import optparse
+import optparse, re
 
 templateCONDOR = """#!/bin/bash
 pushd CMSSWRELEASE/src
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files (without the nanoLatino prefix)
 
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only process a few files and a few events, for testing purposes
-    parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed
+    parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed based on the log files
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
     (opts, args) = parser.parse_args()
 
@@ -100,13 +100,20 @@ if __name__ == "__main__":
     except:
         pass #Directory already exists, this is fine
 
-    #If the resubmit option is set, then remove from this list the files that are already found in the output directory
     if resubmit:
-        outputDirProduction = "/".join(inputDir.split('/')[-3:-1])+"/"
-        outputDirComplete = outputDir + outputDirProduction
-        alreadyFound = os.listdir(outputDirComplete)
 
-        filesToProcess = [x for x in filesToProcess if x not in alreadyFound] #Remove the files not needed
+        filesToProcess = []
+        #Try to open all the log files to find errors
+        os.system("grep -rnw " + cmssw + "'src/neuralNetwork/log/' -e ' error' >> temp.txt")
+        tempFile = open("temp.txt")
+        for line in tempFile:
+            lineText = re.split('nanoLatino_(.*).root', line)
+            try :
+                #print("nanoLatino_" + lineText[1] + ".root")
+                filesToProcess.append("nanoLatino_" + lineText[1] + ".root")
+            except:
+                pass
+        os.system('rm -r temp.txt')
 
     for i in filesToProcess:
 

@@ -27,7 +27,23 @@ class EventKinematic():
         self.dark_pt = -99.0
         self.weight = -99.0 #Default value if the reco does not work
 
+        self.numberSolutions = 0
         self.nuSol = None #Place to keep the optimal nuSol object
+
+    #We need the TLOrentzVector of the W and the tops in the main code
+    @property
+    def TW1(self):
+        return self.Tlep1 + self.Tnu1
+    @property
+    def TW2(self):
+        return self.Tlep2 + self.Tnu2
+
+    @property
+    def Ttop1(self):
+        return self.Tlep1 + self.Tb1 + self.Tnu1
+    @property
+    def Ttop2(self):
+        return self.Tlep2 + self.Tb2 + self.Tnu2
 
     def runSmearingOnce(self, distributions):
         """
@@ -93,6 +109,12 @@ class EventKinematic():
             #print("An error occured when performing the reconstruction")
             nuSol = None
 
+        #Some events do not have any solutions even though the reconstruction succeeds
+        if nuSol is not None:
+            self.numberSolutions = len(nuSol.solution)
+            if(len(nuSol.solution) == 0):
+                nuSol = None
+
         self.nuSol = nuSol
         return nuSol
 
@@ -121,10 +143,11 @@ class EventKinematic():
                         self.Tnu1 = Tnu1
                         self.Tnu2 = Tnu2
             except:
-                pass
+                self.Tnu1 = Tnu1
+                self.Tnu2 = Tnu2
 
-        self.setWeight(mlbHist)
-        self.setDiscriminatingVariables()
+            self.setWeight(mlbHist)
+            self.setDiscriminatingVariables()
 
         return [Tnu1, Tnu2]
             
@@ -146,7 +169,7 @@ class EventKinematic():
             except:
                 weight = -49.0
 
-            self.weight = weight
+        self.weight = weight
         return weight
 
     def setDiscriminatingVariables(self):

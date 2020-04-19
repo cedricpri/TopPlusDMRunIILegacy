@@ -173,7 +173,7 @@ def createTree(inputDir, outputDir, baseDir, filename):
 
     nEvents = inputFile.Events.GetEntries()
     if test:
-        nEvents = 5000
+        nEvents = 1000
     nAttempts, nWorked = 0, 0
 
     #Compile the code for the mt2 calculation
@@ -189,7 +189,7 @@ def createTree(inputDir, outputDir, baseDir, filename):
 
         if test and index == nEvents:
             break #for testing only
-    
+        
         #===================================================
         #Skimming and preselection
         #===================================================
@@ -293,12 +293,9 @@ def createTree(inputDir, outputDir, baseDir, filename):
                 eventKinematic2Original = deepcopy(eventKinematic2)
 
                 #Keep track of all the weights for each bjet/lepton combination, needed to computed the top quark pt later on
-                orderWeights = []
-                orderTop1Pts = [] #Top 1 pts given by the combination using the correct lepton/b-jet order
-                orderTop2Pts = []
-                inverseOrderWeights = []
-                inverseOrderTop1Pts = []
-                inverseOrderTop2Pts = []
+                weights = []
+                top1Pts = [] #Top 1 pts given by the combination using the correct lepton/b-jet order
+                top2Pts = []
 
                 #Perform first of all the reco without smearing
                 eventKinematic1.runReco()
@@ -306,9 +303,9 @@ def createTree(inputDir, outputDir, baseDir, filename):
                 if eventKinematic1.weight > maxWeight:
                     bestReconstructedKinematic = eventKinematic1
                     inverseOrder = False
-                    orderWeights.append(eventKinematic1.weight)
-                    orderTop1Pts.append(eventKinematic1.Tlep1 + eventKinematic1.Tnu1 + eventKinematic1.Tb1)
-                    orderTop2Pts.append(eventKinematic1.Tlep2 + eventKinematic1.Tnu2 + eventKinematic1.Tb2)
+                    weights.append(eventKinematic1.weight)
+                    top1Pts.append(eventKinematic1.Ttop1)
+                    top2Pts.append(eventKinematic1.Ttop2)
                     maxWeight = eventKinematic1.weight
 
                 eventKinematic2.runReco()
@@ -316,9 +313,9 @@ def createTree(inputDir, outputDir, baseDir, filename):
                 if eventKinematic2.weight > maxWeight:
                     bestReconstructedKinematic = eventKinematic2
                     inverseOrder = True
-                    inverseOrderWeights.append(eventKinematic2.weight)
-                    inverseOrderTop1Pts.append(eventKinematic2.Tlep2 + eventKinematic2.Tnu1 + eventKinematic2.Tb1)
-                    inverseOrderTop2Pts.append(eventKinematic2.Tlep1 + eventKinematic2.Tnu2 + eventKinematic2.Tb2)
+                    weights.append(eventKinematic2.weight)
+                    top1Pts.append(eventKinematic2.Ttop1)
+                    top2Pts.append(eventKinematic2.Ttop2)
                     maxWeight = eventKinematic2.weight
 
                 #Run the smearing if needed
@@ -329,9 +326,9 @@ def createTree(inputDir, outputDir, baseDir, filename):
                         if smearedEventKinematic1 is not None and smearedEventKinematic1.weight > maxWeight:
                             bestReconstructedKinematic = smearedEventKinematic1
                             inverseOrder = False
-                            orderWeights.append(smearedEventKinematic1.weight)
-                            orderTop1Pts.append(smearedEventKinematic1.Tlep1 + smearedEventKinematic1.Tnu1 + smearedEventKinematic1.Tb1)
-                            orderTop2Pts.append(smearedEventKinematic1.Tlep2 + smearedEventKinematic1.Tnu2 + smearedEventKinematic1.Tb2)
+                            weights.append(smearedEventKinematic1.weight)
+                            top1Pts.append(smearedEventKinematic1.Ttop1)
+                            top2Pts.append(smearedEventKinematic1.Ttop2)
                             maxWeight = smearedEventKinematic1.weight
                             
                         #Do the same by reversing the leptons
@@ -340,9 +337,9 @@ def createTree(inputDir, outputDir, baseDir, filename):
                         if smearedEventKinematic2 is not None and smearedEventKinematic2.weight > maxWeight:
                             bestReconstructedKinematic = smearedEventKinematic2
                             inverseOrder = True
-                            inverseOrderWeights.append(smearedEventKinematic2.weight)
-                            inverseOrderTop1Pts.append(smearedEventKinematic2.Tlep2 + smearedEventKinematic2.Tnu1 + smearedEventKinematic2.Tb1)
-                            inverseOrderTop2Pts.append(smearedEventKinematic2.Tlep1 + smearedEventKinematic2.Tnu2 + smearedEventKinematic2.Tb2)
+                            weights.append(smearedEventKinematic2.weight)
+                            top1Pts.append(smearedEventKinematic2.Ttop1)
+                            top2Pts.append(smearedEventKinematic2.Ttop2)
                             maxWeight = smearedEventKinematic2.weight
 
         recoWorked = False
@@ -389,48 +386,44 @@ def createTree(inputDir, outputDir, baseDir, filename):
         if recoWorked:
             totalET[0] = ev.PuppiMET_sumEt + bestReconstructedKinematic.Tb1.Pt() + bestReconstructedKinematic.Tb2.Pt() + bestReconstructedKinematic.Tlep1.Pt() + bestReconstructedKinematic.Tlep2.Pt()
             costhetall[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tlep2.CosTheta()
-            if inverseOrder:
-                costhetal1b1[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tb2.CosTheta()
-                costhetal2b2[0] = bestReconstructedKinematic.Tlep2.CosTheta() * bestReconstructedKinematic.Tb1.CosTheta()
-            else:
-                costhetal1b1[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tb1.CosTheta()
-                costhetal2b2[0] = bestReconstructedKinematic.Tlep2.CosTheta() * bestReconstructedKinematic.Tb2.CosTheta()
+            costhetal1b1[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tb1.CosTheta()
+            costhetal2b2[0] = bestReconstructedKinematic.Tlep2.CosTheta() * bestReconstructedKinematic.Tb2.CosTheta()
 
             #cos(phi) in the parent rest frame
             try:
-                if inverseOrder:
-                    num1 = [a * b for a, b in zip(inverseOrderTop1Pts, inverseOrderWeights)]
-                    Tnum1 = r.TLorentzVector()
-                    for vec in num1: #Unfortunately, in Pyroot the sum() function does not work
-                        Tnum1 += vec
-                    Ttop1 = Tnum1 * (1./sum(inverseOrderWeights))
+          
+                #The top pt is calculated as the weighted mean value obtained for all the smearings
+                """
+                num1 = [a * b for a, b in zip(top1Pts, weights)]
+                Tnum1 = r.TLorentzVector()
+                for vec in num1:
+                Tnum1 += vec
+                Ttop1 = Tnum1 * (1./sum(weights))
+                
+                num2 = [a * b for a, b in zip(top2Pts, weights)]
+                Tnum2 = r.TLorentzVector()
+                for vec in num2:
+                Tnum2 += vec
+                Ttop2 = Tnum2 * (1./sum(weights))
+                """
+                Ttop1 = bestReconstructedKinematic.Ttop1
+                Ttop2 = bestReconstructedKinematic.Ttop2
+                #First boost
+                boostvectorTT = (Ttop1 + Ttop2).BoostVector()
+                Ttop1.Boost(-boostvectorTT)
+                Ttop2.Boost(-boostvectorTT)
 
-                    num2 = [a * b for a, b in zip(inverseOrderTop2Pts, inverseOrderWeights)]
-                    Tnum2 = r.TLorentzVector()
-                    for vec in num2: 
-                        Tnum2 += vec
-                    Ttop2 = Tnum2 * (1./sum(inverseOrderWeights))
-
-                else:
-                    num1 = [a * b for a, b in zip(orderTop1Pts, orderWeights)]
-                    Tnum1 = r.TLorentzVector()
-                    for vec in num1:
-                        Tnum1 += vec
-                    Ttop1 = Tnum1 * (1./sum(orderWeights))
-
-                    num2 = [a * b for a, b in zip(orderTop2Pts, orderWeights)]
-                    Tnum2 = r.TLorentzVector()
-                    for vec in num2:
-                        Tnum2 += vec
-                    Ttop2 = Tnum2 * (1./sum(orderWeights))
-
+                #Second boost
                 boostvector = Ttop1.BoostVector()
-                bestReconstructedKinematic.Tlep1.Boost(boostvector)
+                bestReconstructedKinematic.Tlep1.Boost(-boostvectorTT)
+                bestReconstructedKinematic.Tlep1.Boost(-boostvector)
                 boostvector = Ttop2.BoostVector()
-                bestReconstructedKinematic.Tlep2.Boost(boostvector)
+                bestReconstructedKinematic.Tlep2.Boost(-boostvectorTT)
+                bestReconstructedKinematic.Tlep2.Boost(-boostvector)
 
                 cosphill[0] = math.cos(bestReconstructedKinematic.Tlep1.Vect().Unit().Dot(bestReconstructedKinematic.Tlep2.Vect().Unit()))
-            except:
+            except Exception as e:
+                #print(e)
                 cosphill[0] = -49.0
 
         else: #TOCHECK: put default value instead?
