@@ -2,7 +2,7 @@
 import ROOT as r
 from array import array
 import optparse
-import os, sys, fnmatch, math
+import os, sys, fnmatch, math, time
 from copy import deepcopy
 
 #Class for the ttbar reconstruction
@@ -43,8 +43,9 @@ def createTree(inputDir, outputDir, baseDir, filename):
     #Global setup
     #===================================================
 
-    print("\n\n --> Now considering file... " + filename)
-
+    print("Filename:"+filename)
+    start_time = time.time()
+    
     #First, let's open the mlb histogram we are going to need
     distFile = r.TFile(baseDir+"distributions.root", "r")
     distributions = {
@@ -184,7 +185,7 @@ def createTree(inputDir, outputDir, baseDir, filename):
         pass
 
     for index, ev in enumerate(inputFile.Events):
-        if index % 100 == 0: #Update the loading bar every 100 events
+        if index % 10 == 0 and test: #Update the loading bar every 10 events if the test option is set (not when running on condor)
             updateProgress(round(index/float(nEvents), 2))
 
         if test and index == nEvents:
@@ -288,14 +289,9 @@ def createTree(inputDir, outputDir, baseDir, filename):
                 Tb2.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
 
                 eventKinematic1 = EventKinematic(Tlep1, Tlep2, Tb1, Tb2, Tnu1, Tnu2, TMET)
-                eventKinematic1Original = deepcopy(eventKinematic1) #We will need the original object afterwards for the smearing
+                eventKinematic1Original = deepcopy(eventKinematic1)
                 eventKinematic2 = EventKinematic(Tlep2, Tlep1, Tb1, Tb2, Tnu1, Tnu2, TMET)
                 eventKinematic2Original = deepcopy(eventKinematic2)
-
-                #Keep track of all the weights for each bjet/lepton combination, needed to computed the top quark pt later on
-                weights = []
-                top1Pts = [] #Top 1 pts given by the combination using the correct lepton/b-jet order
-                top2Pts = []
 
                 #Perform first of all the reco without smearing
                 eventKinematic1.runReco()
@@ -303,9 +299,6 @@ def createTree(inputDir, outputDir, baseDir, filename):
                 if eventKinematic1.weight > maxWeight:
                     bestReconstructedKinematic = eventKinematic1
                     inverseOrder = False
-                    weights.append(eventKinematic1.weight)
-                    top1Pts.append(eventKinematic1.Ttop1)
-                    top2Pts.append(eventKinematic1.Ttop2)
                     maxWeight = eventKinematic1.weight
 
                 eventKinematic2.runReco()
@@ -313,34 +306,45 @@ def createTree(inputDir, outputDir, baseDir, filename):
                 if eventKinematic2.weight > maxWeight:
                     bestReconstructedKinematic = eventKinematic2
                     inverseOrder = True
-                    weights.append(eventKinematic2.weight)
-                    top1Pts.append(eventKinematic2.Ttop1)
-                    top2Pts.append(eventKinematic2.Ttop2)
                     maxWeight = eventKinematic2.weight
 
-                #Run the smearing if needed
-                if runSmearing:
-                    for i in range(runSmearingNumber): 
-                        smearedEventKinematic1 = deepcopy(eventKinematic1Original).runSmearingOnce(distributions) #Get a new object by copying the original one
-                        #Keep the solution that has the higher weight
-                        if smearedEventKinematic1 is not None and smearedEventKinematic1.weight > maxWeight:
-                            bestReconstructedKinematic = smearedEventKinematic1
-                            inverseOrder = False
-                            weights.append(smearedEventKinematic1.weight)
-                            top1Pts.append(smearedEventKinematic1.Ttop1)
-                            top2Pts.append(smearedEventKinematic1.Ttop2)
-                            maxWeight = smearedEventKinematic1.weight
-                            
-                        #Do the same by reversing the leptons
-                        smearedEventKinematic2 = deepcopy(eventKinematic2Original).runSmearingOnce(distributions)
-                        #Keep the solution that has the higher weight
-                        if smearedEventKinematic2 is not None and smearedEventKinematic2.weight > maxWeight:
-                            bestReconstructedKinematic = smearedEventKinematic2
-                            inverseOrder = True
-                            weights.append(smearedEventKinematic2.weight)
-                            top1Pts.append(smearedEventKinematic2.Ttop1)
-                            top2Pts.append(smearedEventKinematic2.Ttop2)
-                            maxWeight = smearedEventKinematic2.weight
+                if bestReconstructedKinematic is None: #Try to perform the smearing until reaching a solution
+                    if runSmearing:
+                        for i in range(runSmearingNumber): 
+                            smearedEventKinematic1 = deepcopy(eventKinematic1Original).runSmearingOnce(distributions) #Get a new object by copying the original one
+                            #Keep the solution that has the higher weight
+                            if smearedEventKinematic1 is not None and smearedEventKinematic1.weight > maxWeight:
+                                bestReconstructedKinematic = smearedEventKinematic1
+                                inverseOrder = False
+                                maxWeight = smearedEventKinematic1.weight
+                                break
+
+                            #Do the same by reversing the leptons
+                            smearedEventKinematic2 = deepcopy(eventKinematic2Original).runSmearingOnce(distributions)
+                            #Keep the solution that has the higher weight
+                            if smearedEventKinematic2 is not None and smearedEventKinematic2.weight > maxWeight:
+                                bestReconstructedKinematic = smearedEventKinematic2
+                                inverseOrder = True
+                                maxWeight = smearedEventKinematic2.weight
+                                break
+
+        #Keep track of all the weights needed to computed the top quark pt later on
+        weights = []
+        top1Pts = [] #Top 1 pts given by the combination using the correct lepton/b-jet combination
+        top2Pts = []
+
+        #Run the smearing if needed
+        if runSmearing and bestReconstructedKinematic is not None:
+            for i in range(runSmearingNumber): 
+                smearedEventKinematic = deepcopy(bestReconstructedKinematic).runSmearingOnce(distributions) #Get a new object by copying the original one
+                #Keep the solution that has the higher weight
+                if smearedEventKinematic is not None and smearedEventKinematic.weight > maxWeight:
+                    bestReconstructedKinematic = smearedEventKinematic
+                    inverseOrder = False
+                    weights.append(smearedEventKinematic.weight)
+                    top1Pts.append(smearedEventKinematic.Ttop1)
+                    top2Pts.append(smearedEventKinematic.Ttop2)
+                    maxWeight = smearedEventKinematic.weight
 
         recoWorked = False
         nAttempts = nAttempts + 1 #Count the number of event for which the reco worked
@@ -392,22 +396,21 @@ def createTree(inputDir, outputDir, baseDir, filename):
             #cos(phi) in the parent rest frame
             try:
           
-                #The top pt is calculated as the weighted mean value obtained for all the smearings
-                """
-                num1 = [a * b for a, b in zip(top1Pts, weights)]
-                Tnum1 = r.TLorentzVector()
-                for vec in num1:
-                Tnum1 += vec
-                Ttop1 = Tnum1 * (1./sum(weights))
-                
-                num2 = [a * b for a, b in zip(top2Pts, weights)]
-                Tnum2 = r.TLorentzVector()
-                for vec in num2:
-                Tnum2 += vec
-                Ttop2 = Tnum2 * (1./sum(weights))
-                """
                 Ttop1 = bestReconstructedKinematic.Ttop1
                 Ttop2 = bestReconstructedKinematic.Ttop2
+
+                num1 = [a * b for a, b in zip(top1Pts, weights)]
+                Tnum1 = r.TLorentzVector()
+                for vec in num1: #Unfortunately, in Pyroot the sum() function does not work
+                    Tnum1 += vec
+                    Ttop1 = Tnum1 * (1./sum(weights))
+
+                num2 = [a * b for a, b in zip(top2Pts, weights)]
+                Tnum2 = r.TLorentzVector()
+                for vec in num2: 
+                    Tnum2 += vec
+                    Ttop2 = Tnum2 * (1./sum(weights))
+                
                 #First boost
                 boostvectorTT = (Ttop1 + Ttop2).BoostVector()
                 Ttop1.Boost(-boostvectorTT)
@@ -417,13 +420,25 @@ def createTree(inputDir, outputDir, baseDir, filename):
                 boostvector = Ttop1.BoostVector()
                 bestReconstructedKinematic.Tlep1.Boost(-boostvectorTT)
                 bestReconstructedKinematic.Tlep1.Boost(-boostvector)
+
+                #bestReconstructedKinematic.Tb1.Boost(-boostvectorTT)
+                #bestReconstructedKinematic.Tb1.Boost(-boostvector)
+                #bestReconstructedKinematic.Tnu1.Boost(-boostvectorTT)
+                #bestReconstructedKinematic.Tnu1.Boost(-boostvector)
+
                 boostvector = Ttop2.BoostVector()
                 bestReconstructedKinematic.Tlep2.Boost(-boostvectorTT)
                 bestReconstructedKinematic.Tlep2.Boost(-boostvector)
 
-                cosphill[0] = math.cos(bestReconstructedKinematic.Tlep1.Vect().Unit().Dot(bestReconstructedKinematic.Tlep2.Vect().Unit()))
+                #bestReconstructedKinematic.Tb2.Boost(-boostvectorTT)
+                #bestReconstructedKinematic.Tb2.Boost(-boostvector)
+                #bestReconstructedKinematic.Tnu2.Boost(-boostvectorTT)
+                #bestReconstructedKinematic.Tnu2.Boost(-boostvector)
+                #print("Momentum: " + str((bestReconstructedKinematic.Tlep1+bestReconstructedKinematic.Tb1+bestReconstructedKinematic.Tnu1).P()))
+
+                cosphill[0] = (bestReconstructedKinematic.Tlep1.Vect().Unit().Dot(bestReconstructedKinematic.Tlep2.Vect().Unit()))
             except Exception as e:
-                #print(e)
+                print(e)
                 cosphill[0] = -49.0
 
         else: #TOCHECK: put default value instead?
@@ -437,6 +452,8 @@ def createTree(inputDir, outputDir, baseDir, filename):
         outputTree.Fill()
 
     print '\nThe ttbar reconstruction worked for ' + str(round((nWorked/float(nAttempts))*100, 2)) + '% of the events considered'
+    print 'Total execution time: ' + str(time.time() - start_time) + ' seconds'
+    print 'Mean execution time: ' + str(round(((time.time() - start_time)*100/nEvents), 2)) + ' seconds/event'
 
     outputFile.cd()
     outputTree.Write()
