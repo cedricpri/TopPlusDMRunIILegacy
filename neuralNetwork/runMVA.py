@@ -15,7 +15,7 @@ from array import array
 
 #Training variables
 #variables = ["PuppiMET_pt", "mt2ll", "totalET", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]", "Lepton_eta[1]", "Lepton_phi[0]", "Lepton_phi[1]", "thetall", "thetal1b1", "thetal2b2", "dark_pt", "overlapping_factor", "reco_weight"] #cosphill missing, mt2bl as well
-variables = ["PuppiMET_pt", "MET_significance", "mt2ll", "mt2bl", "dphillmet", "Lepton_eta[0]-Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight"] #DESY-like, cosphill missing
+variables = ["PuppiMET_pt", "MET_significance", "mt2ll", "mt2bl", "dphillmet", "Lepton_eta[0]-Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight", "cosphill"] #TODO: cosphill missing
 
 #=========================================================================================================
 # HELPERS
@@ -100,10 +100,10 @@ def trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year):
     nSignal = signalChain.GetEntries()
     nBackground = backgroundChain.GetEntries()
 
-    nTrain_Signal = str(int(nSignal/100*10)) #10% for now
-    nTrain_Background = str(int(nBackground/100*10))
-    nTest_Signal = str(int(nSignal/100*5))
-    nTest_Background = str(int(nBackground/100*5))
+    nTrain_Signal = str(int(nSignal/100*50)) #10% for now
+    nTrain_Background = str(int(nBackground/100*50))
+    nTest_Signal = str(int(nSignal/100*50))
+    nTest_Background = str(int(nBackground/100*50))
 
     dataloader.PrepareTrainingAndTestTree(ROOT.TCut(''), 'nTrain_Signal='+nTrain_Signal+':nTrain_Background='+nTrain_Background+':nTest_Signal='+nTest_Signal+':nTest_Background='+nTest_Background+':SplitMode=Block:NormMode=NumEvents:!V')
 
@@ -112,13 +112,8 @@ def trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year):
     # ===========================================
     model = Sequential()
     model.add(Dense(40, activation='relu', input_dim=len(variables)))
-    model.add(Dropout(0.2))
     model.add(Dense(20, activation='relu'))
-    model.add(Dropout(0.2))
     model.add(Dense(20, activation='relu'))
-    model.add(Dropout(0.2))
-    model.add(Dense(20, activation='relu'))
-    model.add(Dropout(0.2))
     model.add(Dense(2, activation='softmax'))
 
     # Set loss and optimizer
@@ -130,9 +125,9 @@ def trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year):
     model.summary() #Print the summary of the model compiled
 
     # Book method
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=1000000:MinNodeSize=1%:!H:!V')
+    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=1000000:MinNodeSize=1%:!H:!V')
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kFisher, 'Fisher', '!H:!V:Fisher')
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'model.h5:FilenameTrainedModel=' + outputDirTraining + 'modelTrained.h5:NumEpochs=30:BatchSize=64:TriesEarlyStopping=5:VarTransform=N')
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'model.h5:FilenameTrainedModel=' + outputDirTraining + 'modelTrained.h5:NumEpochs=100:BatchSize=200:TriesEarlyStopping=10:VarTransform=N')
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kLikelihood, 'LikelihoodD', '!H:!V:!TransformOutput:PDFInterpol=Spline2:NSmoothSig[0]=20:NSmoothBkg[0]=20:NSmooth=5:NAvEvtPerBin=50')
 
     # ===========================================
