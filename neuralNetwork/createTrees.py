@@ -38,7 +38,7 @@ def updateProgress(progress):
 #=========================================================================================================
 # TREE CREATION
 #=========================================================================================================
-def createTree(inputDir, outputDir, baseDir, filename):
+def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, splitNumber):
     #===================================================
     #Global setup
     #===================================================
@@ -68,7 +68,11 @@ def createTree(inputDir, outputDir, baseDir, filename):
     except:
         os.makedirs(outputDir)
 
-    outputFile = r.TFile.Open(outputDir + filename, "recreate")
+    if splitNumber != -1:
+        outputFile = r.TFile.Open(outputDir + filename.replace('.root', '') + '_' + str(splitNumber) + ".root", "recreate")
+    else:
+        outputFile = r.TFile.Open(outputDir + filename, "recreate")
+
     outputTree = inputTree.CloneTree(0)
 
     #===================================================
@@ -119,6 +123,7 @@ def createTree(inputDir, outputDir, baseDir, filename):
     outputTree.SetBranchStatus("Gen_ZGstar_mass", 1);
     outputTree.SetBranchStatus("LepCut2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW", 1);
     outputTree.SetBranchStatus("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW*", 1);
+    outputTree.SetBranchStatus("GenPart_pt", 1);
     outputTree.SetBranchStatus("GenPart_pdgId", 1);
     outputTree.SetBranchStatus("GenPart_statusFlags", 1);
     outputTree.SetBranchStatus("topGenPt", 1);
@@ -174,7 +179,10 @@ def createTree(inputDir, outputDir, baseDir, filename):
 
     nEvents = inputFile.Events.GetEntries()
     if test:
-        nEvents = 1000
+        nEvents = 500
+    if lastEvent != 0:
+        nEvents = lastEvent - firstEvent
+
     nAttempts, nWorked = 0, 0
 
     #Compile the code for the mt2 calculation
@@ -185,12 +193,22 @@ def createTree(inputDir, outputDir, baseDir, filename):
         pass
 
     for index, ev in enumerate(inputFile.Events):
-        if index % 10 == 0 and test: #Update the loading bar every 10 events if the test option is set (not when running on condor)
-            updateProgress(round(index/float(nEvents), 2))
 
+        #Only consider events between first and lastEvent
+        if (index < firstEvent):
+            continue
+
+        if (lastEvent != 0 and index > lastEvent):
+            break
+
+        if (index % 10 == 0 and test) or (index % 1000 == 0 and not test): #Update the loading bar
+            updateProgress(round(index/float(nEvents), 2))
+            
         if test and index == nEvents:
             break #for testing only
         
+        event_start_time = time.time()
+
         #===================================================
         #Skimming and preselection
         #===================================================
@@ -221,7 +239,7 @@ def createTree(inputDir, outputDir, baseDir, filename):
 
         if jetpt1 < 30. or jetpt2 < 30.: #At least two jets with pt > 30 GeV
             continue
-        
+
         #Additional cut removing events having less than one b-jet performed later, once the b-jets have been computed
 
         #===================================================
@@ -448,12 +466,16 @@ def createTree(inputDir, outputDir, baseDir, filename):
             costhetal2b2[0] = -99.0
         
             cosphill[0] = -99.0 #We need the nu information for this variable, so default value if reco failed
-       
+
         outputTree.Fill()
 
-    print '\nThe ttbar reconstruction worked for ' + str(round((nWorked/float(nAttempts))*100, 2)) + '% of the events considered'
-    print 'Total execution time: ' + str(time.time() - start_time) + ' seconds'
-    print 'Mean execution time: ' + str(round(((time.time() - start_time)*100/nEvents), 2)) + ' seconds/event'
+
+    try:
+        print '\nThe ttbar reconstruction worked for ' + str(round((nWorked/float(nAttempts))*100, 2)) + '% of the events considered'
+        print 'Total execution time: ' + str(time.time() - start_time) + ' seconds'
+        print 'Mean execution time: ' + str(round(((time.time() - start_time)/nEvents), 2)) + ' seconds/event'
+    except:
+        print 'Done!'
 
     outputFile.cd()
     outputTree.Write()
@@ -544,6 +566,10 @@ if __name__ == "__main__":
     parser.add_option('-i', '--inputDir', action='store', type=str, dest='inputDir', default="")
     parser.add_option('-o', '--outputDir', action='store', type=str, dest='outputDir', default="/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/")
     parser.add_option('-b', '--baseDir', action='store', type=str, dest='baseDir', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/src/neuralNetwork/")
+    parser.add_option('-x', '--splitNumber', action='store', type=int, dest='splitNumber', default=-1)
+    parser.add_option('-y', '--firstEvent', action='store', type=int, dest='firstEvent', default=0)
+    parser.add_option('-z', '--lastEvent', action='store', type=int, dest='lastEvent', default=0)
+
     parser.add_option('-t', '--test', action='store_true', dest='test')
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
     (opts, args) = parser.parse_args()
@@ -552,10 +578,13 @@ if __name__ == "__main__":
     inputDir = opts.inputDir
     outputDir = opts.outputDir
     baseDir = opts.baseDir
+    splitNumber = opts.splitNumber
+    firstEvent = opts.firstEvent
+    lastEvent = opts.lastEvent
     test = opts.test
     verbose = opts.verbose
 
     #Needed for reasons explained in https://root-forum.cern.ch/t/cannot-perform-both-dot-product-and-scalar-multiplication-on-tvector2-in-pyroot/28207
     fixOperations()
-    createTree(inputDir, outputDir, baseDir, filename)
+    createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, splitNumber)
     

@@ -111,8 +111,11 @@ class EventKinematic():
 
         #Some events do not have any solutions even though the reconstruction succeeds
         if nuSol is not None:
-            self.numberSolutions = len(nuSol.solution)
-            if(len(nuSol.solution) == 0):
+            try:
+                self.numberSolutions = len(nuSol.solution)
+                if(len(nuSol.solution) == 0):
+                    nuSol = None
+            except:
                 nuSol = None
 
         self.nuSol = nuSol
@@ -122,7 +125,7 @@ class EventKinematic():
         """
         Find the best solution (minimal invariant mass) from eventual multiple ellipses intersections
         """
-    
+
         minInvMass = 9999999.
 
         Tnu1 = r.TLorentzVector()
@@ -155,7 +158,7 @@ class EventKinematic():
         """
         Set the weight associated to a given (smeared) object.
         """
-        
+
         weight = -99.0
         if self.nuSol is not None:
             try:
@@ -196,7 +199,7 @@ class EventKinematic():
         """
         Function computing the new TLorentzVector after applying a (alpha, omega) angular smearing.
         """
-
+        
         rand = r.TRandom3()
 
         #Let's find the direction of our oldObject vector

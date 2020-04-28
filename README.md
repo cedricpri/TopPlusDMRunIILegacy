@@ -49,6 +49,7 @@ The job of this script is to read all the latino files matching some criterias i
 - **s**: whether the files to be processed are signals or not
 - **d**: whether the files to be processes are data or MC files
 - **q**: the search term to be found in the correct directory (eg, TTT02L2Nu__part can be used to process only TTbar MC files).
+- **r**: resubmit option, that will find files which crashed and allow to relaunch them directly.
 Once the .sh files created, then can be launched using the command condor_submit condorjob.tcl.
 Several additional arguments need to be set up correctly if the user launching the command is not cprieels (such as the input, output and base directory definition).
 

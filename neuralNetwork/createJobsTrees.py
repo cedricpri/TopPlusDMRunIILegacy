@@ -21,11 +21,12 @@ if __name__ == "__main__":
     parser.add_option('-s', '--signal', action='store_true', dest='signal', default=False) #Process the signal or background files?
     parser.add_option('-d', '--data', action='store_true', dest='data', default=False) #Process the data or background files?
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
-    parser.add_option('-o', '--outputDir', action='store', type=str, dest='outputDir', default="/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/") #Output directory where to keep the files
+    parser.add_option('-o', '--outputDir', action='store', type=str, dest='outputDir', default="/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/") #Output directory where to keep the output files
     parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files (without the nanoLatino prefix)
+    parser.add_option('-p', '--split', action='store', type=int, dest='split', default=1) #Do we want to divide the input file to speed up the process?
 
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only process a few files and a few events, for testing purposes
-    parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed based on the log files
+    parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed based on the log files and missing Tree events
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
     (opts, args) = parser.parse_args()
 
@@ -35,6 +36,7 @@ if __name__ == "__main__":
     year = opts.year
     outputDir = opts.outputDir
     query = opts.query
+    split = opts.split
 
     test = opts.test
     resubmit = opts.resubmit
@@ -53,6 +55,7 @@ if __name__ == "__main__":
         print("Output directory: " + str(outputDir))
         print("Test: " + str(test))
         print("Query: " + str(query))
+        print("Split: " + str(split))
         print("Resubmit: " + str(resubmit))
         print("=================================================")
 
@@ -95,39 +98,84 @@ if __name__ == "__main__":
             print("No file matching the requirements has been found.")
 
     try:
-        #shutil.rmtree('sh')
         os.makedirs('sh')
+        os.makedirs('log')
     except:
-        pass #Directory already exists, this is fine
+        pass #Directories already exists, this is fine
 
     if resubmit:
+        filesToResubmit = []
 
-        filesToProcess = []
+        #First, try to spot missing files in the output directory
+        #print("Trying to find missing files in the output directory.")
+        #outputDirProduction = "/".join(inputDir.split('/')[-3:-1])+"/"
+        #outputDirComplete = outputDir + outputDirProduction
+        #filesAlreadyFound = os.listdir(outputDirComplete)
+        #filesToResubmit = [x for x in filesToProcess if x not in filesAlreadyFound]
+    
+        #Then, open all the output files because sometimes the Events tree is missing -> quite slow and can be commented out
+        print("Now opening each output file to try and find missing Events trees... This might take a while.")
+        for root, dirNames, outputFiles in os.walk(outputDir):
+            for outputFile in fnmatch.filter(outputFiles, 'nanoLatino*' + query + '*.root'):
+                #if (outputFile in filesToProcess) or len(filesToProcess) == 0:
+                print("  --> Opening " + outputFile)
+                try:
+                    f = r.TFile.Open(root + "/" + outputFile)
+                    tree = f.Get("Events")
+                    if not f.GetListOfKeys().Contains("Events"):
+                        filesToResubmit.append(outputFile)
+                except:
+                    filesToResubmit.append(outputFile)
+
+        print(filesToResubmit)
+
         #Try to open all the log files to find errors
+        print("Now opening the log files in /log to try and find additional errors")
         os.system("grep -rnw " + cmssw + "'src/neuralNetwork/log/' -e ' error' >> temp.txt")
         tempFile = open("temp.txt")
         for line in tempFile:
             lineText = re.split('nanoLatino_(.*).root', line)
-            try :
-                #print("nanoLatino_" + lineText[1] + ".root")
-                filesToProcess.append("nanoLatino_" + lineText[1] + ".root")
+            try:
+                fileName = "nanoLatino_" + lineText[1] + ".root"
+                if fileName not in filesToResubmit:
+                    filesToResubmit.append("nanoLatino_" + lineText[1] + ".root")
             except:
                 pass
         os.system('rm -r temp.txt')
+        filesToProcess = filesToResubmit
 
     for i in filesToProcess:
 
-        executable = baseDir + "/createTrees.py -f " + i + " -i " + inputDir + " -o " + outputDir + " -b " + baseDir 
+        executable = baseDir + "/createTrees.py -f " + i + " -i " + inputDir + " -o " + outputDir + " -b " + baseDir             
+
         if verbose:
             executable = executable + " -v"
 
         template = templateCONDOR
         template = template.replace('CMSSWRELEASE', cmssw)
-        template = template.replace('EXENAME', executable) 
 
-        f = open('sh/send_' + i.replace('.root', '') + '.sh', 'w')
-        f.write(template)
-        f.close()
-        os.chmod('sh/send_' + i.replace('.root', '') + '.sh', 0755)     
+        if split != 1:
+            f = r.TFile.Open(inputDir + "/" + i)
+            nEvents = f.Get("Events").GetEntries()/split
+
+            for s in range(split):
+                firstEvent = (s * nEvents) + 1
+                lastEvent = (s+1) * nEvents
+                executable2 = executable + " --splitNumber " + str(s) + " --firstEvent " + str(firstEvent) + " --lastEvent " + str(lastEvent)
+                template = template.replace('EXENAME', executable2)
+
+                f = open('sh/send_' + i.replace('.root', '') + '_' + str(s) + '.sh', 'w')
+                f.write(template)
+                f.close()
+                os.chmod('sh/send_' + i.replace('.root', '') + '_' + str(s) + '.sh', 0755)     
+
+                template = template.replace(executable2, 'EXENAME')
+
+        else:
+            f = open('sh/send_' + i.replace('.root', '') + '.sh', 'w')
+            template = template.replace('EXENAME', executable) 
+            f.write(template)
+            f.close()
+            os.chmod('sh/send_' + i.replace('.root', '') + '.sh', 0755)     
 
     print(str(len(filesToProcess)) + " file(s) matching the requirements have been found.")
