@@ -87,15 +87,7 @@ if __name__ == "__main__":
         inputDir = ""
         print("The year option has to be used, and the year should be 2016, 2017 or 2018.")
 
-    filesToProcess = []
-    if inputDir != "":
-        filesToProcess = fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + query + '*')
-
-    if test: #If the test option is used, then only process a single file
-        try:
-            filesToProcess = [filesToProcess[0]]
-        except:
-            print("No file matching the requirements has been found.")
+    productionName = "/".join(inputDir.split('/')[-3:])
 
     try:
         os.makedirs('sh')
@@ -103,79 +95,83 @@ if __name__ == "__main__":
     except:
         pass #Directories already exists, this is fine
 
+    #Find the files to process based on the arguments given
+    filesToProcess = []
+
+    if inputDir != "":
+        matchingFilesFound = fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + query + '*')
+        for matchingFileFound in matchingFilesFound:
+
+            if split != 1:
+                f = r.TFile.Open(inputDir + "/" + matchingFileFound)
+                nEvents = f.Get("Events").GetEntries()/split
+
+                for splitNumber in range(split):
+                    firstEvent = (splitNumber * nEvents) + 1
+                    lastEvent = (splitNumber+1) * nEvents
+                    fileToProcess = {
+                        "inputName": matchingFileFound,
+                        "outputName": matchingFileFound.replace('.root', '') + "_" + str(splitNumber) + '.root',
+                        "firstEvent": firstEvent,
+                        "lastEvent": lastEvent,
+                        "splitNumber": splitNumber
+                    }
+                    filesToProcess.append(fileToProcess)
+            else:
+                fileToProcess = {
+                        "inputName": matchingFileFound,
+                        "outputName": matchingFileFound,
+                        "firstEvent": -1,
+                        "lastEvent": -1,
+                        "splitNumber": -1
+                    }
+                filesToProcess.append(fileToProcess)
+
+    #Resubmit only the files that ran into an error previously
     if resubmit:
         filesToResubmit = []
 
-        #First, try to spot missing files in the output directory
-        #print("Trying to find missing files in the output directory.")
-        #outputDirProduction = "/".join(inputDir.split('/')[-3:-1])+"/"
-        #outputDirComplete = outputDir + outputDirProduction
-        #filesAlreadyFound = os.listdir(outputDirComplete)
-        #filesToResubmit = [x for x in filesToProcess if x not in filesAlreadyFound]
-    
-        #Then, open all the output files because sometimes the Events tree is missing -> quite slow and can be commented out
-        print("Now opening each output file to try and find missing Events trees... This might take a while.")
-        for root, dirNames, outputFiles in os.walk(outputDir):
-            for outputFile in fnmatch.filter(outputFiles, 'nanoLatino*' + query + '*.root'):
-                #if (outputFile in filesToProcess) or len(filesToProcess) == 0:
-                print("  --> Opening " + outputFile)
+        print("The resubmit process might take a while in order to open each output file and check that the tree Events is present.")
+        for fileToProcess in filesToProcess:
+
+            #Check if the file is missing in the output directory
+            if not os.path.exists(outputDir + "/" + productionName + fileToProcess['outputName']): 
+                filesToResubmit.append(fileToProcess)
+            else: #If the file exists, check if the tree Events has been created successfully
+                print("  --> Opening " + fileToProcess['outputName'] + " to check for the presence of the Events tree.")
                 try:
-                    f = r.TFile.Open(root + "/" + outputFile)
+                    f = r.TFile.Open(outputDir + "/" + productionName + fileToProcess['outputName'])
                     tree = f.Get("Events")
                     if not f.GetListOfKeys().Contains("Events"):
-                        filesToResubmit.append(outputFile)
+                        filesToResubmit.append(fileToProcess)
                 except:
-                    filesToResubmit.append(outputFile)
-
-        print(filesToResubmit)
-
-        #Try to open all the log files to find errors
-        print("Now opening the log files in /log to try and find additional errors")
-        os.system("grep -rnw " + cmssw + "'src/neuralNetwork/log/' -e ' error' >> temp.txt")
-        tempFile = open("temp.txt")
-        for line in tempFile:
-            lineText = re.split('nanoLatino_(.*).root', line)
-            try:
-                fileName = "nanoLatino_" + lineText[1] + ".root"
-                if fileName not in filesToResubmit:
-                    filesToResubmit.append("nanoLatino_" + lineText[1] + ".root")
-            except:
-                pass
-        os.system('rm -r temp.txt')
+                    filesToResubmit.append(fileToProcess)
+    
         filesToProcess = filesToResubmit
 
-    for i in filesToProcess:
+    #If the test option is used, then only process a single file
+    if test:
+        try:
+            filesToProcess = [filesToProcess[0]]
+        except:
+            print("No file matching the requirements has been found.")
 
-        executable = baseDir + "/createTrees.py -f " + i + " -i " + inputDir + " -o " + outputDir + " -b " + baseDir             
+    #Write the executable needed for each file to process
+    for fileToProcess in filesToProcess:
+
+        executable = baseDir + "/createTrees.py -f " + fileToProcess['inputName'] + " -i " + inputDir + " -o " + outputDir + " -b " + baseDir             
+        executable = executable + " --splitNumber " + str(fileToProcess['splitNumber']) + " --firstEvent " + str(fileToProcess['firstEvent']) + " --lastEvent " + str(fileToProcess['lastEvent'])
 
         if verbose:
             executable = executable + " -v"
 
         template = templateCONDOR
+        template = template.replace('EXENAME', executable) 
         template = template.replace('CMSSWRELEASE', cmssw)
 
-        if split != 1:
-            f = r.TFile.Open(inputDir + "/" + i)
-            nEvents = f.Get("Events").GetEntries()/split
-
-            for s in range(split):
-                firstEvent = (s * nEvents) + 1
-                lastEvent = (s+1) * nEvents
-                executable2 = executable + " --splitNumber " + str(s) + " --firstEvent " + str(firstEvent) + " --lastEvent " + str(lastEvent)
-                template = template.replace('EXENAME', executable2)
-
-                f = open('sh/send_' + i.replace('.root', '') + '_' + str(s) + '.sh', 'w')
-                f.write(template)
-                f.close()
-                os.chmod('sh/send_' + i.replace('.root', '') + '_' + str(s) + '.sh', 0755)     
-
-                template = template.replace(executable2, 'EXENAME')
-
-        else:
-            f = open('sh/send_' + i.replace('.root', '') + '.sh', 'w')
-            template = template.replace('EXENAME', executable) 
-            f.write(template)
-            f.close()
-            os.chmod('sh/send_' + i.replace('.root', '') + '.sh', 0755)     
+        f = open('sh/send_' + fileToProcess['outputName'].replace('.root', '') + '.sh', 'w')
+        f.write(template)
+        f.close()
+        os.chmod('sh/send_' + fileToProcess['outputName'].replace('.root', '') + '.sh', 0755)     
 
     print(str(len(filesToProcess)) + " file(s) matching the requirements have been found.")

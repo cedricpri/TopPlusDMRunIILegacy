@@ -128,7 +128,10 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("GenPart_statusFlags", 1);
     outputTree.SetBranchStatus("topGenPt", 1);
     outputTree.SetBranchStatus("antitopGenPt", 1);
+    outputTree.SetBranchStatus("LeptonGen_pt", 1);
+    outputTree.SetBranchStatus("LeptonGen_isPrompt", 1);
     outputTree.SetBranchStatus("Jet_btagSF_shape_*", 1);
+    outputTree.SetBranchStatus("nllw", 1);
     outputTree.SetBranchStatus("SFweight2l", 1);
     outputTree.SetBranchStatus("LepSF2l__ele_mvaFall17V1Iso_WP90*", 1);
     outputTree.SetBranchStatus("LepSF2l__mu_cut_Tight_HWWW*", 1);
@@ -180,7 +183,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     nEvents = inputFile.Events.GetEntries()
     if test:
         nEvents = 500
-    if lastEvent != 0:
+    if lastEvent != -1:
         nEvents = lastEvent - firstEvent
 
     nAttempts, nWorked = 0, 0
@@ -198,7 +201,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         if (index < firstEvent):
             continue
 
-        if (lastEvent != 0 and index > lastEvent):
+        if (lastEvent != -1 and index > lastEvent):
             break
 
         if (index % 10 == 0 and test) or (index % 1000 == 0 and not test): #Update the loading bar
