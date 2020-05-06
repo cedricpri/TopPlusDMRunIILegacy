@@ -22,6 +22,7 @@ if __name__ == "__main__":
     parser.add_option('-s', '--signalQuery', action='store', type=str, dest='signalQuery', default="TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100") #String to be matched when searching for the files (do not use the nanoLatino prefix!)
     parser.add_option('-b', '--backgroundQuery', action='store', type=str, dest='backgroundQuery', default="TTTo2L2Nu__part") #String to be matched when searching for the files
 
+    parser.add_option('-t', '--test', action='store_true', dest='test')
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
     (opts, args) = parser.parse_args()
 
@@ -30,6 +31,7 @@ if __name__ == "__main__":
     signalQuery = opts.signalQuery
     backgroundQuery = opts.backgroundQuery
 
+    test = opts.test
     verbose = opts.verbose
 
     if verbose:
@@ -65,6 +67,14 @@ if __name__ == "__main__":
         os.makedirs('sh')
     except:
         pass #Directory already exists, this is fine
+
+    #If the test option is used, then only process a few files
+    if test:
+        try:
+            signalFilesToProcess = signalFilesToProcess[:10]
+            backgroundFilesToProcess = backgroundFilesToProcess[:10]
+        except:
+            print("No file matching the requirements has been found.")
 
     #If we train the MVA, then we want to pass a list of all the files to process, the python code will know how to deal with it
     executable = baseDir + "/runMVA.py -i " + inputDir + " -d " + baseDir
