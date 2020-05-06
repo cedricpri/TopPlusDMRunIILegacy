@@ -15,7 +15,7 @@ from array import array
 
 #Training variables
 #variables = ["PuppiMET_pt", "mt2ll", "totalET", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]", "Lepton_eta[1]", "Lepton_phi[0]", "Lepton_phi[1]", "thetall", "thetal1b1", "thetal2b2", "dark_pt", "overlapping_factor", "reco_weight"] #cosphill missing, mt2bl as well
-variables = ["PuppiMET_pt", "MET_significance", "mt2ll", "mt2bl", "dphillmet", "Lepton_eta[0]-Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight", "cosphill"] 
+variables = ["PuppiMET_pt", "MET_significance", "mt2ll", "mt2bl", "dphillmet", "Lepton_eta[0]-Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight", "cosphill", "nbJet", "mll"] 
 
 #=========================================================================================================
 # HELPERS
@@ -43,7 +43,7 @@ def updateProgress(progress):
 #=========================================================================================================
 # TRAINING
 #=========================================================================================================
-def trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year):
+def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, numberSignals):
     """
     Function used to train the MVA based on the signal given
     """
@@ -80,10 +80,43 @@ def trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year):
     for variable in variables:
         dataloader.AddVariable(variable)
         
-    #We passa as arguments the lists containing all the files to process, let's put them in a chain
-    signalChain = ROOT.TChain("Events")
-    for signalFile in signalFiles:
-        signalChain.AddFile(inputDir+signalFile)
+    #We pass as arguments the lists containing all the files to process, let's put them in a chain, depending on their category
+    if numberSignals == 1:
+        signalChain = ROOT.TChain("Events")
+        for signalFile in signalFiles:
+            signalChain.AddFile(inputDir+signalFile)
+
+        dataloader.AddTree(signalChain, 'Signal')
+
+    elif numberSignals == 2: #If we have more than one signal, things a bit more complicated and require some work to separate the list into the different processes
+
+        signalChain = ROOT.TChain("Events")
+        signalChain1 = ROOT.TChain("Events")
+        signalChain2 = ROOT.TChain("Events")
+        processesConsidered = []
+
+        for signalFile in signalFiles:
+
+            process = "_".join(signalFile.split("_")[1:4])
+            if process not in processesConsidered:
+                processesConsidered.append(process)
+
+            if process == processesConsidered[0]:
+                signalChain1.AddFile(inputDir+signalFile)
+            else:
+                signalChain2.AddFile(inputDir+signalFile)
+            signalChain.AddFile(inputDir+signalFile)
+            
+        print("\n --> I found the following signal process categories: ")
+        print(' '.join(processesConsidered))
+        print("Please check if it seems to be correct. \n")
+
+        dataloader.AddTree(signalChain1, 'Signal_1')
+        dataloader.AddTree(signalChain2, 'Signal_2')
+
+    else:
+        print("Currently not working for more than two signals")
+        exit
 
     backgroundChain = ROOT.TChain("Events")
     for backgroundFile in backgroundFiles:
@@ -92,9 +125,7 @@ def trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year):
     canvas = ROOT.TCanvas("canvas")
     canvas.cd()
                 
-    #backgroundChain.Draw("Lepton_pt[1]")
-    dataloader.AddSignalTree(signalChain)
-    dataloader.AddBackgroundTree(backgroundChain)
+    dataloader.AddTree(backgroundChain, 'Background')
 
     #Define the training and testing samples
     nSignal = signalChain.GetEntries()
@@ -111,10 +142,11 @@ def trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year):
     # Generate keras model
     # ===========================================
     model = Sequential()
-    model.add(Dense(40, activation='relu', input_dim=len(variables)))
-    model.add(Dense(20, activation='relu'))
-    model.add(Dense(20, activation='relu'))
-    model.add(Dense(2, activation='softmax'))
+    model.add(Dense(10, activation='relu', input_dim=len(variables)))
+    model.add(Dense(10, activation='relu'))
+    model.add(Dense(10, activation='relu'))
+    model.add(Dense(5, activation='relu'))
+    model.add(Dense(numberSignals+1, activation='softmax'))
 
     # Set loss and optimizer
     model.compile(loss='categorical_crossentropy', optimizer=RMSprop(), metrics=['accuracy', 'mse'])
@@ -126,9 +158,8 @@ def trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year):
 
     # Book method
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=1000000:MinNodeSize=1%:!H:!V')
-    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kFisher, 'Fisher', '!H:!V:Fisher')
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'model.h5:FilenameTrainedModel=' + outputDirTraining + 'modelTrained.h5:NumEpochs=100:BatchSize=200:TriesEarlyStopping=10:VarTransform=N')
-    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kLikelihood, 'LikelihoodD', '!H:!V:!TransformOutput:PDFInterpol=Spline2:NSmoothSig[0]=20:NSmoothBkg[0]=20:NSmooth=5:NAvEvtPerBin=50')
+    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=10000:MinNodeSize=1%:!H:!V')
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'model.h5:FilenameTrainedModel=' + outputDirTraining + 'modelTrained.h5:NumEpochs=120:BatchSize=500:VarTransform=N')
 
     # ===========================================
     # Run training, test and evaluation
@@ -212,6 +243,7 @@ if __name__ == "__main__":
     # Argument parser
     # ===========================================
     parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0')
+    parser.add_option('-n', '--numberSignals', action='store', type=int, dest='numberSignals', default=[], help='Number of signal processes to consider for classification')
     parser.add_option('-s', '--signalFiles', action='store', type=str, dest='signalFiles', default=[], help='Name of the signal files to be used to train the MVA')
     parser.add_option('-b', '--backgroundFiles', action='store', type=str, dest='backgroundFiles', default=[], help='Name of the background files samples to train the MVA')
     parser.add_option('-f', '--filename', action='store', type=str, dest='filename', default='', help='Name of the file to be evaluated')
@@ -222,7 +254,8 @@ if __name__ == "__main__":
     parser.add_option('-e', '--evaluate', action='store_true', dest='evaluate') #Evaluate the MVA or train it?
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only run on a single file
     (opts, args) = parser.parse_args()
-    
+
+    numberSignals = opts.numberSignals
     signalFiles     = opts.signalFiles
     backgroundFiles = opts.backgroundFiles
     filename = opts.filename
@@ -239,9 +272,11 @@ if __name__ == "__main__":
         massPointsList = [str(item) for item in massPoints.split(",")]
 
         evaluateMVA(baseDir, inputDir, filename, massPointsList, year, test)
+
     else: #To train, we need to pass a list containing all the files at once
-        #Split the comaseparated string for the files into lists
+
+        #Split the comma separated string for the files into lists
         signalFiles = [str(item) for item in signalFiles.split(',')]
         backgroundFiles = [str(item) for item in backgroundFiles.split(',')]
-        
-        trainMVA(baseDir, inputDir, signalFiles, backgroundFiles, year)
+            
+        trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, numberSignals)

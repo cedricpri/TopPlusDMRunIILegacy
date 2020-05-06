@@ -1,6 +1,7 @@
 import os, sys, stat, fnmatch, shutil
 import ROOT as r
 from array import array
+import random
 import optparse
 
 templateCONDOR = """#!/bin/bash
@@ -17,20 +18,26 @@ if __name__ == "__main__":
     # Argument parser                                                                                    
     # ===========================================                                                        
     parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0')
-    parser.add_option('-c', '--cmssw', action='store', type=str, dest='cmssw', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/") #CMSSW release
-    parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
-    parser.add_option('-s', '--signalQuery', action='store', type=str, dest='signalQuery', default="TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100") #String to be matched when searching for the files (do not use the nanoLatino prefix!)
-    parser.add_option('-b', '--backgroundQuery', action='store', type=str, dest='backgroundQuery', default="TTTo2L2Nu__part") #String to be matched when searching for the files
 
+    #Setup
+    parser.add_option('-c', '--cmssw', action='store', type=str, dest='cmssw', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/") #CMSSW release
+    
+    #Files to be considered
+    parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
+    parser.add_option('-n', '--numberSignals', action='store', type=int, dest='numberSignals', default=2) #Number of signals processes to categorize
+    parser.add_option('-s', '--signalQuery', action='store', type=str, dest='signalQuery', default="TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100,DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100") #Comma separated string to be matched when searching for the files (do not use the nanoLatino prefix!)
+    parser.add_option('-b', '--backgroundQuery', action='store', type=str, dest='backgroundQuery', default="TTTo2L2Nu__part,ST_s-channel_ext1,ST_t-channel_antitop,ST_t-channel_top,ST_tW_antitop_ext1,ST_tW_top_ext1") #Comma separated string to be matched when searching for the files
+
+    #Additional options
     parser.add_option('-t', '--test', action='store_true', dest='test')
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
     (opts, args) = parser.parse_args()
 
     cmssw = opts.cmssw
     year = opts.year
+    numberSignals = opts.numberSignals
     signalQuery = opts.signalQuery
     backgroundQuery = opts.backgroundQuery
-
     test = opts.test
     verbose = opts.verbose
 
@@ -54,13 +61,23 @@ if __name__ == "__main__":
     else:
         inputDir = ""
         print("The year option has to be used, and the year should be 2016, 2017 or 2018.")
-    #Watch out! The files in these directories will be overwritten
+    #Watch out! The files in these directories will be overwritten when using the evaluate option
+
+    signalProcesses = [str(item) for item in signalQuery.split(",")]
+    backgroundProcesses = [str(item) for item in backgroundQuery.split(",")]
 
     signalFilesToProcess = []
     backgroundFilesToProcess = []
     if inputDir != "":
-        signalFilesToProcess = fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + signalQuery + '*')
-        backgroundFilesToProcess = fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + backgroundQuery + '*')
+        
+        maxFiles = 10000
+        if test: #If the test option is used, then only consider a few files for each process
+            maxFiles = 20
+
+        for i, signalProcess in enumerate(signalProcesses):
+            signalFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + signalProcess + '*')[:maxFiles]))
+        for i, backgroundProcess in enumerate(backgroundProcesses):
+            backgroundFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + backgroundProcess + '*')[:maxFiles]))
         
     try:
         #shutil.rmtree('sh')
@@ -68,18 +85,11 @@ if __name__ == "__main__":
     except:
         pass #Directory already exists, this is fine
 
-    #If the test option is used, then only process a few files
-    if test:
-        try:
-            signalFilesToProcess = signalFilesToProcess[:10]
-            backgroundFilesToProcess = backgroundFilesToProcess[:10]
-        except:
-            print("No file matching the requirements has been found.")
-
     #If we train the MVA, then we want to pass a list of all the files to process, the python code will know how to deal with it
     executable = baseDir + "/runMVA.py -i " + inputDir + " -d " + baseDir
 
     #Add the files as arguments
+    executable = executable + " -n " + str(numberSignals)
     executable = executable + " -s " + ','.join(signalFilesToProcess)
     executable = executable + " -b " + ','.join(backgroundFilesToProcess)
     executable = executable + " -y " + str(year)
