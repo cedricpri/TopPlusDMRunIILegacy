@@ -15,7 +15,7 @@ from array import array
 
 #Training variables
 #variables = ["PuppiMET_pt", "mt2ll", "totalET", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]", "Lepton_eta[1]", "Lepton_phi[0]", "Lepton_phi[1]", "thetall", "thetal1b1", "thetal2b2", "dark_pt", "overlapping_factor", "reco_weight"] #cosphill missing, mt2bl as well
-variables = ["PuppiMET_pt", "MET_significance", "mt2ll", "mt2bl", "dphillmet", "Lepton_eta[0]-Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight", "cosphill", "nbJet", "mll"] 
+variables = ["PuppiMET_pt", "MET_significance", "mt2ll", "mt2bl", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "Lepton_eta[0]", "Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight", "cosphill", "nbJet", "mll"] 
 
 #=========================================================================================================
 # HELPERS
@@ -40,10 +40,42 @@ def updateProgress(progress):
     sys.stdout.write(text)
     sys.stdout.flush()
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+def splitByProcess(inputFiles, background = False):
+    processes = [] #List of dictionnaries with the different processes as keys and a list of files as values
+    
+    for inputFile in inputFiles:
+        #process = "_".join(inputFile.split("_")[1:5]) #TODO: try to find a better way to estimate the process?
+        start = "nanoLatino_"
+        end = "__part"
+        process = inputFile[inputFile.find(start)+len(start):inputFile.rfind(end)].replace('_ext', '')
+
+        #However, at least for now, let's group all the background processes
+        if background:
+            process = 'backgrounds'
+        #if 'ST' in process: process = 'ST'
+
+        alreadyFound = [i for i, d in enumerate(processes) if process in d.keys()]
+        if len(alreadyFound) == 0:
+            processes.append({process: [inputFile]})
+        else:
+            processes[alreadyFound[0]][process].append(inputFile)
+
+    return processes
+
 #=========================================================================================================
 # TRAINING
 #=========================================================================================================
-def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, numberSignals):
+def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles):
     """
     Function used to train the MVA based on the signal given
     """
@@ -66,13 +98,6 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, numberSignal
         os.makedirs(outputDirWeights)
 
     # ===========================================
-    # Setup TMVA
-    # ===========================================
-    ROOT.TMVA.Tools.Instance()
-    ROOT.TMVA.PyMethodBase.PyInitialize()
-    factory = ROOT.TMVA.Factory('TMVAClassification', output, '!V:!Silent:Color:DrawProgressBar:AnalysisType=Classification')
-
-    # ===========================================
     # Load data
     # ===========================================
     os.chdir(outputDirWeights)
@@ -80,73 +105,72 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, numberSignal
     for variable in variables:
         dataloader.AddVariable(variable)
         
-    #We pass as arguments the lists containing all the files to process, let's put them in a chain, depending on their category
-    if numberSignals == 1:
+    #Let's know try to find out how many signal and background processes have been passed as argument
+    signalProcesses = splitByProcess(signalFiles, False)
+    backgroundProcesses = splitByProcess(backgroundFiles, True)
+
+    print(bcolors.WARNING + "\n --> I found " + str(len(signalProcesses)) + " signal processes and " + str(len(backgroundProcesses)) + " background processes.")
+    print("Please check if these numbers seem to be correct! \n" + bcolors.ENDC)
+
+    #canvas = ROOT.TCanvas("canvas")
+    #canvas.cd()
+
+    #Now add all the files to the corresponding processes in the dataloader and define the testing and training subsets
+    numberSignals = len(signalProcesses)
+    numberProcesses = len(signalProcesses) + len(backgroundProcesses)
+    minEntries = 999999999 #Used to have exactly the same number of events for each process toa void biases
+
+    for index in range(len(signalProcesses)):
+
+        signalFiles = signalProcesses[index].values()[0]
         signalChain = ROOT.TChain("Events")
+
         for signalFile in signalFiles:
             signalChain.AddFile(inputDir+signalFile)
+        if signalChain.GetEntries() < minEntries: 
+            minEntries = signalChain.GetEntries()
 
-        dataloader.AddTree(signalChain, 'Signal')
+        dataloader.AddTree(signalChain, 'Signal' + str(index))
 
-    elif numberSignals == 2: #If we have more than one signal, things a bit more complicated and require some work to separate the list into the different processes
+    for index in range(len(backgroundProcesses)):
 
-        signalChain = ROOT.TChain("Events")
-        signalChain1 = ROOT.TChain("Events")
-        signalChain2 = ROOT.TChain("Events")
-        processesConsidered = []
+        backgroundFiles = backgroundProcesses[index].values()[0]
+        backgroundChain = ROOT.TChain("Events")
 
-        for signalFile in signalFiles:
+        for backgroundFile in backgroundFiles:
+            backgroundChain.AddFile(inputDir+backgroundFile)
+        if backgroundChain.GetEntries() < minEntries: 
+            minEntries = backgroundChain.GetEntries()
 
-            process = "_".join(signalFile.split("_")[1:4])
-            if process not in processesConsidered:
-                processesConsidered.append(process)
+        dataloader.AddTree(backgroundChain, 'Background' + str(index))
 
-            if process == processesConsidered[0]:
-                signalChain1.AddFile(inputDir+signalFile)
-            else:
-                signalChain2.AddFile(inputDir+signalFile)
-            signalChain.AddFile(inputDir+signalFile)
-            
-        print("\n --> I found the following signal process categories: ")
-        print(' '.join(processesConsidered))
-        print("Please check if it seems to be correct. \n")
+    # ===========================================
+    # TMVA setup
+    # ===========================================
 
-        dataloader.AddTree(signalChain1, 'Signal_1')
-        dataloader.AddTree(signalChain2, 'Signal_2')
-
+    ROOT.TMVA.Tools.Instance()
+    ROOT.TMVA.PyMethodBase.PyInitialize()
+    if numberSignals > 1:
+        factory = ROOT.TMVA.Factory('TMVAClassification', output, '!V:!Silent:Color:DrawProgressBar:AnalysisType=multiclass')
     else:
-        print("Currently not working for more than two signals")
-        exit
+        factory = ROOT.TMVA.Factory('TMVAClassification', output, '!V:!Silent:Color:DrawProgressBar:AnalysisType=Classification')
 
-    backgroundChain = ROOT.TChain("Events")
-    for backgroundFile in backgroundFiles:
-        backgroundChain.AddFile(inputDir+backgroundFile)
-
-    canvas = ROOT.TCanvas("canvas")
-    canvas.cd()
-                
-    dataloader.AddTree(backgroundChain, 'Background')
-
-    #Define the training and testing samples
-    nSignal = signalChain.GetEntries()
-    nBackground = backgroundChain.GetEntries()
-
-    nTrain_Signal = str(int(nSignal/100*50)) #10% for now
-    nTrain_Background = str(int(nBackground/100*50))
-    nTest_Signal = str(int(nSignal/100*50))
-    nTest_Background = str(int(nBackground/100*50))
-
-    dataloader.PrepareTrainingAndTestTree(ROOT.TCut(''), 'nTrain_Signal='+nTrain_Signal+':nTrain_Background='+nTrain_Background+':nTest_Signal='+nTest_Signal+':nTest_Background='+nTest_Background+':SplitMode=Block:NormMode=NumEvents:!V')
+    dataloaderOptions = ''
+    for i, signalProcess in enumerate(signalProcesses):
+        dataloaderOptions = dataloaderOptions + ':nTrain_Signal' + str(i) + '=' + str(int(minEntries/2)) + ':nTest_Signal' + str(i) + '=' + str(int(minEntries/2)) #TOCHECK: for now, we consider a 50%/50% splitting
+    for i, backgroundProcess in enumerate(backgroundProcesses):
+        dataloaderOptions = dataloaderOptions + ':nTrain_Background' + str(i) + '=' + str(int(minEntries/2)) + ':nTest_Background' + str(i) + '=' + str(int(minEntries/2)) #TOCHECK: for now, we consider a 50%/50% splitting
+    dataloader.PrepareTrainingAndTestTree(ROOT.TCut(''), dataloaderOptions + ':SplitMode=Block:NormMode=NumEvents:!V')
 
     # ===========================================
     # Generate keras model
     # ===========================================
     model = Sequential()
-    model.add(Dense(10, activation='relu', input_dim=len(variables)))
+    model.add(Dense(15, activation='relu', input_dim=len(variables)))
     model.add(Dense(10, activation='relu'))
     model.add(Dense(10, activation='relu'))
     model.add(Dense(5, activation='relu'))
-    model.add(Dense(numberSignals+1, activation='softmax'))
+    model.add(Dense(numberProcesses, activation='softmax'))
 
     # Set loss and optimizer
     model.compile(loss='categorical_crossentropy', optimizer=RMSprop(), metrics=['accuracy', 'mse'])
@@ -159,7 +183,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, numberSignal
     # Book method
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=1000000:MinNodeSize=1%:!H:!V')
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=10000:MinNodeSize=1%:!H:!V')
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'model.h5:FilenameTrainedModel=' + outputDirTraining + 'modelTrained.h5:NumEpochs=120:BatchSize=500:VarTransform=N')
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'model.h5:FilenameTrainedModel=' + outputDirTraining + 'modelTrained.h5:NumEpochs=200:BatchSize=250:VarTransform=N')
 
     # ===========================================
     # Run training, test and evaluation
@@ -243,7 +267,6 @@ if __name__ == "__main__":
     # Argument parser
     # ===========================================
     parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0')
-    parser.add_option('-n', '--numberSignals', action='store', type=int, dest='numberSignals', default=[], help='Number of signal processes to consider for classification')
     parser.add_option('-s', '--signalFiles', action='store', type=str, dest='signalFiles', default=[], help='Name of the signal files to be used to train the MVA')
     parser.add_option('-b', '--backgroundFiles', action='store', type=str, dest='backgroundFiles', default=[], help='Name of the background files samples to train the MVA')
     parser.add_option('-f', '--filename', action='store', type=str, dest='filename', default='', help='Name of the file to be evaluated')
@@ -255,7 +278,6 @@ if __name__ == "__main__":
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only run on a single file
     (opts, args) = parser.parse_args()
 
-    numberSignals = opts.numberSignals
     signalFiles     = opts.signalFiles
     backgroundFiles = opts.backgroundFiles
     filename = opts.filename
@@ -279,4 +301,4 @@ if __name__ == "__main__":
         signalFiles = [str(item) for item in signalFiles.split(',')]
         backgroundFiles = [str(item) for item in backgroundFiles.split(',')]
             
-        trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, numberSignals)
+        trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles)

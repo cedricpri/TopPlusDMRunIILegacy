@@ -58,6 +58,7 @@ Several additional arguments need to be set up correctly if the user launching t
 Then, the MVA can be run on these previously produced files using a similar process, and the runMVA.py script.
 Both the createJobsTrainMVA.py and createJobsEvaluateMVA.py can be used in order to also generate .sh files and run this script on condor.
 The first script generate a single job to train the MVA, while the other generates one job per file in order to apply the variables calculated previously.
+This script can now be run on one or two signals, and many different backgrounds at once, passing them as argument as a comma separated string.
 
 ## Scripts
 

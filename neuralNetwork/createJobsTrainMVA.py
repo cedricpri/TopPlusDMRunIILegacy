@@ -24,7 +24,6 @@ if __name__ == "__main__":
     
     #Files to be considered
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
-    parser.add_option('-n', '--numberSignals', action='store', type=int, dest='numberSignals', default=2) #Number of signals processes to categorize
     parser.add_option('-s', '--signalQuery', action='store', type=str, dest='signalQuery', default="TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100,DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100") #Comma separated string to be matched when searching for the files (do not use the nanoLatino prefix!)
     parser.add_option('-b', '--backgroundQuery', action='store', type=str, dest='backgroundQuery', default="TTTo2L2Nu__part,ST_s-channel_ext1,ST_t-channel_antitop,ST_t-channel_top,ST_tW_antitop_ext1,ST_tW_top_ext1") #Comma separated string to be matched when searching for the files
 
@@ -35,7 +34,6 @@ if __name__ == "__main__":
 
     cmssw = opts.cmssw
     year = opts.year
-    numberSignals = opts.numberSignals
     signalQuery = opts.signalQuery
     backgroundQuery = opts.backgroundQuery
     test = opts.test
@@ -72,12 +70,12 @@ if __name__ == "__main__":
         
         maxFiles = 10000
         if test: #If the test option is used, then only consider a few files for each process
-            maxFiles = 20
+            maxFiles = 30
 
         for i, signalProcess in enumerate(signalProcesses):
-            signalFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + signalProcess + '*')[:maxFiles]))
+            signalFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + signalProcess + '*'))) #For now we keep all the signal files as then have less stat
         for i, backgroundProcess in enumerate(backgroundProcesses):
-            backgroundFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + backgroundProcess + '*')[:maxFiles]))
+            backgroundFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + backgroundProcess + '*')[:maxFiles])) 
         
     try:
         #shutil.rmtree('sh')
@@ -89,7 +87,6 @@ if __name__ == "__main__":
     executable = baseDir + "/runMVA.py -i " + inputDir + " -d " + baseDir
 
     #Add the files as arguments
-    executable = executable + " -n " + str(numberSignals)
     executable = executable + " -s " + ','.join(signalFilesToProcess)
     executable = executable + " -b " + ','.join(backgroundFilesToProcess)
     executable = executable + " -y " + str(year)
