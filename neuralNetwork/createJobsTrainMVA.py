@@ -70,7 +70,7 @@ if __name__ == "__main__":
         
         maxFiles = 10000
         if test: #If the test option is used, then only consider a few files for each process
-            maxFiles = 30
+            maxFiles = 50
 
         for i, signalProcess in enumerate(signalProcesses):
             signalFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + signalProcess + '*'))) #For now we keep all the signal files as then have less stat

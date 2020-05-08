@@ -1,11 +1,13 @@
 import ROOT
 from subprocess import call
 from os.path import isfile
+
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
 from keras.regularizers import l2
-from keras.optimizers import SGD, RMSprop
-from keras.utils import plot_model
+from keras.optimizers import SGD, RMSprop, Adam
+#from keras.utils import plot_model
+
 import optparse, os, fnmatch, sys
 from array import array
 
@@ -15,11 +17,25 @@ from array import array
 
 #Training variables
 #variables = ["PuppiMET_pt", "mt2ll", "totalET", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]", "Lepton_eta[1]", "Lepton_phi[0]", "Lepton_phi[1]", "thetall", "thetal1b1", "thetal2b2", "dark_pt", "overlapping_factor", "reco_weight"] #cosphill missing, mt2bl as well
-variables = ["PuppiMET_pt", "MET_significance", "mt2ll", "mt2bl", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "Lepton_eta[0]", "Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight", "cosphill", "nbJet", "mll"] 
+variables = ["PuppiMET_pt", "MET_significance", "mt2ll", "mt2bl", "dphillmet", "Lepton_eta[0]", "Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight", "cosphill", "nbJet"] 
+#variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "dark_pt", "nbJet"] 
+
+trainPercentage = 50
+normalizeProcesses = True #Normalize all the processes to have the same input training events in each case
 
 #=========================================================================================================
 # HELPERS
 #=========================================================================================================
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 #Progress bar
 def updateProgress(progress):
     barLength = 20 # Modify this to change the length of the progress bar
@@ -40,17 +56,7 @@ def updateProgress(progress):
     sys.stdout.write(text)
     sys.stdout.flush()
 
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-def splitByProcess(inputFiles, background = False):
+def splitByProcess(inputFiles, test = False, background = False):
     processes = [] #List of dictionnaries with the different processes as keys and a list of files as values
     
     for inputFile in inputFiles:
@@ -59,23 +65,25 @@ def splitByProcess(inputFiles, background = False):
         end = "__part"
         process = inputFile[inputFile.find(start)+len(start):inputFile.rfind(end)].replace('_ext', '')
 
-        #However, at least for now, let's group all the background processes
+        #However, at least for now, let's group all the background processes if the option is set
         if background:
             process = 'backgrounds'
-        #if 'ST' in process: process = 'ST'
+        else: #Only group the single top process together
+            if 'ST' in process: process = 'ST'
 
         alreadyFound = [i for i, d in enumerate(processes) if process in d.keys()]
         if len(alreadyFound) == 0:
             processes.append({process: [inputFile]})
         else:
-            processes[alreadyFound[0]][process].append(inputFile)
+            if not test or len(processes[alreadyFound[0]][process]) < 30:
+                processes[alreadyFound[0]][process].append(inputFile)
 
     return processes
 
 #=========================================================================================================
 # TRAINING
 #=========================================================================================================
-def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles):
+def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test):
     """
     Function used to train the MVA based on the signal given
     """
@@ -106,8 +114,8 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles):
         dataloader.AddVariable(variable)
         
     #Let's know try to find out how many signal and background processes have been passed as argument
-    signalProcesses = splitByProcess(signalFiles, False)
-    backgroundProcesses = splitByProcess(backgroundFiles, True)
+    signalProcesses = splitByProcess(signalFiles, test, False)
+    backgroundProcesses = splitByProcess(backgroundFiles, test, True)
 
     print(bcolors.WARNING + "\n --> I found " + str(len(signalProcesses)) + " signal processes and " + str(len(backgroundProcesses)) + " background processes.")
     print("Please check if these numbers seem to be correct! \n" + bcolors.ENDC)
@@ -118,7 +126,10 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles):
     #Now add all the files to the corresponding processes in the dataloader and define the testing and training subsets
     numberSignals = len(signalProcesses)
     numberProcesses = len(signalProcesses) + len(backgroundProcesses)
-    minEntries = 999999999 #Used to have exactly the same number of events for each process toa void biases
+
+    signalEvents =[]
+    backgroundEvents = []
+    minEvents = 999999999 #Used to have exactly the same number of events for each process toa void biases
 
     for index in range(len(signalProcesses)):
 
@@ -127,8 +138,10 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles):
 
         for signalFile in signalFiles:
             signalChain.AddFile(inputDir+signalFile)
-        if signalChain.GetEntries() < minEntries: 
-            minEntries = signalChain.GetEntries()
+
+        signalEvents.append(signalChain.GetEntries())
+        if signalChain.GetEntries() < minEvents: 
+            minEvents = signalChain.GetEntries()
 
         dataloader.AddTree(signalChain, 'Signal' + str(index))
 
@@ -139,8 +152,10 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles):
 
         for backgroundFile in backgroundFiles:
             backgroundChain.AddFile(inputDir+backgroundFile)
-        if backgroundChain.GetEntries() < minEntries: 
-            minEntries = backgroundChain.GetEntries()
+
+        backgroundEvents.append(backgroundChain.GetEntries())
+        if backgroundChain.GetEntries() < minEvents: 
+            minEvents = backgroundChain.GetEntries()
 
         dataloader.AddTree(backgroundChain, 'Background' + str(index))
 
@@ -155,35 +170,63 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles):
     else:
         factory = ROOT.TMVA.Factory('TMVAClassification', output, '!V:!Silent:Color:DrawProgressBar:AnalysisType=Classification')
 
+    testPercentage = 100 - trainPercentage
+
     dataloaderOptions = ''
     for i, signalProcess in enumerate(signalProcesses):
-        dataloaderOptions = dataloaderOptions + ':nTrain_Signal' + str(i) + '=' + str(int(minEntries/2)) + ':nTest_Signal' + str(i) + '=' + str(int(minEntries/2)) #TOCHECK: for now, we consider a 50%/50% splitting
+
+        if normalizeProcesses:
+            numberEvents = minEvents
+        else:
+            numberEvents = signalEvents[i]
+
+        dataloaderOptions = dataloaderOptions + ':nTrain_Signal' + str(i) + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Signal' + str(i) + '=' + str(int(numberEvents*testPercentage/100)) #TOCHECK: for now, we consider a 50%/50% splitting
+
     for i, backgroundProcess in enumerate(backgroundProcesses):
-        dataloaderOptions = dataloaderOptions + ':nTrain_Background' + str(i) + '=' + str(int(minEntries/2)) + ':nTest_Background' + str(i) + '=' + str(int(minEntries/2)) #TOCHECK: for now, we consider a 50%/50% splitting
-    dataloader.PrepareTrainingAndTestTree(ROOT.TCut(''), dataloaderOptions + ':SplitMode=Block:NormMode=NumEvents:!V')
+
+        dataloaderOptions = dataloaderOptions + ':nTrain_Background' + str(i) + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Background' + str(i) + '=' + str(int(numberEvents*testPercentage/100)) #TOCHECK: for now, we consider a 50%/50% splitting
+
+    dataloader.PrepareTrainingAndTestTree(ROOT.TCut(''), dataloaderOptions + ':SplitMode=Random:NormMode=EqualNumEvents:!V')
 
     # ===========================================
-    # Generate keras model
+    # Keras model with grid search
     # ===========================================
     model = Sequential()
-    model.add(Dense(15, activation='relu', input_dim=len(variables)))
-    model.add(Dense(10, activation='relu'))
+    model.add(Dense(20, activation='relu', input_dim=len(variables)))
+    model.add(Dense(15, activation='relu'))
     model.add(Dense(10, activation='relu'))
     model.add(Dense(5, activation='relu'))
     model.add(Dense(numberProcesses, activation='softmax'))
 
-    # Set loss and optimizer
-    model.compile(loss='categorical_crossentropy', optimizer=RMSprop(), metrics=['accuracy', 'mse'])
+    # Set loss and optimizer and save the model
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(0.005), metrics=['accuracy', 'mse'])
+    model.save(outputDirTraining+'Adam1.h5')
+    model.summary()
 
-    # Store model
-    #plot_model(model, to_file=outputDir+'model.png')
-    model.save(outputDirTraining+'model.h5')
-    model.summary() #Print the summary of the model compiled
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(0.001), metrics=['accuracy', 'mse'])
+    model.save(outputDirTraining+'Adam2.h5')
+    model.summary()
+
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(0.0005), metrics=['accuracy', 'mse'])
+    model.save(outputDirTraining+'Adam3.h5')
+    model.summary()
+
+    #Repeat 2016 analysis
+    model = Sequential()
+    model.add(Dense(6, activation='sigmoid', input_dim=len(variables)))
+    model.add(Dense(3, activation='sigmoid'))
+    model.add(Dense(numberProcesses, activation='softmax'))
+
+    # Set loss and optimizer and save the model                                                                                                                                                                    
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(0.005), metrics=['accuracy', 'mse'])
+    model.save(outputDirTraining+'Juan.h5')
+    model.summary()
 
     # Book method
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=1000000:MinNodeSize=1%:!H:!V')
-    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=10000:MinNodeSize=1%:!H:!V')
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'model.h5:FilenameTrainedModel=' + outputDirTraining + 'modelTrained.h5:NumEpochs=200:BatchSize=250:VarTransform=N')
+    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=50000:MinNodeSize=1%:!H:!V')
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'Juan.h5:FilenameTrainedModel=' + outputDirTraining + 'JuanTrained.h5:NumEpochs=200:BatchSize=200:VarTransform=N')
+    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kMLP, 'Juan', 'H:!V:NeuronType=sigmoid:NCycles=50:VarTransform=Norm:HiddenLayers=10,5:TestRate=3:LearningRate=0.005')
 
     # ===========================================
     # Run training, test and evaluation
@@ -192,6 +235,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles):
     factory.TrainAllMethods()
     factory.TestAllMethods()
     factory.EvaluateAllMethods()
+
 
 #=========================================================================================================
 # APPLICATION
@@ -301,4 +345,4 @@ if __name__ == "__main__":
         signalFiles = [str(item) for item in signalFiles.split(',')]
         backgroundFiles = [str(item) for item in backgroundFiles.split(',')]
             
-        trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles)
+        trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test)
