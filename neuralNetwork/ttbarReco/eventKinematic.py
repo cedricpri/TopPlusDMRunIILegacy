@@ -29,6 +29,7 @@ class EventKinematic():
 
         self.numberSolutions = 0
         self.nuSol = None #Place to keep the optimal nuSol object
+        self.rand = r.TRandom3()
 
     #We need the TLOrentzVector of the W and the tops in the main code
     @property
@@ -50,13 +51,11 @@ class EventKinematic():
         Run the smearinby modifying the lepton, jets, masses, angles and MET.
         """
 
-        rand = r.TRandom3()
-
         #Update the jets
         OldTb1, OldTb2 = self.Tb1, self.Tb2
 
-        Tb1Uncertainty = rand.Gaus(0, 0.3) * self.Tb1.E() 
-        Tb2Uncertainty = rand.Gaus(0, 0.3) * self.Tb2.E()
+        Tb1Uncertainty = self.rand.Gaus(0, 0.3) * self.Tb1.E() 
+        Tb2Uncertainty = self.rand.Gaus(0, 0.3) * self.Tb2.E()
             
         try:
             ptCorrection1 = math.sqrt((self.Tb1.E() + Tb1Uncertainty)**2 - self.Tb1.M()**2)/self.Tb1.P()
@@ -76,10 +75,10 @@ class EventKinematic():
 
         #Perform the angular smearing by generating alpha a random number from distribution generated from generateDistributions.py
         #Find the new vector respecting the condition phat_RECO_new * phat_RECO = cos(alpha), and the perpendicular plane to phat_RECO (phat_RECO * x = cste) takes the rotation omega
-        self.Tlep1 = self.findVector(self.Tlep1, distributions['lphat'].GetRandom(), rand.Uniform(2 * 3.1415))
-        self.Tlep2 = self.findVector(self.Tlep2, distributions['lphat'].GetRandom(), rand.Uniform(2 * 3.1415))
-        self.Tb1 = self.findVector(self.Tb1, distributions['jphat'].GetRandom(), rand.Uniform(2 * 3.1415))
-        self.Tb2 = self.findVector(self.Tb2, distributions['jphat'].GetRandom(), rand.Uniform(2 * 3.1415))
+        self.Tlep1 = self.findVector(self.Tlep1, distributions['lphat'].GetRandom(), self.rand.Uniform(2 * 3.1415))
+        self.Tlep2 = self.findVector(self.Tlep2, distributions['lphat'].GetRandom(), self.rand.Uniform(2 * 3.1415))
+        self.Tb1 = self.findVector(self.Tb1, distributions['jphat'].GetRandom(), self.rand.Uniform(2 * 3.1415))
+        self.Tb2 = self.findVector(self.Tb2, distributions['jphat'].GetRandom(), self.rand.Uniform(2 * 3.1415))
 
         #Update the MET
         deltaJet1 = r.TLorentzVector(self.Tb1.Px() - OldTb1.Px(), self.Tb1.Py() - OldTb1.Py(), 0, 0)
@@ -90,8 +89,8 @@ class EventKinematic():
         self.TMET = self.TMET + deltaJet1 + deltaJet2 + deltaLep1 + deltaLep2
 
         #Update the W mass
-        self.mW1 = rand.BreitWigner(80.379, 2.085)
-        self.mW2 = rand.BreitWigner(80.379, 2.085)
+        self.mW1 = self.rand.BreitWigner(80.379, 2.085)
+        self.mW2 = self.rand.BreitWigner(80.379, 2.085)
 
         self.runReco()
         self.findBestSolution(distributions["mlb"])
@@ -200,8 +199,6 @@ class EventKinematic():
         Function computing the new TLorentzVector after applying a (alpha, omega) angular smearing.
         """
         
-        rand = r.TRandom3()
-
         #Let's find the direction of our oldObject vector
         Direction = r.TVector3(math.cos(oldObject.Phi()) * math.sin(oldObject.Theta()), math.sin(oldObject.Phi()) * math.sin(oldObject.Theta()), math.cos(oldObject.Theta()))
         
@@ -209,9 +206,9 @@ class EventKinematic():
         Orthogonal1 = r.TVector3(-99.0, -99.0, -99.0)
         
         while (abs(Orthogonal1 * Direction) > 0.001):
-            Orthogonal1.SetX(rand.Uniform(-1, 1))
-            Orthogonal1.SetY(rand.Uniform(-1, 1))
-            Orthogonal1.SetZ(rand.Uniform(-1, 1))
+            Orthogonal1.SetX(self.rand.Uniform(-1, 1))
+            Orthogonal1.SetY(self.rand.Uniform(-1, 1))
+            Orthogonal1.SetZ(self.rand.Uniform(-1, 1))
             Orthogonal1 = Orthogonal1 - (Direction * Orthogonal1) * Direction
         Orthogonal1 = 1.0/Orthogonal1.Mag() * Orthogonal1 #Normalize it
 
