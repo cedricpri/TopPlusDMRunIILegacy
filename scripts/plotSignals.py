@@ -1,41 +1,52 @@
-from ROOT import TCanvas, TLegend, TFile, TH1F
+from ROOT import TCanvas, TLegend, TChain, TFile, TH1F
+import fnmatch, os
 
 #=============================================================================
 #SETUP
 #=============================================================================
-normalization = True
-#variable = ["PuppiMET_pt", 100, 0, 500, "Puppi MET [GeV]"] #Variable name, bins, from, to, xaxis title
+variable = ["PuppiMET_pt", 100, 0, 500, "Puppi MET [GeV]"] #Variable name, bins, from, to, xaxis title
 #variable = ["dark_pt", 50, 0, 800, "Dark pt [GeV]"] 
-variable = ["overlapingFactor", 40, 0, 4, "Overlapping factor"] 
-#signalDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
-signalDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/"
-category = "scalar"
-trailer = "_dnn" #_dnn trailer or not?
-addBackground = True #Plot the ttbar on this graph?
+#variable = ["overlapingFactor", 40, 0, 4, "Overlapping factor"] 
+#variable = ["nbJet", 6, 0, 6, "Loose deepCSV b-jets"] 
+#variable = ["mblt", 16, 20, 350, "mblt [GeV]"] 
 
-files = ['nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_50'+trailer+'.root', 
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_100'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_150'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_200'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_250'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_300'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_350'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_400'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_450'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_1_Mphi_500'+trailer+'.root']
+signalDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
+#signalDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/"
+category = "pseudoscalar"
+trailer = "*"
+#cuts = "mt2ll > 100 && (Lepton_pdgId[0] * Lepton_pdgId[1] == -11*13 || (mll < 76 || mll > 106))"
+cuts = ""
+
+normalization = False
+addBackground = False #Plot the ttbar on this plot as wel?
+logy = False
+
+"""
+files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_50'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_50'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_100'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_150'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_150'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_200'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_200'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_250'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_250'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_300'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_300'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_350'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_350'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_400'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_400'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_450'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_450'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_500'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_500'}]
+"""
+
+files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_20_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_20_Mphi_100'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_30_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_30_Mphi_100'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_40_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_40_Mphi_100'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_45_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_45_Mphi_100'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_49_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_49_Mphi_100'},
+         {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_51_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_51_Mphi_100'}]
+         #{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_55_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_55_Mphi_100'}] #Not available for pseudoscalar
+
+#files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_100'},
+#         {'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100' + trailer + '.root', 'massPoint': 'tWChan_Mchi1_Mphi100'}]
 
 if addBackground:
-    files.append('nanoLatino_TTTo2L2Nu'+trailer+'.root')
-
-"""
-files = ['nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_20_Mphi_100'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_30_Mphi_100'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_40_Mphi_100'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_45_Mphi_100'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_49_Mphi_100'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_51_Mphi_100'+trailer+'.root',
-         'nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_55_Mphi_100'+trailer+'.root']
-"""
+    files.append({'file': 'TTTo2L2Nu'+trailer+'.root', 'massPoint': 'TTTo2L2Nu'})
 
 #=============================================================================
 #GET STARTED
@@ -43,44 +54,55 @@ files = ['nanoLatino_TTbarDMJets_Dilepton_'+category+'_LO_Mchi_20_Mphi_100'+trai
 #Create and store the histograms...
 massPoints = [] #For the legend
 signalHistList = []
-colors = [636, 635, 634, 633, 632, 807, 802, 801, 800, 798] 
+
+if len(files) == 2:
+    colors = [632, 600] 
+else:
+    colors = [636, 635, 634, 633, 632, 807, 802, 801, 800, 798] 
 
 if addBackground:
     colors.append(600)
 
-for f, filename in enumerate(files):
-    print('Now reading file... ' + filename)
+for f, fileDict in enumerate(files):
+    filename = fileDict['file']
+    massPoint = fileDict['massPoint']
+    print('Now considering mass point... ' + massPoint)
 
-    if('TTTo2L2Nu' in filename):
-        massPoint = "TTTo2L2Nu"
-    else:
-        massPoint = "_".join(filename.split("_")[5:9]).replace('.root', '')
-
-    signalFile = TFile.Open(signalDir+filename, "read")
-    signalTree = signalFile.Get("Events")
+    signalChain = TChain("Events")
+    for actualFile in fnmatch.filter(os.listdir(signalDir), 'nanoLatino*' + filename + '*'):
+        signalChain.AddFile(signalDir+actualFile)
         
     histname = 'hist_'+str(f)
-    signalHist = TH1F(histname, 'Mass points distribution ('+category+')', variable[1], variable[2], variable[3])
+    signalHist = TH1F(histname, 'Mass points distribution', variable[1], variable[2], variable[3])
 
-    signalTree.Draw(variable[0] + ' >> ' + histname)
+    signalChain.Draw(variable[0] + ' >> ' + histname, cuts)
     signalHist.SetDirectory(0)
     if normalization: signalHist.Scale(1./signalHist.Integral()) #Normalize the histo to unity
     signalHist.SetStats(0)
     signalHist.SetLineColor(colors[f])
+    if len(files) == 2: signalHist.SetLineWidth(3)
     signalHist.GetXaxis().SetTitle(variable[4])
     
     massPoints.append(massPoint)
     signalHistList.append(signalHist)
 
 #... And plot them
-canvas = TCanvas( 'canvas', 'Signal samples', 200, 10, 700, 500 )
+canvas = TCanvas( 'canvas', 'Signal samples', 200, 10, 700, 500)
+canvas.SetGrid()
 canvas.cd()
 
-legend = TLegend(0.62, 0.55, 0.8, 0.8)
+if len(files) == 2:
+    legend = TLegend(0.60, 0.80, 0.90, 0.90)
+else:
+    #legend = TLegend(0.62, 0.70, 0.90, 0.90) #Scalar high DM mass
+    legend = TLegend(0.55, 0.70, 0.90, 0.90) #Pseudoscalar high DM mass
+    #legend = TLegend(0.62, 0.62, 0.90, 0.90) #Scalar high mediator mass
+    #legend = TLegend(0.55, 0.62, 0.90, 0.90) #Pseudoscalar high mediator mass
 
 for i, h in enumerate(signalHistList):
     h.Draw('same')
     legend.AddEntry(h, massPoints[i])
 
 legend.Draw()
-canvas.SaveAs(category+'_'+variable[0]+'.png')
+if logy: canvas.SetLogy();
+canvas.SaveAs(variable[0]+'.png')

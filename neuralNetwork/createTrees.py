@@ -161,6 +161,8 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.Branch("mt2ll", mt2ll, "mt2ll/F")
     mt2bl = array("f", [0.])
     outputTree.Branch("mt2bl", mt2bl, "mt2bl/F")
+    mblt = array("f", [0.])
+    outputTree.Branch("mblt", mblt, "mblt/F")
 
     reco_weight = array("f", [0.])
     outputTree.Branch("reco_weight", reco_weight, "reco_weight/F")
@@ -251,14 +253,27 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         jetIndexes = []
         bJetIndexes = [] #Instead of keeping all the b-jets in a new collection, let's just keep in the trees their indexes to save memory
 
+        mbltJets = []  #Keep jets needed to compute the mblt variable as in https://arxiv.org/pdf/1812.00694.pdf (6.1)
+        lastmlbJet = None
+
         ibjet = 0
         for j, jet in enumerate(ev.CleanJet_pt): #TOCHECK: For now, we only consider b-jets from the clean jets collection
+            maxBWeight = -10.0
+
             jetIndexes.append(j)
-            if ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.2217: #TOCHECK: Loose WP for now
+            if ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.2217:
                 bJetIndexes.append(j) #Variable to use for the ttbar reco
                 bJetsIdx[ibjet] = j #Variable to keep in the tree
                 ibjet = ibjet + 1
-
+                
+                if len(mbltJets) < 3:
+                    mbltJets.append(j)
+            else: #If not a b-jet, we want to keep the highest scoring b-tag weight in the mbltJets list
+                bWeight = ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]]
+                if bWeight > maxBWeight:
+                    lastmlbJet = j
+            
+        if(len(mbltJets) < 3 and lastmlbJet is not None): mbltJets.append(lastmlbJet)
         nbJet[0] = len(bJetIndexes)
 
         if len(bJetIndexes) == 0: #We don't consider events having less than 1 b-jet
@@ -303,6 +318,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             continue
 
         for j, jet in enumerate(bJetCandidateIndexes):
+
             if j == 0:
                 #By construction, we know that the first element of bJetCandidateIndexes is a b-jet
                 Tb1.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
@@ -348,6 +364,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
                                 inverseOrder = True
                                 maxWeight = smearedEventKinematic2.weight
                                 break
+
 
         #Keep track of all the weights needed to computed the top quark pt later on
         weights = []
@@ -470,8 +487,25 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         
             cosphill[0] = -99.0 #We need the nu information for this variable, so default value if reco failed
 
-        outputTree.Fill()
+        #===================================================
+        #Compute the mblt variable as in https://arxiv.org/pdf/1812.00694.pdf (6.1)
+        #===================================================
 
+        TmbltJet1 = r.TLorentzVector()
+        TmbltJet2 = r.TLorentzVector()
+
+        mbltPossibilities = []
+        for jet1 in mbltJets:
+            TmbltJet1.SetPtEtaPhiM(ev.CleanJet_pt[jet1], ev.CleanJet_eta[jet1], ev.CleanJet_phi[jet1], ev.Jet_mass[ev.CleanJet_jetIdx[jet1]])
+
+            for jet2 in mbltJets:
+                if jet2 != jet1:
+                    TmbltJet2.SetPtEtaPhiM(ev.CleanJet_pt[jet2], ev.CleanJet_eta[jet2], ev.CleanJet_phi[jet2], ev.Jet_mass[ev.CleanJet_jetIdx[jet2]])
+                    mbltPossibilities.append(max((Tlep1 + TmbltJet1).M(), (Tlep2 + TmbltJet2).M()))
+
+        mblt[0] = min(mbltPossibilities)
+
+        outputTree.Fill()
 
     try:
         print '\nThe ttbar reconstruction worked for ' + str(round((nWorked/float(nAttempts))*100, 2)) + '% of the events considered'

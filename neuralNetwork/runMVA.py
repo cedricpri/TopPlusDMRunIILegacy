@@ -6,6 +6,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
 from keras.regularizers import l2
 from keras.optimizers import SGD, RMSprop, Adam
+from keras.models import load_model
 #from keras.utils import plot_model
 
 import optparse, os, fnmatch, sys
@@ -17,8 +18,8 @@ from array import array
 
 #Training variables
 #variables = ["PuppiMET_pt", "mt2ll", "totalET", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]", "Lepton_eta[1]", "Lepton_phi[0]", "Lepton_phi[1]", "thetall", "thetal1b1", "thetal2b2", "dark_pt", "overlapping_factor", "reco_weight"] #cosphill missing, mt2bl as well
-variables = ["PuppiMET_pt", "MET_significance", "mt2ll", "mt2bl", "dphillmet", "Lepton_eta[0]", "Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight", "cosphill", "nbJet"] 
-#variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "dark_pt", "nbJet"] 
+#variables = ["PuppiMET_pt", "MET_significance", "mll", "mt2ll", "mt2bl", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "Lepton_eta[0]", "Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight", "cosphill", "nbJet"] 
+variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "dark_pt", "nbJet"] 
 
 trainPercentage = 50
 normalizeProcesses = True #Normalize all the processes to have the same input training events in each case
@@ -115,7 +116,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test):
         
     #Let's know try to find out how many signal and background processes have been passed as argument
     signalProcesses = splitByProcess(signalFiles, test, False)
-    backgroundProcesses = splitByProcess(backgroundFiles, test, True)
+    backgroundProcesses = splitByProcess(backgroundFiles, test, False)
 
     print(bcolors.WARNING + "\n --> I found " + str(len(signalProcesses)) + " signal processes and " + str(len(backgroundProcesses)) + " background processes.")
     print("Please check if these numbers seem to be correct! \n" + bcolors.ENDC)
@@ -213,20 +214,20 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test):
 
     #Repeat 2016 analysis
     model = Sequential()
-    model.add(Dense(6, activation='sigmoid', input_dim=len(variables)))
-    model.add(Dense(3, activation='sigmoid'))
+    model.add(Dense(15, activation='relu', input_dim=len(variables)))
+    model.add(Dense(10, activation='relu'))
+    model.add(Dense(5, activation='relu'))
     model.add(Dense(numberProcesses, activation='softmax'))
 
-    # Set loss and optimizer and save the model                                                                                                                                                                    
     model.compile(loss='categorical_crossentropy', optimizer=Adam(0.005), metrics=['accuracy', 'mse'])
     model.save(outputDirTraining+'Juan.h5')
     model.summary()
 
     # Book method
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=1000000:MinNodeSize=1%:!H:!V')
-    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=50000:MinNodeSize=1%:!H:!V')
     factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'Juan.h5:FilenameTrainedModel=' + outputDirTraining + 'JuanTrained.h5:NumEpochs=200:BatchSize=200:VarTransform=N')
-    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kMLP, 'Juan', 'H:!V:NeuronType=sigmoid:NCycles=50:VarTransform=Norm:HiddenLayers=10,5:TestRate=3:LearningRate=0.005')
+    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=50000:MinNodeSize=1%:!H:!V')
+    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kMLP, 'Juan', 'H:!V:NeuronType=sigmoid:NCycles=50:VarTransform=Norm:HiddenLayers=6,3:TestRate=3:LearningRate=0.005')
 
     # ===========================================
     # Run training, test and evaluation
@@ -253,8 +254,8 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
 
     reader = ROOT.TMVA.Reader("Color:!Silent")
     for variable in variables:
-        reader.AddVariable(variable, array('f',[0.]))
-        
+        reader.AddVariable(variable, array('f',[0.]))    
+
     #Write the new branches in the tree
     rootfile = ROOT.TFile.Open(inputDir+filename, "UPDATE")
     inputTree = rootfile.Get("Events")
@@ -263,19 +264,11 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
 
         weightsDir = baseDir + "/" + str(year) + "/" + massPoint
 
-        reader.BookMVA("BDT", weightsDir + "/dataset/weights/TMVAClassification_BDT.weights.xml")
-        #reader.BookMVA("Fisher", weightsDir + "/dataset/weights/TMVAClassification_Fisher.weights.xml")
+        #reader.BookMVA("BDT", weightsDir + "/dataset/weights/TMVAClassification_BDT.weights.xml")
         reader.BookMVA("PyKeras", weightsDir + "/dataset/weights/TMVAClassification_PyKeras.weights.xml")
-        #reader.BookMVA("LikelihoodD", weightsDir + "/dataset/weights/TMVAClassification_LikelihoodD.weights.xml")
 
-        BDT_output = array("f", [0.])
-        inputTree.Branch("BDT_output", BDT_output, "BDT_output/F")
-        #Fisher_output = array("f", [0.])
-        #inputTree.Branch("Fisher_output", Fisher_output, "Fisher_output/F")
         PyKeras_output = array("f", [0.])
         inputTree.Branch("PyKeras_output", PyKeras_output, "PyKeras_output/F")
-        #LikelihoodD_output = array("f", [0.])
-        #inputTree.Branch("LikelihoodD_output", LikelihoodD_output, "LikelihoodD_output/F")
 
         nEvents = rootfile.Events.GetEntries()
         if test:
@@ -290,20 +283,17 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
             if test and index == nEvents:
                 break
 
-            BDTValue = reader.EvaluateMVA("BDT")
-            BDT_output[0] = BDTValue
-            #FisherValue = reader.EvaluateMVA("Fisher")
-            #Fisher_output[0] = FisherValue
+            #BDTValue = reader.EvaluateMVA("BDT")
+            #BDT_output[0] = BDTValue
             PyKerasValue = reader.EvaluateMVA("PyKeras")
             PyKeras_output[0] = PyKerasValue
-            #LikelihoodDValue = reader.EvaluateMVA("LikelihoodD")
-            #LikelihoodD_output[0] = LikelihoodDValue
 
             inputTree.Fill()
 
     inputTree.Write()
     rootfile.Close()
-        
+
+
     
 if __name__ == "__main__":
 
