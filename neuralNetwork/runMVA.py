@@ -116,7 +116,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test):
         
     #Let's know try to find out how many signal and background processes have been passed as argument
     signalProcesses = splitByProcess(signalFiles, test, False)
-    backgroundProcesses = splitByProcess(backgroundFiles, test, False)
+    backgroundProcesses = splitByProcess(backgroundFiles, test, True)
 
     print(bcolors.WARNING + "\n --> I found " + str(len(signalProcesses)) + " signal processes and " + str(len(backgroundProcesses)) + " background processes.")
     print("Please check if these numbers seem to be correct! \n" + bcolors.ENDC)
@@ -252,13 +252,14 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
     ROOT.TMVA.Tools.Instance()
     ROOT.TMVA.PyMethodBase.PyInitialize()
 
-    reader = ROOT.TMVA.Reader("Color:!Silent")
-    for variable in variables:
-        reader.AddVariable(variable, array('f',[0.]))    
-
     #Write the new branches in the tree
     rootfile = ROOT.TFile.Open(inputDir+filename, "UPDATE")
     inputTree = rootfile.Get("Events")
+
+    reader = ROOT.TMVA.Reader("Color:!Silent")
+    for variable in variables:
+        reader.AddVariable(variable, array('f',[0.]))    
+        #inputTree.SetBranchAddress(variable, array('f',[0.]))
 
     for massPoint in massPoints:
 
@@ -278,16 +279,16 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
         
             if index % 100 == 0: #Update the loading bar every 100 events
                 updateProgress(round(index/float(nEvents), 2))
-    
+            
             #For testing only
             if test and index == nEvents:
                 break
-
+                
             #BDTValue = reader.EvaluateMVA("BDT")
             #BDT_output[0] = BDTValue
             PyKerasValue = reader.EvaluateMVA("PyKeras")
             PyKeras_output[0] = PyKerasValue
-
+            print(PyKerasValue)
             inputTree.Fill()
 
     inputTree.Write()
@@ -330,7 +331,6 @@ if __name__ == "__main__":
         evaluateMVA(baseDir, inputDir, filename, massPointsList, year, test)
 
     else: #To train, we need to pass a list containing all the files at once
-
         #Split the comma separated string for the files into lists
         signalFiles = [str(item) for item in signalFiles.split(',')]
         backgroundFiles = [str(item) for item in backgroundFiles.split(',')]
