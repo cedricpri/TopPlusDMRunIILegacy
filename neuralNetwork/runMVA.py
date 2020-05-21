@@ -99,7 +99,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test):
         os.stat(outputDirTraining)
     except:
         os.makedirs(outputDirTraining)
-    output = ROOT.TFile.Open(outputDirTraining+'TMVA.root', 'RECREATE')
+    output = ROOT.TFile.Open(outputDirTraining+'TMVA.root', 'UPDATE')
 
     try:
         os.stat(outputDirWeights)
@@ -252,48 +252,60 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
     ROOT.TMVA.Tools.Instance()
     ROOT.TMVA.PyMethodBase.PyInitialize()
 
-    #Write the new branches in the tree
-    rootfile = ROOT.TFile.Open(inputDir+filename, "UPDATE")
+    #Write the new branches in a new tree
+    try:
+        os.makedirs(inputDir[:-1] + '_weighted/')
+    except:
+        pass
+    
+    rootfile = ROOT.TFile.Open(inputDir+filename, "READ")
     inputTree = rootfile.Get("Events")
+    outputFile = ROOT.TFile.Open(inputDir[:-1] + '_weighted/' + filename, "RECREATE")
+    outputTree = inputTree.CloneTree(0)
 
-    reader = ROOT.TMVA.Reader("Color:!Silent")
+    reader = ROOT.TMVA.Reader("Color:!Silent")    
+    branches = {}
     for variable in variables:
-        reader.AddVariable(variable, array('f',[0.]))    
-        #inputTree.SetBranchAddress(variable, array('f',[0.]))
+        branch = inputTree.GetBranch(variable)
+        branchName = branch.GetName()
+        branches[branchName] = array('f', [-999])
+        reader.AddVariable(branchName, branches[branchName])
+        inputTree.SetBranchAddress(branchName, branches[branchName])
 
     for massPoint in massPoints:
-
         weightsDir = baseDir + "/" + str(year) + "/" + massPoint
 
         #reader.BookMVA("BDT", weightsDir + "/dataset/weights/TMVAClassification_BDT.weights.xml")
         reader.BookMVA("PyKeras", weightsDir + "/dataset/weights/TMVAClassification_PyKeras.weights.xml")
 
         PyKeras_output = array("f", [0.])
-        inputTree.Branch("PyKeras_output", PyKeras_output, "PyKeras_output/F")
+        outputTree.Branch("PyKeras_output", PyKeras_output, "PyKeras_output/F")
 
-        nEvents = rootfile.Events.GetEntries()
+        nEvents = inputTree.GetEntries()
         if test:
             nEvents = 1000
 
-        for index, ev in enumerate(rootfile.Events):
+        for index, ev in enumerate(inputTree):
         
+            inputTree.GetEntry(index)
             if index % 100 == 0: #Update the loading bar every 100 events
                 updateProgress(round(index/float(nEvents), 2))
             
             #For testing only
             if test and index == nEvents:
                 break
-                
+
             #BDTValue = reader.EvaluateMVA("BDT")
             #BDT_output[0] = BDTValue
             PyKerasValue = reader.EvaluateMVA("PyKeras")
             PyKeras_output[0] = PyKerasValue
             print(PyKerasValue)
-            inputTree.Fill()
+            outputTree.Fill()
 
-    inputTree.Write()
+    outputFile.cd()
+    outputTree.Write()
     rootfile.Close()
-
+    outputFile.Close()
 
     
 if __name__ == "__main__":
@@ -325,14 +337,14 @@ if __name__ == "__main__":
 
     #To evaluate the MVA, we pass as argument one file name each time, to parallelize the jobs
     if(evaluate):
+
         #The mass points to be added to the trees are also passed as comma separated values
         massPointsList = [str(item) for item in massPoints.split(",")]
-
         evaluateMVA(baseDir, inputDir, filename, massPointsList, year, test)
 
     else: #To train, we need to pass a list containing all the files at once
+
         #Split the comma separated string for the files into lists
         signalFiles = [str(item) for item in signalFiles.split(',')]
-        backgroundFiles = [str(item) for item in backgroundFiles.split(',')]
-            
+        backgroundFiles = [str(item) for item in backgroundFiles.split(',')]            
         trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test)
