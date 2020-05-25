@@ -260,6 +260,7 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
     
     rootfile = ROOT.TFile.Open(inputDir+filename, "READ")
     inputTree = rootfile.Get("Events")
+    inputTree.SetBranchStatus("*", 1);
     outputFile = ROOT.TFile.Open(inputDir[:-1] + '_weighted/' + filename, "RECREATE")
     outputTree = inputTree.CloneTree(0)
 
