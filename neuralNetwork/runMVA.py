@@ -279,8 +279,15 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
         #reader.BookMVA("BDT", weightsDir + "/dataset/weights/TMVAClassification_BDT.weights.xml")
         reader.BookMVA("PyKeras", weightsDir + "/dataset/weights/TMVAClassification_PyKeras.weights.xml")
 
-        PyKeras_output = array("f", [0.])
-        outputTree.Branch("PyKeras_output", PyKeras_output, "PyKeras_output/F")
+        #For now at least, let's consider we have exactly 3 processes (two signals and one common background)
+        PyKeras_output_signal0 = array("f", [0.])
+        PyKeras_output_signal1 = array("f", [0.])
+        PyKeras_output_bkg = array("f", [0.])
+        PyKeras_output_category = array("i", [0]) #Which category gets the highest softmax output?
+        outputTree.Branch("PyKeras_output_signal0", PyKeras_output_signal0, "PyKeras_output_signal0/F")
+        outputTree.Branch("PyKeras_output_signal1", PyKeras_output_signal1, "PyKeras_output_signal1/F")
+        outputTree.Branch("PyKeras_output_bkg", PyKeras_output_bkg, "PyKeras_output_bkg/F")
+        outputTree.Branch("PyKeras_output_category", PyKeras_output_category, "PyKeras_output_category/I")
 
         nEvents = inputTree.GetEntries()
         if test:
@@ -298,9 +305,22 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
 
             #BDTValue = reader.EvaluateMVA("BDT")
             #BDT_output[0] = BDTValue
-            PyKerasValue = reader.EvaluateMVA("PyKeras")
-            PyKeras_output[0] = PyKerasValue
-            print(PyKerasValue)
+
+            PyKerasValues = reader.EvaluateMulticlass("PyKeras")
+            #print(PyKerasValues)
+            PyKeras_output_signal0[0] = PyKerasValues[0]
+            PyKeras_output_signal1[0] = PyKerasValues[1]
+            PyKeras_output_bkg[0] = PyKerasValues[2]
+
+            if PyKerasValues[1] > PyKerasValues[2] and PyKerasValues[1] > PyKerasValues[0]:
+                PyKeras_output_category[0] = 1
+            elif PyKerasValues[2] > PyKerasValues[1] and PyKerasValues[2] > PyKerasValues[0]:
+                PyKeras_output_category[0] = 2
+            else:
+                PyKeras_output_category[0] = 0
+            #print("Value0: " + str(PyKerasValues[0]) + ", value1: " + str(PyKerasValues[1]) + ", value2: " + str(PyKerasValues[2]))
+            #print(PyKeras_output_category[0])
+
             outputTree.Fill()
 
     outputFile.cd()
