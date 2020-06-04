@@ -11,59 +11,42 @@ import sys
 from optparse import OptionParser
 from sklearn.preprocessing import StandardScaler
 import keras.callbacks as cb
-
-
-
+import random
 
 if __name__ == "__main__":
-    #parser = OptionParser(usage="%prog --help")
-    #parser.add_option("-i", "--input",     dest="input",       type="string",   default='input.csv', help="Data file.")
-    #parser.add_option("-l", "--labels",    dest="labels",      type="string",   default='labels.csv', help="Labels data file.")
-    #(options, args) = parser.parse_args()
-
-
 
     sdmsingletop = np.genfromtxt('data/dmsingleptop100.txt', delimiter=',')
     sttbar = np.genfromtxt('data/ttbar.txt', delimiter=',')
     sdmttbar = np.genfromtxt('data/ttbardmscalar100.txt', delimiter=',')
 
-    #sdmsingletop = np.delete(sdmsingletop, 3, 1)
-    #sttbar = np.delete(sttbar, 3, 1)
-    #sdmttbar = np.delete(sdmttbar, 3, 1)
+    #Randomize the events
+    np.random.shuffle(sdmsingletop)
+    np.random.shuffle(sttbar)
+    np.random.shuffle(sdmttbar)
     
-    #sdmsingletop = np.delete(sdmsingletop, 3, 1)
-    #sttbar = np.delete(sttbar, 3, 1)
-    #sdmttbar = np.delete(sdmttbar, 3, 1)
-
-    #PuppiMET_pt, mt2ll, dphillmet, dark_pt, nbJet, mblt
-    
-
-
     N = 13000
 
     ttbar = sttbar[0:N, :]
     dmttbar = sdmttbar[0:N, :]
     dmsingletop = sdmsingletop[0:N, :]
 
-   
-
     zeros = np.zeros((np.shape(ttbar)[0], 1))
     ones = np.zeros((np.shape(dmttbar)[0], 1)) + 1
     twos = np.zeros((np.shape(dmsingletop)[0], 1)) + 2
 
-
     features_ = np.concatenate((ttbar, dmttbar, dmsingletop))    
     categories_ = np.concatenate((zeros, ones, twos))
-    #features_ = np.concatenate((ttbar, dmttbar))    
-    #categories_ = np.concatenate((zeros, ones))
+
+    #Let's mix signal and background together to avoid issues
+    mix = list(zip(features_, categories_))
+    random.shuffle(mix)
+    features_, categories_ = zip(*mix)
 
     scaler = StandardScaler()
     scaler.fit(features_)
     features = scaler.transform(features_)
     nfeatures = np.shape(features)[1]
     categories = np_utils.to_categorical(categories_, num_classes=3)
-
-
 
     print('Compiling Model ... ')
     model = Sequential()
