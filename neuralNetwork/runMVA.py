@@ -130,7 +130,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test):
 
     signalEvents =[]
     backgroundEvents = []
-    minEvents = 999999999 #Used to have exactly the same number of events for each process toa void biases
+    minEvents = 999999999 #Used to have exactly the same number of events for each process to avoid biases
 
     for index in range(len(signalProcesses)):
 
@@ -175,7 +175,6 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test):
 
     dataloaderOptions = ''
     for i, signalProcess in enumerate(signalProcesses):
-
         if normalizeProcesses:
             numberEvents = minEvents
         else:
@@ -184,7 +183,6 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test):
         dataloaderOptions = dataloaderOptions + ':nTrain_Signal' + str(i) + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Signal' + str(i) + '=' + str(int(numberEvents*testPercentage/100)) #TOCHECK: for now, we consider a 50%/50% splitting
 
     for i, backgroundProcess in enumerate(backgroundProcesses):
-
         dataloaderOptions = dataloaderOptions + ':nTrain_Background' + str(i) + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Background' + str(i) + '=' + str(int(numberEvents*testPercentage/100)) #TOCHECK: for now, we consider a 50%/50% splitting
 
     dataloader.PrepareTrainingAndTestTree(ROOT.TCut(''), dataloaderOptions + ':SplitMode=Random:NormMode=EqualNumEvents:!V')
@@ -225,8 +223,8 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test):
 
     # Book method
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=1000000:MinNodeSize=1%:!H:!V')
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'Juan.h5:FilenameTrainedModel=' + outputDirTraining + 'JuanTrained.h5:NumEpochs=200:BatchSize=200:VarTransform=N')
-    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=50000:MinNodeSize=1%:!H:!V')
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'Juan.h5:FilenameTrainedModel=' + outputDirTraining + 'JuanTrained.h5:NumEpochs=250:BatchSize=100:VarTransform=N')
+    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=10000:MinNodeSize=1%:!H:!V')
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kMLP, 'Juan', 'H:!V:NeuronType=sigmoid:NCycles=50:VarTransform=Norm:HiddenLayers=6,3:TestRate=3:LearningRate=0.005')
 
     # ===========================================
@@ -245,7 +243,6 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
     """
     Function used to evaluate the MVA after being trained
     """
-
     # ===========================================
     # Setup TMVA
     # ===========================================
@@ -276,18 +273,31 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
     for massPoint in massPoints:
         weightsDir = baseDir + "/" + str(year) + "/" + massPoint
 
-        #reader.BookMVA("BDT", weightsDir + "/dataset/weights/TMVAClassification_BDT.weights.xml")
+        reader.BookMVA("BDT", weightsDir + "/dataset/weights/TMVAClassification_BDT.weights.xml")
         reader.BookMVA("PyKeras", weightsDir + "/dataset/weights/TMVAClassification_PyKeras.weights.xml")
 
         #For now at least, let's consider we have exactly 3 processes (two signals and one common background)
-        PyKeras_output_signal0 = array("f", [0.])
-        PyKeras_output_signal1 = array("f", [0.])
-        PyKeras_output_bkg = array("f", [0.])
-        PyKeras_output_category = array("i", [0]) #Which category gets the highest softmax output?
-        outputTree.Branch("PyKeras_output_signal0", PyKeras_output_signal0, "PyKeras_output_signal0/F")
-        outputTree.Branch("PyKeras_output_signal1", PyKeras_output_signal1, "PyKeras_output_signal1/F")
-        outputTree.Branch("PyKeras_output_bkg", PyKeras_output_bkg, "PyKeras_output_bkg/F")
-        outputTree.Branch("PyKeras_output_category", PyKeras_output_category, "PyKeras_output_category/I")
+        BDT_output_signal0 = array("f", [0.])
+        BDT_output_signal1 = array("f", [0.])
+        BDT_output_background0 = array("f", [0.])
+        BDT_output_background1 = array("f", [0.])
+        BDT_output_category = array("i", [0]) #Which category gets the highest softmax output?
+        outputTree.Branch("BDT_output_signal0", BDT_output_signal0, "BDT_output_signal0/I")
+        outputTree.Branch("BDT_output_signal1", BDT_output_signal1, "BDT_output_signal1/I")
+        outputTree.Branch("BDT_output_background0", BDT_output_background0, "BDT_output_background0/I")
+        outputTree.Branch("BDT_output_background1", BDT_output_background1, "BDT_output_background1/I")
+        outputTree.Branch("BDT_output_category", BDT_output_category, "BDT_output_category/I")
+
+        DNN_output_signal0 = array("f", [0.])
+        DNN_output_signal1 = array("f", [0.])
+        DNN_output_background0 = array("f", [0.])
+        DNN_output_background1 = array("f", [0.])
+        DNN_output_category = array("i", [0]) #Which category gets the highest softmax output?
+        outputTree.Branch("DNN_output_signal0", DNN_output_signal0, "DNN_output_signal0/F")
+        outputTree.Branch("DNN_output_signal1", DNN_output_signal1, "DNN_output_signal1/F")
+        outputTree.Branch("DNN_output_background0", DNN_output_background0, "DNN_output_background/F")
+        outputTree.Branch("DNN_output_background1", DNN_output_background1, "DNN_output_background1/F")
+        outputTree.Branch("DNN_output_category", DNN_output_category, "DNN_output_category/I")
 
         nEvents = inputTree.GetEntries()
         if test:
@@ -303,21 +313,53 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
             if test and index == nEvents:
                 break
 
-            #BDTValue = reader.EvaluateMVA("BDT")
-            #BDT_output[0] = BDTValue
-
-            PyKerasValues = reader.EvaluateMulticlass("PyKeras")
-            #print(PyKerasValues)
-            PyKeras_output_signal0[0] = PyKerasValues[0]
-            PyKeras_output_signal1[0] = PyKerasValues[1]
-            PyKeras_output_bkg[0] = PyKerasValues[2]
-
-            if PyKerasValues[1] > PyKerasValues[2] and PyKerasValues[1] > PyKerasValues[0]:
-                PyKeras_output_category[0] = 1
-            elif PyKerasValues[2] > PyKerasValues[1] and PyKerasValues[2] > PyKerasValues[0]:
-                PyKeras_output_category[0] = 2
+            #Fill the BDT variables
+            BDTValues = list(reader.EvaluateMulticlass("BDT"))
+            if len(BDTValues) == 2:
+                BDT_output_signal0[0] = BDTValues[0]
+                BDT_output_signal1[0] = 0
+                BDT_output_background0[0] = BDTValues[1]
+                BDT_output_background1[0] = 0
+            elif len(BDTValues) == 3:
+                BDT_output_signal0[0] = BDTValues[0]
+                BDT_output_signal1[0] = BDTValues[1]
+                BDT_output_background0[0] = BDTValues[2]
+                BDT_output_background1[0] = 0
+            elif len(BDTValues) == 4:
+                BDT_output_signal0[0] = BDTValues[0]
+                BDT_output_signal1[0] = BDTValues[1]
+                BDT_output_background0[0] = BDTValues[2]
+                BDT_output_background1[0] = BDTValues[3]
             else:
-                PyKeras_output_category[0] = 0
+                print("Incorrect number of processes.")
+                break
+
+            BDT_output_category[0] = BDTValues.index(max(BDTValues))
+            #print("BDT Value0: " + str(BDTValues[0]) + ", value1: " + str(BDTValues[1]) + ", value2: " + str(BDTValues[2]))
+            #print(BDT_output_category[0])
+
+            #Fill the DNN variables
+            DNNValues = list(reader.EvaluateMulticlass("PyKeras"))
+            if len(DNNValues) == 2:
+                DNN_output_signal0[0] = DNNValues[0]
+                DNN_output_signal1[0] = 0
+                DNN_output_background0[0] = DNNValues[1]
+                DNN_output_background1[0] = 0
+            elif len(DNNValues) == 3:
+                DNN_output_signal0[0] = DNNValues[0]
+                DNN_output_signal1[0] = DNNValues[1]
+                DNN_output_background0[0] = DNNValues[2]
+                DNN_output_background1[0] = 0
+            elif len(DNNValues) == 4:
+                DNN_output_signal0[0] = DNNValues[0]
+                DNN_output_signal1[0] = DNNValues[1]
+                DNN_output_background0[0] = DNNValues[2]
+                DNN_output_background1[0] = DNNValues[3]
+            else:
+                print("Incorrect number of processes.")
+                break
+
+            DNN_output_category[0] = DNNValues.index(max(DNNValues))
             #print("Value0: " + str(PyKerasValues[0]) + ", value1: " + str(PyKerasValues[1]) + ", value2: " + str(PyKerasValues[2]))
             #print(PyKeras_output_category[0])
 
