@@ -173,6 +173,8 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
 
     totalET = array("f", [0.])
     outputTree.Branch("totalET", totalET, "totalET/F")
+    massT = array("f", [0.]) #New variable by Pablo
+    outputTree.Branch("massT", massT, "massT/F")
     costhetall = array("f", [0.])
     outputTree.Branch("costhetall", costhetall, "costhetall/F")
     costhetal1b1 = array("f", [0.])
@@ -427,6 +429,20 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #Variables bases on DESY's AN2016-240-v10
         if recoWorked:
             totalET[0] = ev.PuppiMET_sumEt + bestReconstructedKinematic.Tb1.Pt() + bestReconstructedKinematic.Tb2.Pt() + bestReconstructedKinematic.Tlep1.Pt() + bestReconstructedKinematic.Tlep2.Pt()
+
+            #massT is defined as the mass of the phi component (eta = 0) of the TLorentzVector of the event
+            TMETEta0 = bestReconstructedKinematic.TMET
+            TMETEta0.SetPtEtaPhiE(TMETEta0.Pt(), 0, TMETEta0.Phi(), TMETEta0.E())
+            Tb1Eta0 = bestReconstructedKinematic.Tb1
+            Tb1Eta0.SetPtEtaPhiE(Tb1Eta0.Pt(), 0, Tb1Eta0.Phi(), Tb1Eta0.E())
+            Tb2Eta0 = bestReconstructedKinematic.Tb2
+            Tb2Eta0.SetPtEtaPhiE(Tb2Eta0.Pt(), 0, Tb2Eta0.Phi(), Tb2Eta0.E())
+            Tlep1Eta0 = bestReconstructedKinematic.Tlep1
+            Tlep1Eta0.SetPtEtaPhiE(Tlep1Eta0.Pt(), 0, Tlep1Eta0.Phi(), Tlep1Eta0.E())
+            Tlep2Eta0 = bestReconstructedKinematic.Tlep2
+            Tlep2Eta0.SetPtEtaPhiE(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.E())
+            massT[0] = (TMETEta0 + Tb1Eta0 + Tb2Eta0 + Tlep1Eta0 + Tlep2Eta0).M()
+
             costhetall[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tlep2.CosTheta()
             costhetal1b1[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tb1.CosTheta()
             costhetal2b2[0] = bestReconstructedKinematic.Tlep2.CosTheta() * bestReconstructedKinematic.Tb2.CosTheta()
@@ -481,6 +497,20 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
 
         else: #TOCHECK: put default value instead?
             totalET[0] = ev.PuppiMET_sumEt + eventKinematic.Tb1.Pt() + eventKinematic.Tb2.Pt() + eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt()
+
+            #massT is defined as the mass of the phi component (eta = 0) of the TLorentzVector of the event
+            TMETEta0 = eventKinematic.TMET
+            TMETEta0.SetPtEtaPhiE(TMETEta0.Pt(), 0, TMETEta0.Phi(), TMETEta0.E())
+            Tb1Eta0 = eventKinematic.Tb1
+            Tb1Eta0.SetPtEtaPhiE(Tb1Eta0.Pt(), 0, Tb1Eta0.Phi(), Tb1Eta0.E())
+            Tb2Eta0 = eventKinematic.Tb2
+            Tb2Eta0.SetPtEtaPhiE(Tb2Eta0.Pt(), 0, Tb2Eta0.Phi(), Tb2Eta0.E())
+            Tlep1Eta0 = eventKinematic.Tlep1
+            Tlep1Eta0.SetPtEtaPhiE(Tlep1Eta0.Pt(), 0, Tlep1Eta0.Phi(), Tlep1Eta0.E())
+            Tlep2Eta0 = eventKinematic.Tlep2
+            Tlep2Eta0.SetPtEtaPhiE(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.E())
+            massT[0] = (TMETEta0 + Tb1Eta0 + Tb2Eta0 + Tlep1Eta0 + Tlep2Eta0).M()
+
             costhetall[0] = -99.0
             costhetal1b1[0] = -99.0
             costhetal2b2[0] = -99.0

@@ -16,12 +16,13 @@ signalDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Autumn18_102X
 category = "scalar"
 trailer = "*"
 #cuts = "mt2ll > 100 && (Lepton_pdgId[0] * Lepton_pdgId[1] == -11*13 || (mll < 76 || mll > 106))"
-cuts = "baseW * 1"
+cuts = "baseW * genWeight"
 
-normalization = False
+normalization = True
 addBackground = False #Plot the ttbar on this plot as wel?
 logy = False
 
+"""
 files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_50'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_50'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_100'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_150'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_150'},
@@ -32,7 +33,6 @@ files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_50'+ tra
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_400'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_400'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_450'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_450'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_500'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_500'}]
-
 """
 files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_20_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_20_Mphi_100'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_30_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_30_Mphi_100'},
@@ -41,8 +41,7 @@ files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_20_Mphi_100'+ t
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_49_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_49_Mphi_100'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_51_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_51_Mphi_100'}]
          #{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_55_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_55_Mphi_100'}] #Not available for pseudoscalar
-
-
+"""
 files = [{'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi10__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi10'},
          {'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi20__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi20'},
          {'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi50__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi50'},
