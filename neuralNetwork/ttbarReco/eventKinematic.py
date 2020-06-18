@@ -29,7 +29,7 @@ class EventKinematic():
 
         self.numberSolutions = 0
         self.nuSol = None #Place to keep the optimal nuSol object
-        self.rand = r.TRandom3()
+        self.rand = r.TRandom3(0)
 
     #We need the TLOrentzVector of the W and the tops in the main code
     @property

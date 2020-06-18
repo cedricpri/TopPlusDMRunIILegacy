@@ -24,7 +24,7 @@ if __name__ == "__main__":
     
     #Files to be considered
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
-    parser.add_option('-s', '--signalQuery', action='store', type=str, dest='signalQuery', default="TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100,DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100") #Comma separated string to be matched when searching for the files (do not use the nanoLatino prefix!)
+    parser.add_option('-s', '--signalQuery', action='store', type=str, dest='signalQuery', default="TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100_,DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100_") #Comma separated string to be matched when searching for the files (do not use the nanoLatino prefix!)
     parser.add_option('-b', '--backgroundQuery', action='store', type=str, dest='backgroundQuery', default="TTTo2L2Nu__part,ST_s-channel_ext1,ST_t-channel_antitop,ST_t-channel_top,ST_tW_antitop_ext1,ST_tW_top_ext1") #Comma separated string to be matched when searching for the files
 
     #Additional options

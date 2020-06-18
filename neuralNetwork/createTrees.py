@@ -145,6 +145,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("nllW", 1);
     outputTree.SetBranchStatus("Trigger_*", 1);
     outputTree.SetBranchStatus("XSWeight", 1);
+    outputTree.SetBranchStatus("genWeight", 1);
     outputTree.SetBranchStatus("METFilter_*", 1);
     outputTree.SetBranchStatus("gen_ptll", 1);
     outputTree.SetBranchStatus("PhotonGen_isPrompt", 1);
@@ -263,7 +264,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             maxBWeight = -10.0
 
             jetIndexes.append(j)
-            if ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.2217:
+            if ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.1241:
                 bJetIndexes.append(j) #Variable to use for the ttbar reco
                 bJetsIdx[ibjet] = j #Variable to keep in the tree
                 ibjet = ibjet + 1
@@ -432,15 +433,15 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
 
             #massT is defined as the mass of the phi component (eta = 0) of the TLorentzVector of the event
             TMETEta0 = bestReconstructedKinematic.TMET
-            TMETEta0.SetPtEtaPhiE(TMETEta0.Pt(), 0, TMETEta0.Phi(), TMETEta0.E())
+            TMETEta0.SetPtEtaPhiM(TMETEta0.Pt(), 0, TMETEta0.Phi(), TMETEta0.M())
             Tb1Eta0 = bestReconstructedKinematic.Tb1
-            Tb1Eta0.SetPtEtaPhiE(Tb1Eta0.Pt(), 0, Tb1Eta0.Phi(), Tb1Eta0.E())
+            Tb1Eta0.SetPtEtaPhiM(Tb1Eta0.Pt(), 0, Tb1Eta0.Phi(), Tb1Eta0.M())
             Tb2Eta0 = bestReconstructedKinematic.Tb2
-            Tb2Eta0.SetPtEtaPhiE(Tb2Eta0.Pt(), 0, Tb2Eta0.Phi(), Tb2Eta0.E())
+            Tb2Eta0.SetPtEtaPhiM(Tb2Eta0.Pt(), 0, Tb2Eta0.Phi(), Tb2Eta0.M())
             Tlep1Eta0 = bestReconstructedKinematic.Tlep1
-            Tlep1Eta0.SetPtEtaPhiE(Tlep1Eta0.Pt(), 0, Tlep1Eta0.Phi(), Tlep1Eta0.E())
+            Tlep1Eta0.SetPtEtaPhiM(Tlep1Eta0.Pt(), 0, Tlep1Eta0.Phi(), Tlep1Eta0.M())
             Tlep2Eta0 = bestReconstructedKinematic.Tlep2
-            Tlep2Eta0.SetPtEtaPhiE(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.E())
+            Tlep2Eta0.SetPtEtaPhiM(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.M())
             massT[0] = (TMETEta0 + Tb1Eta0 + Tb2Eta0 + Tlep1Eta0 + Tlep2Eta0).M()
 
             costhetall[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tlep2.CosTheta()
@@ -500,15 +501,15 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
 
             #massT is defined as the mass of the phi component (eta = 0) of the TLorentzVector of the event
             TMETEta0 = eventKinematic.TMET
-            TMETEta0.SetPtEtaPhiE(TMETEta0.Pt(), 0, TMETEta0.Phi(), TMETEta0.E())
+            TMETEta0.SetPtEtaPhiM(TMETEta0.Pt(), 0, TMETEta0.Phi(), TMETEta0.M())
             Tb1Eta0 = eventKinematic.Tb1
-            Tb1Eta0.SetPtEtaPhiE(Tb1Eta0.Pt(), 0, Tb1Eta0.Phi(), Tb1Eta0.E())
+            Tb1Eta0.SetPtEtaPhiM(Tb1Eta0.Pt(), 0, Tb1Eta0.Phi(), Tb1Eta0.M())
             Tb2Eta0 = eventKinematic.Tb2
-            Tb2Eta0.SetPtEtaPhiE(Tb2Eta0.Pt(), 0, Tb2Eta0.Phi(), Tb2Eta0.E())
+            Tb2Eta0.SetPtEtaPhiM(Tb2Eta0.Pt(), 0, Tb2Eta0.Phi(), Tb2Eta0.M())
             Tlep1Eta0 = eventKinematic.Tlep1
-            Tlep1Eta0.SetPtEtaPhiE(Tlep1Eta0.Pt(), 0, Tlep1Eta0.Phi(), Tlep1Eta0.E())
+            Tlep1Eta0.SetPtEtaPhiM(Tlep1Eta0.Pt(), 0, Tlep1Eta0.Phi(), Tlep1Eta0.M())
             Tlep2Eta0 = eventKinematic.Tlep2
-            Tlep2Eta0.SetPtEtaPhiE(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.E())
+            Tlep2Eta0.SetPtEtaPhiM(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.M())
             massT[0] = (TMETEta0 + Tb1Eta0 + Tb2Eta0 + Tlep1Eta0 + Tlep2Eta0).M()
 
             costhetall[0] = -99.0
