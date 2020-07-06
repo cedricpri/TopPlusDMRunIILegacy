@@ -151,6 +151,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("PhotonGen_isPrompt", 1);
     outputTree.SetBranchStatus("PhotonGen_pt", 1);
     outputTree.SetBranchStatus("PhotonGen_eta", 1);
+    outputTree.SetBranchStatus("LHE_HT", 1);
 
     #New variables
     nbJet = array("i", [0])
@@ -266,8 +267,11 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             jetIndexes.append(j)
             if ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.1241:
                 bJetIndexes.append(j) #Variable to use for the ttbar reco
-                bJetsIdx[ibjet] = j #Variable to keep in the tree
-                ibjet = ibjet + 1
+                try:
+                    bJetsIdx[ibjet] = j #Variable to keep in the tree
+                    ibjet = ibjet + 1
+                except:
+                    pass
                 
                 if len(mbltJets) < 3:
                     mbltJets.append(j)
@@ -314,6 +318,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         bJetCandidateIndexes = list(set(bJetCandidateIndexes))
 
         maxWeight = 0.0 #Criteria to know which b-jet/lepton combination to keep
+        bestReconstructedKinematicWithoutSmearing = None
         bestReconstructedKinematic = None
         inverseOrder = False #Keep track of the b-jet/lepton combination used
 
@@ -338,6 +343,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
                 eventKinematic1.findBestSolution(distributions["mlb"])
                 if eventKinematic1.weight > maxWeight:
                     bestReconstructedKinematic = eventKinematic1
+                    bestReconstructedKinematicWithoutSmearing = eventKinematic1
                     inverseOrder = False
                     maxWeight = eventKinematic1.weight
 
@@ -345,6 +351,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
                 eventKinematic2.findBestSolution(distributions["mlb"])
                 if eventKinematic2.weight > maxWeight:
                     bestReconstructedKinematic = eventKinematic2
+                    bestReconstructedKinematicWithoutSmearing = eventKinematic2
                     inverseOrder = True
                     maxWeight = eventKinematic2.weight
 
@@ -416,11 +423,10 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #MT2 computation
         #===================================================
 
-        if recoWorked:
-            mt2ll[0] = computeMT2(bestReconstructedKinematic.Tlep1, bestReconstructedKinematic.Tlep2, bestReconstructedKinematic.TMET) 
-            mt2bl[0] = computeMT2(bestReconstructedKinematic.Tlep1 + bestReconstructedKinematic.Tb1, bestReconstructedKinematic.Tlep2 + bestReconstructedKinematic.Tb2, bestReconstructedKinematic.TMET) 
+        mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET) 
+        if bestReconstructedKinematicWithoutSmearing is not None and bestReconstructedKinematicWithoutSmearing.weight > 0:
+            mt2bl[0] = computeMT2(bestReconstructedKinematicWithoutSmearing.Tlep1 + bestReconstructedKinematicWithoutSmearing.Tb1, bestReconstructedKinematicWithoutSmearing.Tlep2 + bestReconstructedKinematicWithoutSmearing.Tb2, bestReconstructedKinematicWithoutSmearing.TMET) 
         else: #TOCHECK: put default value instead?
-            mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET) 
             mt2bl[0] = computeMT2(eventKinematic.Tlep1 + eventKinematic.Tb1, eventKinematic.Tlep2 + eventKinematic.Tb2, eventKinematic.TMET) 
 
         #===================================================
@@ -428,21 +434,22 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #===================================================
        
         #Variables bases on DESY's AN2016-240-v10
+
+        #massT is defined as the mass of the phi component (eta = 0) of the TLorentzVector of the event
+        TMETEta0 = deepcopy(eventKinematic.TMET)
+        TMETEta0.SetPtEtaPhiM(TMETEta0.Pt(), 0, TMETEta0.Phi(), TMETEta0.M())
+        Tb1Eta0 = deepcopy(eventKinematic.Tb1)
+        Tb1Eta0.SetPtEtaPhiM(Tb1Eta0.Pt(), 0, Tb1Eta0.Phi(), Tb1Eta0.M())
+        Tb2Eta0 = deepcopy(eventKinematic.Tb2)
+        Tb2Eta0.SetPtEtaPhiM(Tb2Eta0.Pt(), 0, Tb2Eta0.Phi(), Tb2Eta0.M())
+        Tlep1Eta0 = deepcopy(eventKinematic.Tlep1)
+        Tlep1Eta0.SetPtEtaPhiM(Tlep1Eta0.Pt(), 0, Tlep1Eta0.Phi(), Tlep1Eta0.M())
+        Tlep2Eta0 = deepcopy(eventKinematic.Tlep2)
+        Tlep2Eta0.SetPtEtaPhiM(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.M())
+        massT[0] = (TMETEta0 + Tb1Eta0 + Tb2Eta0 + Tlep1Eta0 + Tlep2Eta0).M()
+
         if recoWorked:
             totalET[0] = ev.PuppiMET_sumEt + bestReconstructedKinematic.Tb1.Pt() + bestReconstructedKinematic.Tb2.Pt() + bestReconstructedKinematic.Tlep1.Pt() + bestReconstructedKinematic.Tlep2.Pt()
-
-            #massT is defined as the mass of the phi component (eta = 0) of the TLorentzVector of the event
-            TMETEta0 = bestReconstructedKinematic.TMET
-            TMETEta0.SetPtEtaPhiM(TMETEta0.Pt(), 0, TMETEta0.Phi(), TMETEta0.M())
-            Tb1Eta0 = bestReconstructedKinematic.Tb1
-            Tb1Eta0.SetPtEtaPhiM(Tb1Eta0.Pt(), 0, Tb1Eta0.Phi(), Tb1Eta0.M())
-            Tb2Eta0 = bestReconstructedKinematic.Tb2
-            Tb2Eta0.SetPtEtaPhiM(Tb2Eta0.Pt(), 0, Tb2Eta0.Phi(), Tb2Eta0.M())
-            Tlep1Eta0 = bestReconstructedKinematic.Tlep1
-            Tlep1Eta0.SetPtEtaPhiM(Tlep1Eta0.Pt(), 0, Tlep1Eta0.Phi(), Tlep1Eta0.M())
-            Tlep2Eta0 = bestReconstructedKinematic.Tlep2
-            Tlep2Eta0.SetPtEtaPhiM(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.M())
-            massT[0] = (TMETEta0 + Tb1Eta0 + Tb2Eta0 + Tlep1Eta0 + Tlep2Eta0).M()
 
             costhetall[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tlep2.CosTheta()
             costhetal1b1[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tb1.CosTheta()
@@ -498,19 +505,6 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
 
         else: #TOCHECK: put default value instead?
             totalET[0] = ev.PuppiMET_sumEt + eventKinematic.Tb1.Pt() + eventKinematic.Tb2.Pt() + eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt()
-
-            #massT is defined as the mass of the phi component (eta = 0) of the TLorentzVector of the event
-            TMETEta0 = eventKinematic.TMET
-            TMETEta0.SetPtEtaPhiM(TMETEta0.Pt(), 0, TMETEta0.Phi(), TMETEta0.M())
-            Tb1Eta0 = eventKinematic.Tb1
-            Tb1Eta0.SetPtEtaPhiM(Tb1Eta0.Pt(), 0, Tb1Eta0.Phi(), Tb1Eta0.M())
-            Tb2Eta0 = eventKinematic.Tb2
-            Tb2Eta0.SetPtEtaPhiM(Tb2Eta0.Pt(), 0, Tb2Eta0.Phi(), Tb2Eta0.M())
-            Tlep1Eta0 = eventKinematic.Tlep1
-            Tlep1Eta0.SetPtEtaPhiM(Tlep1Eta0.Pt(), 0, Tlep1Eta0.Phi(), Tlep1Eta0.M())
-            Tlep2Eta0 = eventKinematic.Tlep2
-            Tlep2Eta0.SetPtEtaPhiM(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.M())
-            massT[0] = (TMETEta0 + Tb1Eta0 + Tb2Eta0 + Tlep1Eta0 + Tlep2Eta0).M()
 
             costhetall[0] = -99.0
             costhetal1b1[0] = -99.0

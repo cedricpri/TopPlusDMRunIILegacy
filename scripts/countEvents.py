@@ -5,9 +5,12 @@ import fnmatch, os, math
 #SETUP
 #=============================================================================
 signalDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
+#signalDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
+
 trailer="*"
-baseCut = "baseW"
+baseCut = "baseW * genWeight"
 cuts = [baseCut, baseCut + " * (mt2ll > 20)", baseCut + " * (mt2ll > 40)", baseCut + " * (mt2ll > 60)", baseCut + " * (mt2ll > 80)", baseCut + " * (mt2ll > 100)"]
+#cuts = [baseCut]
 
 scalarFiles = [{'file': 'TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_50'+ trailer +'.root', 'massPoint': 'scalar_Mchi_1_Mphi_50', 'events': 0},
                {'file': 'TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': 'scalar_Mchi_1_Mphi_100', 'events': 0},
@@ -82,7 +85,15 @@ for icut, cut in enumerate(cuts):
         print(fileDict['massPoint'] + ": " + str(fileDict['events']) + " events and S/sqrt(B) = " + str(fileDict['events']/math.sqrt(totalBackground)))
 
     print("============= PSEUDOSCALAR =============")
+    for f, fileDict in enumerate(pseudoscalarFiles):
+        print(fileDict['massPoint'] + ": " + str(fileDict['events']) + " events and S/sqrt(B) = " + str(fileDict['events']/math.sqrt(totalBackground)))
 
     print("============= SINGLE =============")
+    for f, fileDict in enumerate(singleFiles):
+        print(fileDict['massPoint'] + ": " + str(fileDict['events']) + " events and S/sqrt(B) = " + str(fileDict['events']/math.sqrt(totalBackground)))
+
+    print("============= BACKGROUND =============")
+    for f, fileDict in enumerate(backgroundFiles):
+        print(fileDict['massPoint'] + ": " + str(fileDict['events']) + " events and S/sqrt(B) = " + str(fileDict['events']/math.sqrt(totalBackground)))
 
 #COmpute the signal over sqrt(background) numbers to put in a table
