@@ -265,7 +265,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             maxBWeight = -10.0
 
             jetIndexes.append(j)
-            if ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.1241:
+            if ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.1241: #TODO: change the value depending on the year
                 bJetIndexes.append(j) #Variable to use for the ttbar reco
                 try:
                     bJetsIdx[ibjet] = j #Variable to keep in the tree
