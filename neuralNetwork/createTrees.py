@@ -246,7 +246,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         except:
             jetpt2 = 0.
 
-        if jetpt1 < 30. or jetpt2 < 30.: #At least two jets with pt > 30 GeV
+        if jetpt1 < 30.:# or jetpt2 < 30.: #At least two jets with pt > 30 GeV
             continue
 
         #Additional cut removing events having less than one b-jet performed later, once the b-jets have been computed
