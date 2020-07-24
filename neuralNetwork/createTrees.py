@@ -38,7 +38,7 @@ def updateProgress(progress):
 #=========================================================================================================
 # TREE CREATION
 #=========================================================================================================
-def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, splitNumber):
+def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, splitNumber, year):
     #===================================================
     #Global setup
     #===================================================
@@ -265,7 +265,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             maxBWeight = -10.0
 
             jetIndexes.append(j)
-            if ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.1241: #TODO: change the value depending on the year
+            if (year == 2016 and ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.6321) or (year == 2017 and ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.4941) or (year == 2018 and ev.Jet_btagDeepB[ev.CleanJet_jetIdx[j]] > 0.4184):
                 bJetIndexes.append(j) #Variable to use for the ttbar reco
                 try:
                     bJetsIdx[ibjet] = j #Variable to keep in the tree
@@ -322,9 +322,6 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         bestReconstructedKinematic = None
         inverseOrder = False #Keep track of the b-jet/lepton combination used
 
-        if len(bJetCandidateIndexes) < 2:
-            continue
-
         for j, jet in enumerate(bJetCandidateIndexes):
 
             if j == 0:
@@ -346,7 +343,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
                     bestReconstructedKinematicWithoutSmearing = eventKinematic1
                     inverseOrder = False
                     maxWeight = eventKinematic1.weight
-
+                    
                 eventKinematic2.runReco()
                 eventKinematic2.findBestSolution(distributions["mlb"])
                 if eventKinematic2.weight > maxWeight:
@@ -522,14 +519,16 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         mbltPossibilities = []
         for jet1 in mbltJets:
             TmbltJet1.SetPtEtaPhiM(ev.CleanJet_pt[jet1], ev.CleanJet_eta[jet1], ev.CleanJet_phi[jet1], ev.Jet_mass[ev.CleanJet_jetIdx[jet1]])
-
+                
             for jet2 in mbltJets:
                 if jet2 != jet1:
                     TmbltJet2.SetPtEtaPhiM(ev.CleanJet_pt[jet2], ev.CleanJet_eta[jet2], ev.CleanJet_phi[jet2], ev.Jet_mass[ev.CleanJet_jetIdx[jet2]])
                     mbltPossibilities.append(max((Tlep1 + TmbltJet1).M(), (Tlep2 + TmbltJet2).M()))
 
-        mblt[0] = min(mbltPossibilities)
-
+        if len(mbltPossibilities) != 0:
+            mblt[0] = min(mbltPossibilities)
+        else:
+            mblt[0] = -99.0
         outputTree.Fill()
 
     try:
@@ -628,9 +627,10 @@ if __name__ == "__main__":
     parser.add_option('-i', '--inputDir', action='store', type=str, dest='inputDir', default="")
     parser.add_option('-o', '--outputDir', action='store', type=str, dest='outputDir', default="/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/")
     parser.add_option('-b', '--baseDir', action='store', type=str, dest='baseDir', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/src/neuralNetwork/")
-    parser.add_option('-x', '--splitNumber', action='store', type=int, dest='splitNumber', default=-1)
-    parser.add_option('-y', '--firstEvent', action='store', type=int, dest='firstEvent', default=0)
-    parser.add_option('-z', '--lastEvent', action='store', type=int, dest='lastEvent', default=0)
+    parser.add_option('-p', '--splitNumber', action='store', type=int, dest='splitNumber', default=-1)
+    parser.add_option('-c', '--firstEvent', action='store', type=int, dest='firstEvent', default=0)
+    parser.add_option('-d', '--lastEvent', action='store', type=int, dest='lastEvent', default=0)
+    parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018) #Year, to know the value of the medium b-tag working point
 
     parser.add_option('-t', '--test', action='store_true', dest='test')
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose')
@@ -643,10 +643,15 @@ if __name__ == "__main__":
     splitNumber = opts.splitNumber
     firstEvent = opts.firstEvent
     lastEvent = opts.lastEvent
+    year = int(opts.year)
     test = opts.test
     verbose = opts.verbose
 
+    if year not in [2016, 2017, 2018]:
+        print("The year for the production does not seem to be valid")
+        exit
+
     #Needed for reasons explained in https://root-forum.cern.ch/t/cannot-perform-both-dot-product-and-scalar-multiplication-on-tvector2-in-pyroot/28207
     fixOperations()
-    createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, splitNumber)
+    createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, splitNumber, year)
     

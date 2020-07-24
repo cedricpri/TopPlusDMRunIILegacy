@@ -160,7 +160,7 @@ if __name__ == "__main__":
     #Write the executable needed for each file to process
     for fileToProcess in filesToProcess:
 
-        executable = baseDir + "/createTrees.py -f " + fileToProcess['inputName'] + " -i " + inputDir + " -o " + outputDir + " -b " + baseDir             
+        executable = baseDir + "/createTrees.py -f " + fileToProcess['inputName'] + " -i " + inputDir + " -o " + outputDir + " -b " + baseDir + " -y " + str(year)
         executable = executable + " --splitNumber " + str(fileToProcess['splitNumber']) + " --firstEvent " + str(fileToProcess['firstEvent']) + " --lastEvent " + str(fileToProcess['lastEvent'])
 
         if verbose:
