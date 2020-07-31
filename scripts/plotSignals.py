@@ -7,8 +7,8 @@ import fnmatch, os
 #variable = ["Puppi_MET", 100, 0, 500, "Puppi MET [GeV]"] #Variable name, bins, from, to, xaxis title
 #variable = ["dark_pt", 50, 0, 800, "Dark pt [GeV]"] 
 #variable = ["overlapingFactor", 40, 0, 4, "Overlapping factor"] 
-variable = ["nbJet", 6, 0, 6, "Loose deepCSV b-jets"] 
-#variable = ["mblt", 50, 0, 350, "mblt [GeV]"] 
+#variable = ["nbJet", 6, 0, 6, "Loose deepCSV b-jets"] 
+variable = ["mblt", 50, 0, 350, "mblt [GeV]"] 
 #variable = ["massT", 50, 0, 1500, "massT [GeV]"] 
 
 signalDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
@@ -24,7 +24,7 @@ addBackground = False #Plot the ttbar on this plot as wel?
 logy = True
 
 files = [{'file': 'TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': 'scalar_Mchi_1_Mphi_100'},
-         {'file': 'TTbarDMJets_Dilepton_pseudoscalar_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': 'pseudoscalar_Mchi_1_Mphi_100'},
+#         {'file': 'TTbarDMJets_Dilepton_pseudoscalar_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': 'pseudoscalar_Mchi_1_Mphi_100'},
          {'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi100'}]
 
 """
@@ -106,7 +106,7 @@ canvas.SetGrid()
 canvas.cd()
 
 if len(files) == 2:
-    legend = TLegend(0.60, 0.80, 0.90, 0.90)
+    legend = TLegend(0.52, 0.80, 0.72, 0.86)
 elif len(files) == 3:
     #legend = TLegend(0.50, 0.75, 0.70, 0.85)
     legend = TLegend(0.20, 0.2, 0.40, 0.3)

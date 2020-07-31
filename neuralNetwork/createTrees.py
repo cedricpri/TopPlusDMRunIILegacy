@@ -318,6 +318,8 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         bJetCandidateIndexes = list(set(bJetCandidateIndexes))
 
         maxWeight = 0.0 #Criteria to know which b-jet/lepton combination to keep
+        eventKinematic1 = None
+        eventKinematic2 = None
         bestReconstructedKinematicWithoutSmearing = None
         bestReconstructedKinematic = None
         inverseOrder = False #Keep track of the b-jet/lepton combination used
@@ -398,16 +400,18 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
                 recoWorked = True
                 nWorked = nWorked + 1
 
-        if inverseOrder:
+        if inverseOrder and eventKinematic2 is not None:
             eventKinematic = eventKinematic2
-        else:
+        elif eventKinematic1 is not None:
             eventKinematic = eventKinematic1
+        else:
+            eventKinematic = None
 
         #===================================================
         #Dark pt and overlapping factor
         #===================================================
 
-        if recoWorked:
+        if recoWorked and eventKinematic is not None:
             reco_weight[0] = bestReconstructedKinematic.weight
             dark_pt[0] = bestReconstructedKinematic.dark_pt
             overlapping_factor[0] = bestReconstructedKinematic.overlapping_factor
@@ -420,11 +424,14 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #MT2 computation
         #===================================================
 
-        mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET) 
-        if bestReconstructedKinematicWithoutSmearing is not None and bestReconstructedKinematicWithoutSmearing.weight > 0:
-            mt2bl[0] = computeMT2(bestReconstructedKinematicWithoutSmearing.Tlep1 + bestReconstructedKinematicWithoutSmearing.Tb1, bestReconstructedKinematicWithoutSmearing.Tlep2 + bestReconstructedKinematicWithoutSmearing.Tb2, bestReconstructedKinematicWithoutSmearing.TMET) 
-        else: #TOCHECK: put default value instead?
-            mt2bl[0] = computeMT2(eventKinematic.Tlep1 + eventKinematic.Tb1, eventKinematic.Tlep2 + eventKinematic.Tb2, eventKinematic.TMET) 
+        if eventKinematic is not None:
+            mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET) 
+            if bestReconstructedKinematicWithoutSmearing is not None and bestReconstructedKinematicWithoutSmearing.weight > 0:
+                mt2bl[0] = computeMT2(bestReconstructedKinematicWithoutSmearing.Tlep1 + bestReconstructedKinematicWithoutSmearing.Tb1, bestReconstructedKinematicWithoutSmearing.Tlep2 + bestReconstructedKinematicWithoutSmearing.Tb2, bestReconstructedKinematicWithoutSmearing.TMET) 
+            else: #TOCHECK: put default value instead?
+                mt2bl[0] = computeMT2(eventKinematic.Tlep1 + eventKinematic.Tb1, eventKinematic.Tlep2 + eventKinematic.Tb2, eventKinematic.TMET) 
+        else:
+            mt2ll[0] = -99.0
 
         #===================================================
         #Additional variables computation
@@ -433,75 +440,84 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #Variables bases on DESY's AN2016-240-v10
 
         #massT is defined as the mass of the phi component (eta = 0) of the TLorentzVector of the event
-        TMETEta0 = deepcopy(eventKinematic.TMET)
-        TMETEta0.SetPtEtaPhiM(TMETEta0.Pt(), 0, TMETEta0.Phi(), TMETEta0.M())
-        Tb1Eta0 = deepcopy(eventKinematic.Tb1)
-        Tb1Eta0.SetPtEtaPhiM(Tb1Eta0.Pt(), 0, Tb1Eta0.Phi(), Tb1Eta0.M())
-        Tb2Eta0 = deepcopy(eventKinematic.Tb2)
-        Tb2Eta0.SetPtEtaPhiM(Tb2Eta0.Pt(), 0, Tb2Eta0.Phi(), Tb2Eta0.M())
-        Tlep1Eta0 = deepcopy(eventKinematic.Tlep1)
-        Tlep1Eta0.SetPtEtaPhiM(Tlep1Eta0.Pt(), 0, Tlep1Eta0.Phi(), Tlep1Eta0.M())
-        Tlep2Eta0 = deepcopy(eventKinematic.Tlep2)
-        Tlep2Eta0.SetPtEtaPhiM(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.M())
-        massT[0] = (TMETEta0 + Tb1Eta0 + Tb2Eta0 + Tlep1Eta0 + Tlep2Eta0).M()
+        if eventKinematic is not None:
+            TMETEta0 = deepcopy(eventKinematic.TMET)
+            TMETEta0.SetPtEtaPhiM(TMETEta0.Pt(), 0, TMETEta0.Phi(), TMETEta0.M())
+            Tb1Eta0 = deepcopy(eventKinematic.Tb1)
+            Tb1Eta0.SetPtEtaPhiM(Tb1Eta0.Pt(), 0, Tb1Eta0.Phi(), Tb1Eta0.M())
+            Tb2Eta0 = deepcopy(eventKinematic.Tb2)
+            Tb2Eta0.SetPtEtaPhiM(Tb2Eta0.Pt(), 0, Tb2Eta0.Phi(), Tb2Eta0.M())
+            Tlep1Eta0 = deepcopy(eventKinematic.Tlep1)
+            Tlep1Eta0.SetPtEtaPhiM(Tlep1Eta0.Pt(), 0, Tlep1Eta0.Phi(), Tlep1Eta0.M())
+            Tlep2Eta0 = deepcopy(eventKinematic.Tlep2)
+            Tlep2Eta0.SetPtEtaPhiM(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.M())
+            massT[0] = (TMETEta0 + Tb1Eta0 + Tb2Eta0 + Tlep1Eta0 + Tlep2Eta0).M()
 
-        if recoWorked:
-            totalET[0] = ev.PuppiMET_sumEt + bestReconstructedKinematic.Tb1.Pt() + bestReconstructedKinematic.Tb2.Pt() + bestReconstructedKinematic.Tlep1.Pt() + bestReconstructedKinematic.Tlep2.Pt()
-
-            costhetall[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tlep2.CosTheta()
-            costhetal1b1[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tb1.CosTheta()
-            costhetal2b2[0] = bestReconstructedKinematic.Tlep2.CosTheta() * bestReconstructedKinematic.Tb2.CosTheta()
-
-            #cos(phi) in the parent rest frame
-            try:
-          
-                Ttop1 = bestReconstructedKinematic.Ttop1
-                Ttop2 = bestReconstructedKinematic.Ttop2
-
-                num1 = [a * b for a, b in zip(top1Pts, weights)]
-                Tnum1 = r.TLorentzVector()
-                for vec in num1: #Unfortunately, in Pyroot the sum() function does not work
-                    Tnum1 += vec
-                    Ttop1 = Tnum1 * (1./sum(weights))
-
-                num2 = [a * b for a, b in zip(top2Pts, weights)]
-                Tnum2 = r.TLorentzVector()
-                for vec in num2: 
-                    Tnum2 += vec
-                    Ttop2 = Tnum2 * (1./sum(weights))
+            if recoWorked:
+                totalET[0] = ev.PuppiMET_sumEt + bestReconstructedKinematic.Tb1.Pt() + bestReconstructedKinematic.Tb2.Pt() + bestReconstructedKinematic.Tlep1.Pt() + bestReconstructedKinematic.Tlep2.Pt()
                 
-                #First boost
-                boostvectorTT = (Ttop1 + Ttop2).BoostVector()
-                Ttop1.Boost(-boostvectorTT)
-                Ttop2.Boost(-boostvectorTT)
+                costhetall[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tlep2.CosTheta()
+                costhetal1b1[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tb1.CosTheta()
+                costhetal2b2[0] = bestReconstructedKinematic.Tlep2.CosTheta() * bestReconstructedKinematic.Tb2.CosTheta()
+                
+                #cos(phi) in the parent rest frame
+                try:
+                    
+                    Ttop1 = bestReconstructedKinematic.Ttop1
+                    Ttop2 = bestReconstructedKinematic.Ttop2
 
-                #Second boost
-                boostvector = Ttop1.BoostVector()
-                bestReconstructedKinematic.Tlep1.Boost(-boostvectorTT)
-                bestReconstructedKinematic.Tlep1.Boost(-boostvector)
+                    num1 = [a * b for a, b in zip(top1Pts, weights)]
+                    Tnum1 = r.TLorentzVector()
+                    for vec in num1: #Unfortunately, in Pyroot the sum() function does not work
+                        Tnum1 += vec
+                        Ttop1 = Tnum1 * (1./sum(weights))
 
-                #bestReconstructedKinematic.Tb1.Boost(-boostvectorTT)
-                #bestReconstructedKinematic.Tb1.Boost(-boostvector)
-                #bestReconstructedKinematic.Tnu1.Boost(-boostvectorTT)
-                #bestReconstructedKinematic.Tnu1.Boost(-boostvector)
+                    num2 = [a * b for a, b in zip(top2Pts, weights)]
+                    Tnum2 = r.TLorentzVector()
+                    for vec in num2: 
+                        Tnum2 += vec
+                        Ttop2 = Tnum2 * (1./sum(weights))
+                
+                    #First boost
+                    boostvectorTT = (Ttop1 + Ttop2).BoostVector()
+                    Ttop1.Boost(-boostvectorTT)
+                    Ttop2.Boost(-boostvectorTT)
 
-                boostvector = Ttop2.BoostVector()
-                bestReconstructedKinematic.Tlep2.Boost(-boostvectorTT)
-                bestReconstructedKinematic.Tlep2.Boost(-boostvector)
+                    #Second boost
+                    boostvector = Ttop1.BoostVector()
+                    bestReconstructedKinematic.Tlep1.Boost(-boostvectorTT)
+                    bestReconstructedKinematic.Tlep1.Boost(-boostvector)
 
-                #bestReconstructedKinematic.Tb2.Boost(-boostvectorTT)
-                #bestReconstructedKinematic.Tb2.Boost(-boostvector)
-                #bestReconstructedKinematic.Tnu2.Boost(-boostvectorTT)
-                #bestReconstructedKinematic.Tnu2.Boost(-boostvector)
-                #print("Momentum: " + str((bestReconstructedKinematic.Tlep1+bestReconstructedKinematic.Tb1+bestReconstructedKinematic.Tnu1).P()))
+                    #bestReconstructedKinematic.Tb1.Boost(-boostvectorTT)
+                    #bestReconstructedKinematic.Tb1.Boost(-boostvector)
+                    #bestReconstructedKinematic.Tnu1.Boost(-boostvectorTT)
+                    #bestReconstructedKinematic.Tnu1.Boost(-boostvector)
 
-                cosphill[0] = (bestReconstructedKinematic.Tlep1.Vect().Unit().Dot(bestReconstructedKinematic.Tlep2.Vect().Unit()))
-            except Exception as e:
-                print(e)
-                cosphill[0] = -49.0
+                    boostvector = Ttop2.BoostVector()
+                    bestReconstructedKinematic.Tlep2.Boost(-boostvectorTT)
+                    bestReconstructedKinematic.Tlep2.Boost(-boostvector)
+                    
+                    #bestReconstructedKinematic.Tb2.Boost(-boostvectorTT)
+                    #bestReconstructedKinematic.Tb2.Boost(-boostvector)
+                    #bestReconstructedKinematic.Tnu2.Boost(-boostvectorTT)
+                    #bestReconstructedKinematic.Tnu2.Boost(-boostvector)
+                    #print("Momentum: " + str((bestReconstructedKinematic.Tlep1+bestReconstructedKinematic.Tb1+bestReconstructedKinematic.Tnu1).P()))
 
-        else: #TOCHECK: put default value instead?
-            totalET[0] = ev.PuppiMET_sumEt + eventKinematic.Tb1.Pt() + eventKinematic.Tb2.Pt() + eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt()
+                    cosphill[0] = (bestReconstructedKinematic.Tlep1.Vect().Unit().Dot(bestReconstructedKinematic.Tlep2.Vect().Unit()))
+                except Exception as e:
+                    print(e)
+                    cosphill[0] = -49.0
+
+            else: #TOCHECK: put default value instead?
+                totalET[0] = ev.PuppiMET_sumEt + eventKinematic.Tb1.Pt() + eventKinematic.Tb2.Pt() + eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt()
+
+                costhetall[0] = -99.0
+                costhetal1b1[0] = -99.0
+                costhetal2b2[0] = -99.0
+    
+                cosphill[0] = -99.0 #We need the nu information for this variable, so default value if reco failed
+        else:
+            totalET[0] = -99.0
 
             costhetall[0] = -99.0
             costhetal1b1[0] = -99.0

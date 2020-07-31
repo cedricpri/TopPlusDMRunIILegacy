@@ -136,8 +136,8 @@ if __name__ == "__main__":
 
             #Check if the file is missing in the output directory
             if not os.path.exists(outputDir + "/" + productionName + fileToProcess['outputName']): 
-                #filesToResubmit.append(fileToProcess)
-                pass
+                filesToResubmit.append(fileToProcess)
+                #pass
             else: #If the file exists, check if the tree Events has been created successfully
                 print("  --> Opening " + fileToProcess['outputName'] + " to check for the presence of the Events tree.")
                 try:
