@@ -122,6 +122,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("event", 1);
     outputTree.SetBranchStatus("Gen_ZGstar_mass", 1);
     outputTree.SetBranchStatus("LepCut2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW", 1);
+    outputTree.SetBranchStatus("fakeW", 1);
     outputTree.SetBranchStatus("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW*", 1);
     outputTree.SetBranchStatus("GenPart_pt", 1);
     outputTree.SetBranchStatus("GenPart_pdgId", 1);

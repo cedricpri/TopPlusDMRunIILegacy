@@ -21,6 +21,7 @@ if __name__ == "__main__":
     parser.add_option('-m', '--massPoints', action='store', type=str, dest='massPoints', default="scalar_LO_Mchi_1_Mphi_100") #Mass points training to be read (comma separated string)
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
     parser.add_option('-d', '--data', action='store_true', dest='data') #Process a data file or background/signal?
+    parser.add_option('-f', '--fakes', action='store_true', dest='fakes') #Process a fakes file?a
     parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files (do not use the nanoLatino prefix!)
 
     parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed based on the log files and missing Tree events
@@ -32,6 +33,7 @@ if __name__ == "__main__":
     massPoints = opts.massPoints
     year = opts.year
     data = opts.data
+    fakes = opts.fakes
     query = opts.query
 
     test = opts.test
@@ -43,6 +45,7 @@ if __name__ == "__main__":
         print("-> OPTIONS USED:")
         print("CMSSW: " + str(cmssw))
         print("Data: " + str(data))
+        print("Fakes: " + str(fakes))
         print("Mass points: " + str(massPoints))
         print("Year: " + str(year))
         print("Query: " + str(query))
@@ -55,18 +58,24 @@ if __name__ == "__main__":
     if year == 2018:
         if data:
             inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Run2018_102X_nAODv6_Full2018v6/DATAl1loose2018v6__l2loose__l2tightOR2018v6/"
+        elif fakes:
+            inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Run2018_102X_nAODv6_Full2018v6/DATAl1loose2018v6__l2loose__fakeW/"
         else:
             inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
                     
     elif year == 2017:
         if data:
             inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Run2017_102X_nAODv5_Full2017v6/DATAl1loose2017v6__l2loose__l2tightOR2017v6/"
+        elif fakes:
+            inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Run2017_102X_nAODv5_Full2017v6/DATAl1loose2017v6__l2loose__fakeW/"
         else:
             inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6/"
 
     elif year == 2016:
         if data:
             inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Run2016_102X_nAODv5_Full2016v6/DATAl1loose2016v6__l2loose__l2tightOR2016v6/"
+        elif fakes:
+            inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Run2016_102X_nAODv5_Full2016v6/DATAl1loose2016v6__l2loose__fakeW/"
         else:            
             inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv5_Full2016v6/MCl1loose2016v6__MCCorr2016v6__l2loose__l2tightOR2016v6/" 
 

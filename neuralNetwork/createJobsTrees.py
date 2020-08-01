@@ -20,6 +20,7 @@ if __name__ == "__main__":
     parser.add_option('-c', '--cmssw', action='store', type=str, dest='cmssw', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/") #CMSSW release
     parser.add_option('-s', '--signal', action='store_true', dest='signal', default=False) #Process the signal or background files?
     parser.add_option('-d', '--data', action='store_true', dest='data', default=False) #Process the data or background files?
+    parser.add_option('-f', '--fakes', action='store_true', dest='fakes', default=False) #Process the fakes?
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
     parser.add_option('-o', '--outputDir', action='store', type=str, dest='outputDir', default="/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/") #Output directory where to keep the output files
     parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files (without the nanoLatino prefix)
@@ -33,6 +34,7 @@ if __name__ == "__main__":
     cmssw = opts.cmssw
     signal = opts.signal
     data = opts.data
+    fakes = opts.fakes
     year = opts.year
     outputDir = opts.outputDir
     query = opts.query
@@ -44,6 +46,10 @@ if __name__ == "__main__":
 
     if signal:
         data = False
+        fakes = False
+    if fakes:
+        data = False
+        signak = False
 
     if verbose:
         print("=================================================")
@@ -51,6 +57,7 @@ if __name__ == "__main__":
         print("CMSSW release: " + str(cmssw))
         print("Signal: " + str(signal))
         print("Data: " + str(data))
+        print("Fakes: " + str(fakes))
         print("Year: " + str(year))
         print("Output directory: " + str(outputDir))
         print("Test: " + str(test))
@@ -67,6 +74,8 @@ if __name__ == "__main__":
             inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
         elif data:
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2018_102X_nAODv6_Full2018v6/DATAl1loose2018v6__l2loose__l2tightOR2018v6/"
+        elif fakes:
+            inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2018_102X_nAODv6_Full2018v6/DATAl1loose2018v6__l2loose__fakeW/"
         else:
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
     elif year == 2017:
@@ -74,6 +83,8 @@ if __name__ == "__main__":
             inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6/"
         elif data:
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2017_102X_nAODv5_Full2017v6/DATAl1loose2017v6__l2loose__l2tightOR2017v6/"
+        elif fakes:
+            inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2017_102X_nAODv5_Full2017v6/DATAl1loose2017v6__l2loose__fakeW/"
         else:
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6/"
     elif year == 2016:
@@ -81,6 +92,8 @@ if __name__ == "__main__":
             inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Summer16_102X_nAODv5_Full2016v6/MCl1loose2016v6__MCCorr2016v6__l2loose__l2tightOR2016v6/" 
         elif data:
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2016_102X_nAODv5_Full2016v6/DATAl1loose2016v6__l2loose__l2tightOR2016v6/"
+        elif fakes:
+            inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2016_102X_nAODv5_Full2016v6/DATAl1loose2016v6__l2loose__fakeW/"
         else:
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Summer16_102X_nAODv5_Full2016v6/MCl1loose2016v6__MCCorr2016v6__l2loose__l2tightOR2016v6/"
     else:
