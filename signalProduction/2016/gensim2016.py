@@ -37,7 +37,7 @@ process.options = cms.untracked.PSet(
 # Production Info
 process.configurationMetadata = cms.untracked.PSet(
     version = cms.untracked.string('$Revision: 1.19 $'),
-    annotation = cms.untracked.string('Configuration/GenProduction/python/EXO-RunIISummer15GS-14143-fragment.py nevts:20'),
+    annotation = cms.untracked.string('Configuration/GenProduction/python/fragment.py nevts:20'),
     name = cms.untracked.string('Applications')
 )
 
