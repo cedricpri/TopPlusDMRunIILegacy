@@ -153,6 +153,9 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("PhotonGen_pt", 1);
     outputTree.SetBranchStatus("PhotonGen_eta", 1);
     outputTree.SetBranchStatus("LHE_HT", 1);
+    outputTree.SetBranchStatus("PrefireWeight", 1);
+    outputTree.SetBranchStatus("*Up*", 1);
+    outputTree.SetBranchStatus("*Down*", 1);
 
     #New variables
     nbJet = array("i", [0])

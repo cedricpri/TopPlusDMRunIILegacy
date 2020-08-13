@@ -25,6 +25,7 @@ if __name__ == "__main__":
     parser.add_option('-o', '--outputDir', action='store', type=str, dest='outputDir', default="/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/") #Output directory where to keep the output files
     parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files (without the nanoLatino prefix)
     parser.add_option('-p', '--split', action='store', type=int, dest='split', default=1) #Do we want to divide the input file to speed up the process?
+    parser.add_option('-e', '--systematic', action='store', type=str, dest='systematic', default="") #Systematic suffix
 
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only process a few files and a few events, for testing purposes
     parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed based on the log files and missing Tree events
@@ -39,6 +40,7 @@ if __name__ == "__main__":
     outputDir = opts.outputDir
     query = opts.query
     split = opts.split
+    systematic = opts.systematic
 
     test = opts.test
     resubmit = opts.resubmit
@@ -49,7 +51,7 @@ if __name__ == "__main__":
         fakes = False
     if fakes:
         data = False
-        signak = False
+        signal = False
 
     if verbose:
         print("=================================================")
@@ -68,34 +70,37 @@ if __name__ == "__main__":
 
     #Three different directories are used: the inputDir, where the original latino files are, the outputDir, where to keep the output, and baseDir, the current path where the distributions.root file is.
     baseDir = os.getcwd() + "/"
- 
+    trailer = "/"
+    if systematic != "":
+        trailer = "__" + systematic + "_suffix/"
+
     if year == 2018:
         if signal:
-            inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
+            inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6" + trailer
         elif data:
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2018_102X_nAODv6_Full2018v6/DATAl1loose2018v6__l2loose__l2tightOR2018v6/"
         elif fakes:
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2018_102X_nAODv6_Full2018v6/DATAl1loose2018v6__l2loose__fakeW/"
         else:
-            inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
+            inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6" + trailer
     elif year == 2017:
         if signal:
-            inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6/"
+            inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6" + trailer
         elif data:
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2017_102X_nAODv5_Full2017v6/DATAl1loose2017v6__l2loose__l2tightOR2017v6/"
         elif fakes:
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2017_102X_nAODv5_Full2017v6/DATAl1loose2017v6__l2loose__fakeW/"
         else:
-            inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6/"
+            inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6" + trailer
     elif year == 2016:
         if signal:
-            inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Summer16_102X_nAODv5_Full2016v6/MCl1loose2016v6__MCCorr2016v6__l2loose__l2tightOR2016v6/" 
+            inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Summer16_102X_nAODv5_Full2016v6/MCl1loose2016v6__MCCorr2016v6__l2loose__l2tightOR2016v6" + trailer
         elif data:
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2016_102X_nAODv5_Full2016v6/DATAl1loose2016v6__l2loose__l2tightOR2016v6/"
         elif fakes:
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2016_102X_nAODv5_Full2016v6/DATAl1loose2016v6__l2loose__fakeW/"
         else:
-            inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Summer16_102X_nAODv5_Full2016v6/MCl1loose2016v6__MCCorr2016v6__l2loose__l2tightOR2016v6/"
+            inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Summer16_102X_nAODv5_Full2016v6/MCl1loose2016v6__MCCorr2016v6__l2loose__l2tightOR2016v6" + trailer
     else:
         inputDir = ""
         print("The year option has to be used, and the year should be 2016, 2017 or 2018.")
@@ -148,13 +153,15 @@ if __name__ == "__main__":
         for fileToProcess in filesToProcess:
 
             #Check if the file is missing in the output directory
-            if not os.path.exists(outputDir + "/" + productionName + fileToProcess['outputName']): 
-                filesToResubmit.append(fileToProcess)
+            fileToCheck = outputDir + "/" + productionName + fileToProcess['outputName']
+            if not os.path.exists(fileToCheck):
+                if data or fakes or signal or query == "*":
+                    filesToResubmit.append(fileToProcess)
                 #pass
             else: #If the file exists, check if the tree Events has been created successfully
                 print("  --> Opening " + fileToProcess['outputName'] + " to check for the presence of the Events tree.")
                 try:
-                    f = r.TFile.Open(outputDir + "/" + productionName + fileToProcess['outputName'])
+                    f = r.TFile.Open(fileToCheck)
                     tree = f.Get("Events")
                     if not f.GetListOfKeys().Contains("Events"):
                         filesToResubmit.append(fileToProcess)

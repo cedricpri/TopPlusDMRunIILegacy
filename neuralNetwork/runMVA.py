@@ -224,7 +224,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test):
     # Book method
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=1000000:MinNodeSize=1%:!H:!V')
     factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'Juan.h5:FilenameTrainedModel=' + outputDirTraining + 'JuanTrained.h5:NumEpochs=250:BatchSize=100:VarTransform=N')
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=10000:MinNodeSize=1%:!H:!V')
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=AdaBoost:Shrinkage=0.2:AdaBoostBeta=0.2:MaxDepth=4:ncuts=10000:MinNodeSize=1%:!H:!V')
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kMLP, 'Juan', 'H:!V:NeuronType=sigmoid:NCycles=50:VarTransform=Norm:HiddenLayers=6,3:TestRate=3:LearningRate=0.005')
 
     # ===========================================
