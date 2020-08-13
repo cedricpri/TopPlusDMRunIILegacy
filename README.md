@@ -2,31 +2,7 @@
 
 ## SignalProduction
 
-Scripts used in order to read a gridpack and produce private 2016, 2017 and 2018 nanoAODv6 single top + DM signal samples.
-
-### Step 0 (GEN-SIM)
-First, the GENSIM can be produced by running the gensim<YEAR>.py file, using CRAB and the crab_cfg_gensim<YEAR>.py.
-This needs to be done using CMSSW_7_1_43/lxplus6 (for 2016), CMSSW_9_3_15_patch3/lxplus6 (2017) CMSSW_10_2_16_patch1 (2018). 
-
-For CRAB to work properly, at this stage, the gridpack name needs to be entered both in the configuration and in the gensim<YEAR>.py file. The fragment also needs to be copied within the Configuration/GenProduction/python folder within the CMSSW directory, and scram b needs to be run afterwards. Additionnally, for 2016, it is necessary to run the following command after doing the cmsenv:
-
-    source /cvmfs/cms.cern.ch/slc6_amd64_gcc700/external/curl/7.59.0/etc/profile.d/init.sh
-
-### Step 1 (Premix)
-Then, the Premix can be produced by running the premix<YEAR>.py file, using CRAB and the crab_cfg_premix<YEAR>.py.
-This needs to be done using CMSSW_10_2_5 (2018).
-
-### Step 2 (AOD)
-Then, the AOD can be produced by running the aodsim<YEAR>.py file, using CRAB and the crab_cfg_aodsim<YEAR>.py.
-This needs to be done using CMSSW_10_2_5 (2018).
-
-### Step 3 (MiniAOD)
-Then, the MiniAOD can be produced by running the miniaod<YEAR>.py file, using CRAB and the crab_cfg_miniaod<YEAR>.py.
-This needs to be done using CMSSW_10_2_5 (2018).
-
-### Step 4 (NanoAODv6)
-Finally, the NanoAODv6 can be produced by running the nanoaod<YEAR>.py file, using CRAB and the crab_cfg_nanoaod<YEAR>.py.
-This needs to be done using CMSSW_10_2_18/lxplus6 (2018).
+Scripts used in order to read a gridpack and produce private 2016, 2017 and 2018 nanoAODv6 single top + DM signal samples. Detailed instructions are available in the corresponding directory.
 
 ## NeuralNetwork
 

@@ -26,7 +26,7 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(114)
+    input = cms.untracked.int32(20)
 )
 
 # Input source
@@ -73,8 +73,8 @@ process.generator = cms.EDFilter("Pythia8GeneratorFilter",
     pythiaPylistVerbosity = cms.untracked.int32(1),
     filterEfficiency = cms.untracked.double(1.0),
     pythiaHepMCVerbosity = cms.untracked.bool(False),
-    #GridpackPath = cms.string('/srv/CMSSW_7_1_43/DMScalar_top_tWChan_Mchi1_Mphi1000_slc6_amd64_gcc630_CMSSW_9_3_16_tarball.tar.xz'),
-    GridpackPath = cms.string('/afs/cern.ch/work/d/dpinna/public/forCedric/DMScalar_top_tWChan_Mchi1_Mphi1000_slc6_amd64_gcc630_CMSSW_9_3_16_tarball.tar.xz'),
+				 GridpackPath = cms.string('/srv/CMSSW_7_1_43/DMScalar_top_tWChan_Mchi1_Mphi1000_slc6_amd64_gcc630_CMSSW_9_3_16_tarball.tar.xz'), #For CRAB
+				 #GridpackPath = cms.string('/afs/cern.ch/work/d/dpinna/public/forCedric/DMScalar_top_tWChan_Mchi1_Mphi1000_slc6_amd64_gcc630_CMSSW_9_3_16_tarball.tar.xz'), #To run locally
 				 
         PythiaParameters = cms.PSet(
             parameterSets = cms.vstring('pythia8CommonSettings', 
