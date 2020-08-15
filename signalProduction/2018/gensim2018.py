@@ -4,17 +4,18 @@
 # Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
 # with command line options: Configuration/GenProduction/python/EXO-RunIIFall18GS-02825-fragment.py --fileout file:EXO-RunIIFall18GS-02825.root --mc --eventcontent RAWSIM --datatier GEN-SIM --conditions 102X_upgrade2018_realistic_v11 --beamspot Realistic25ns13TeVEarly2018Collision --customise_commands process.source.numberEventsInLuminosityBlock = cms.untracked.uint32(25) --step GEN,SIM --geometry DB:Extended --era Run2_2018 --python_filename EXO-RunIIFall18GS-02825_1_cfg.py --no_exec --customise Configuration/DataProcessing/Utils.addMonitoring -n 79
 import FWCore.ParameterSet.Config as cms
-import os
+#import os
 
 from Configuration.StandardSequences.Eras import eras
 
 process = cms.Process('SIM',eras.Run2_2018)
-
+"""
 print("Directorio activo")
 print(os.getcwd())
 print("listado")
 for i in os.listdir("."): 
 	print(i)
+"""
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')

@@ -5,7 +5,7 @@ config = Configuration()
 
 ## General options for the client
 config.section_("General")
-config.General.requestName   = 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100_RunIIAutumn18_NANOAOD_PrivateProd'
+config.General.requestName   = 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100_RunIIAutumn18_NANOAOD_PrivateFullProd'
 config.General.workArea = 'crab_output'
 
 ## Specific option of the job type
@@ -21,8 +21,8 @@ config.Data.inputDBS = 'phys03'
 config.Data.splitting = 'FileBased'
 config.Data.unitsPerJob = 1
 
-config.Data.inputDataset = '/CRAB_PrivateMC/cprieels-DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100_RunIIAutumn18_MINIAOD_PrivateProd-3ee3afd6b5a1410aea6d0b4d52723d06/USER'
-config.Data.outputDatasetTag   = 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100_RunIIAutumn18_NANOAOD_PrivateProd'
+config.Data.inputDataset = '/CRAB_PrivateMC/cprieels-DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100_RunIIAutumn18_MINIAOD_PrivateFullProd-3ee3afd6b5a1410aea6d0b4d52723d06/USER'
+config.Data.outputDatasetTag   = 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100_RunIIAutumn18_NANOAOD_PrivateFullProd'
 
 config.Data.publication     = True
 config.Data.outLFNDirBase = '/store/user/cprieels/'
