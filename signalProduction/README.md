@@ -47,5 +47,5 @@ This step needs to be executed using CMSSW_9_4_9 (2016), CMSSW_9_4_7 (2017) or C
 ### Step 4 (NanoAODv6)
 Finally, the NanoAODv6 can be produced by running the nanoaod<YEAR>.py file, using CRAB and the crab_cfg_nanoaod<YEAR>.py. The correct path of the output file produced for the previous step should be entered in the crab_cfg_nanoaod<YEAR>.py before proceeding.
 
-This needs to be done using CMSSW_10_2_18 (2018).
+This needs to be done using CMSSW_10_2_18 (2016, 2017 and 2018).
 
