@@ -30,21 +30,22 @@ On the other hand, to run the code on CRAB, the correct gridpack name needs to b
 Finally, the fragment.py file also needs to be copied within the Configuration/GenProduction/python folder within the CMSSW directory, and ```scram b``` needs to be run afterwards. 
 
 ### Step 1 (Premix)
-Then, the Premix can be produced by running the premix<YEAR>.py file, using CRAB and the crab_cfg_premix<YEAR>.py. The correct path of the output file produced for the first step should be entered in the crab_cfg_premix<YEAR>.py before proceeding.
+Then, the Premix can be produced by running the premix<YEAR>.py file, using CRAB and the crab_cfg_premix<YEAR>.py. The correct path of the output file produced for the first step should be entered in the crab_cfg_premix<YEAR>.py and in the secondary file name part of the premix<YEAR>.py file before proceeding.
 
 This step needs to be executed using CMSSW_8_0_31 (2016), CMSSW_9_4_7 (2017) or CMSSW_10_2_5 (2018).
 
 ### Step 2 (AOD)
-Then, the AOD can be produced by running the aodsim<YEAR>.py file, using CRAB and the crab_cfg_aodsim<YEAR>.py. The correct path of the output file produced for the previous step should be entered in the crab_cfg_premix<YEAR>.py before proceeding.
-This needs to be done using CMSSW_10_2_5 (2018).
+Then, the AOD can be produced by running the aodsim<YEAR>.py file, using CRAB and the crab_cfg_aodsim<YEAR>.py. The correct path of the output file produced for the previous step should be entered in the crab_cfg_aodsim<YEAR>.py before proceeding.
+
+This step needs to be executed using CMSSW_8_0_31 (2016), CMSSW_9_4_7 (2017) or CMSSW_10_2_5 (2018).
 
 ### Step 3 (MiniAOD)
-Then, the MiniAOD can be produced by running the miniaod<YEAR>.py file, using CRAB and the crab_cfg_miniaod<YEAR>.py. The correct path of the output file produced for the previous step should be entered in the crab_cfg_premix<YEAR>.py before proceeding.
+Then, the MiniAOD can be produced by running the miniaod<YEAR>.py file, using CRAB and the crab_cfg_miniaod<YEAR>.py. The correct path of the output file produced for the previous step should be entered in the crab_cfg_miniaod<YEAR>.py before proceeding.
 
-This needs to be done using CMSSW_10_2_5 (2018).
+This step needs to be executed using CMSSW_9_4_9 (2016), CMSSW_9_4_7 (2017) or CMSSW_10_2_5 (2018).
 
 ### Step 4 (NanoAODv6)
-Finally, the NanoAODv6 can be produced by running the nanoaod<YEAR>.py file, using CRAB and the crab_cfg_nanoaod<YEAR>.py. The correct path of the output file produced for the previous step should be entered in the crab_cfg_premix<YEAR>.py before proceeding.
+Finally, the NanoAODv6 can be produced by running the nanoaod<YEAR>.py file, using CRAB and the crab_cfg_nanoaod<YEAR>.py. The correct path of the output file produced for the previous step should be entered in the crab_cfg_nanoaod<YEAR>.py before proceeding.
 
 This needs to be done using CMSSW_10_2_18 (2018).
 
