@@ -19,7 +19,7 @@ from array import array
 #Training variables
 #variables = ["PuppiMET_pt", "mt2ll", "totalET", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]", "Lepton_eta[1]", "Lepton_phi[0]", "Lepton_phi[1]", "thetall", "thetal1b1", "thetal2b2", "dark_pt", "overlapping_factor", "reco_weight"] #cosphill missing, mt2bl as well
 #variables = ["PuppiMET_pt", "MET_significance", "mll", "mt2ll", "mt2bl", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "Lepton_eta[0]", "Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight", "cosphill", "nbJet"] 
-variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt"] 
+variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "MET_significance", "massT", "Lepton_pt[0]", "Lepton_pt[1]", "reco_weight", "mt2bl"] 
 
 trainPercentage = 50
 normalizeProcesses = True #Normalize all the processes to have the same input training events in each case
@@ -84,13 +84,13 @@ def splitByProcess(inputFiles, test = False, background = False):
 #=========================================================================================================
 # TRAINING
 #=========================================================================================================
-def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test):
+def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
     """
     Function used to train the MVA based on the signal given
     """
 
     massPoint = signalFiles[0].split("_")[3:9]
-    massPoint = "_".join(massPoint).replace(".root", "")
+    massPoint = "_".join(massPoint).replace(".root", "") + "_" + tag
 
     #Move to the correct directory to save the model and its weights
     outputDirTraining = baseDir + "/" + str(year) + "/" + massPoint + "/training/"
@@ -224,7 +224,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test):
     # Book method
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=1000000:MinNodeSize=1%:!H:!V')
     factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'Juan.h5:FilenameTrainedModel=' + outputDirTraining + 'JuanTrained.h5:NumEpochs=250:BatchSize=100:VarTransform=N')
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=AdaBoost:Shrinkage=0.2:AdaBoostBeta=0.2:MaxDepth=4:ncuts=10000:MinNodeSize=1%:!H:!V')
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=10000:MinNodeSize=1%:!H:!V')
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kMLP, 'Juan', 'H:!V:NeuronType=sigmoid:NCycles=50:VarTransform=Norm:HiddenLayers=6,3:TestRate=3:LearningRate=0.005')
 
     # ===========================================
@@ -239,7 +239,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test):
 #=========================================================================================================
 # APPLICATION
 #=========================================================================================================
-def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
+def evaluateMVA(baseDir, inputDir, filename, weightsDir, year, test):
     """
     Function used to evaluate the MVA after being trained
     """
@@ -257,7 +257,8 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
     
     rootfile = ROOT.TFile.Open(inputDir+filename, "READ")
     inputTree = rootfile.Get("Events")
-    inputTree.SetBranchStatus("*", 1);
+    inputTree.SetBranchStatus("*", 1)
+
     outputFile = ROOT.TFile.Open(inputDir[:-1] + '_weighted/' + filename, "RECREATE")
     outputTree = inputTree.CloneTree(0)
 
@@ -270,9 +271,9 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
         reader.AddVariable(branchName, branches[branchName])
         inputTree.SetBranchAddress(branchName, branches[branchName])
 
-    for massPoint in massPoints:
-        weightsDir = baseDir + "/" + str(year) + "/" + massPoint
+    for weightTag in weightsDir:
 
+        weightsDir = baseDir + "/" + str(year) + "/" + weightTag
         reader.BookMVA("BDT", weightsDir + "/dataset/weights/TMVAClassification_BDT.weights.xml")
         reader.BookMVA("PyKeras", weightsDir + "/dataset/weights/TMVAClassification_PyKeras.weights.xml")
 
@@ -282,22 +283,22 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
         BDT_output_background0 = array("f", [0.])
         BDT_output_background1 = array("f", [0.])
         BDT_output_category = array("i", [0]) #Which category gets the highest softmax output?
-        outputTree.Branch("BDT_output_signal0", BDT_output_signal0, "BDT_output_signal0/I")
-        outputTree.Branch("BDT_output_signal1", BDT_output_signal1, "BDT_output_signal1/I")
-        outputTree.Branch("BDT_output_background0", BDT_output_background0, "BDT_output_background0/I")
-        outputTree.Branch("BDT_output_background1", BDT_output_background1, "BDT_output_background1/I")
-        outputTree.Branch("BDT_output_category", BDT_output_category, "BDT_output_category/I")
-
+        outputTree.Branch("BDT_output_signal0_" + massPoint, BDT_output_signal0, "BDT_output_signal0/I")
+        outputTree.Branch("BDT_output_signal1_" + massPoint, BDT_output_signal1, "BDT_output_signal1/I")
+        outputTree.Branch("BDT_output_background0_" + massPoint, BDT_output_background0, "BDT_output_background0/I")
+        outputTree.Branch("BDT_output_background1_" + massPoint, BDT_output_background1, "BDT_output_background/I")
+        outputTree.Branch("BDT_output_category_" + massPoint, BDT_output_category, "BDT_output_category/I")
+        
         DNN_output_signal0 = array("f", [0.])
         DNN_output_signal1 = array("f", [0.])
         DNN_output_background0 = array("f", [0.])
         DNN_output_background1 = array("f", [0.])
         DNN_output_category = array("i", [0]) #Which category gets the highest softmax output?
-        outputTree.Branch("DNN_output_signal0", DNN_output_signal0, "DNN_output_signal0/F")
-        outputTree.Branch("DNN_output_signal1", DNN_output_signal1, "DNN_output_signal1/F")
-        outputTree.Branch("DNN_output_background0", DNN_output_background0, "DNN_output_background/F")
-        outputTree.Branch("DNN_output_background1", DNN_output_background1, "DNN_output_background1/F")
-        outputTree.Branch("DNN_output_category", DNN_output_category, "DNN_output_category/I")
+        outputTree.Branch("DNN_output_signal0_" + massPoint, DNN_output_signal0, "DNN_output_signal0/F")
+        outputTree.Branch("DNN_output_signal1_" + massPoint, DNN_output_signal1, "DNN_output_signal1/F")
+        outputTree.Branch("DNN_output_background0_" + massPoint, DNN_output_background0, "DNN_output_background/F")
+        outputTree.Branch("DNN_output_background1_" + massPoint, DNN_output_background1, "DNN_output_background1/F")
+        outputTree.Branch("DNN_output_category_" + massPoint, DNN_output_category, "DNN_output_category/I")
 
         nEvents = inputTree.GetEntries()
         if test:
@@ -337,7 +338,7 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
             BDT_output_category[0] = BDTValues.index(max(BDTValues))
             #print("BDT Value0: " + str(BDTValues[0]) + ", value1: " + str(BDTValues[1]) + ", value2: " + str(BDTValues[2]))
             #print(BDT_output_category[0])
-
+            
             #Fill the DNN variables
             DNNValues = list(reader.EvaluateMulticlass("PyKeras"))
             if len(DNNValues) == 2:
@@ -363,7 +364,7 @@ def evaluateMVA(baseDir, inputDir, filename, massPoints, year, test):
             #print("Value0: " + str(PyKerasValues[0]) + ", value1: " + str(PyKerasValues[1]) + ", value2: " + str(PyKerasValues[2]))
             #print(PyKeras_output_category[0])
 
-            outputTree.Fill()
+        outputTree.Fill()
 
     outputFile.cd()
     outputTree.Write()
@@ -382,8 +383,9 @@ if __name__ == "__main__":
     parser.add_option('-f', '--filename', action='store', type=str, dest='filename', default='', help='Name of the file to be evaluated')
     parser.add_option('-i', '--inputDir', action='store', type=str, dest='inputDir', default="") 
     parser.add_option('-d', '--baseDir', action='store', type=str, dest='baseDir', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/src/neuralNetwork/")
-    parser.add_option('-m', '--massPoints', action='store', type=str, dest='massPoints', default="scalar_LO_Mchi_1_Mphi_100")
+    parser.add_option('-w', '--weightsDir', action='store', type=str, dest='weightsDir', default="scalar_LO_Mchi_1_Mphi_100_default")
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
+    parser.add_option('-g', '--tags', action='store', type=str, dest='tags', default="default")
     parser.add_option('-e', '--evaluate', action='store_true', dest='evaluate') #Evaluate the MVA or train it?
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only run on a single file
     (opts, args) = parser.parse_args()
@@ -393,8 +395,9 @@ if __name__ == "__main__":
     filename = opts.filename
     inputDir = opts.inputDir
     baseDir = opts.baseDir
-    massPoints= opts.massPoints
+    weightsDir= opts.weightsDir
     year = opts.year
+    tags = opts.tags
     evaluate = opts.evaluate
     test = opts.test
 
@@ -402,12 +405,12 @@ if __name__ == "__main__":
     if(evaluate):
 
         #The mass points to be added to the trees are also passed as comma separated values
-        massPointsList = [str(item) for item in massPoints.split(",")]
-        evaluateMVA(baseDir, inputDir, filename, massPointsList, year, test)
+        weightsList = [str(item) for item in weightsDir.split(",")]
+        evaluateMVA(baseDir, inputDir, filename, weightsList, year, test)
 
     else: #To train, we need to pass a list containing all the files at once
 
         #Split the comma separated string for the files into lists
         signalFiles = [str(item) for item in signalFiles.split(',')]
         backgroundFiles = [str(item) for item in backgroundFiles.split(',')]            
-        trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, test)
+        trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tags, test)

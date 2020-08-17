@@ -18,7 +18,7 @@ if __name__ == "__main__":
     # ===========================================                                                        
     parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0')
     parser.add_option('-c', '--cmssw', action='store', type=str, dest='cmssw', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/") #CMSSW release
-    parser.add_option('-m', '--massPoints', action='store', type=str, dest='massPoints', default="scalar_LO_Mchi_1_Mphi_100") #Mass points training to be read (comma separated string)
+    parser.add_option('-w', '--weightsDir', action='store', type=str, dest='weightsDir', default="scalar_LO_Mchi_1_Mphi_100_default") #Directory(ies) where the weights are stored and waiting for application, without the year, as a comma separated string
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
     parser.add_option('-d', '--data', action='store_true', dest='data') #Process a data file or background/signal?
     parser.add_option('-f', '--fakes', action='store_true', dest='fakes') #Process a fakes file?a
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     (opts, args) = parser.parse_args()
 
     cmssw = opts.cmssw
-    massPoints = opts.massPoints
+    weightsDir = opts.weightsDir
     year = opts.year
     data = opts.data
     fakes = opts.fakes
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         print("CMSSW: " + str(cmssw))
         print("Data: " + str(data))
         print("Fakes: " + str(fakes))
-        print("Mass points: " + str(massPoints))
+        print("Weights directory: " + str(weightsDir))
         print("Year: " + str(year))
         print("Query: " + str(query))
         print("Test: " + str(test))
@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     for i in filesToProcess:
 
-        executable = baseDir + "/runMVA.py -e -f " + i + " -i " + inputDir + " -d " + baseDir + " -m " + massPoints
+        executable = baseDir + "/runMVA.py -e -f " + i + " -i " + inputDir + " -d " + baseDir + " -w " + weightsDir
         
         if test:
             executable = executable + " -t"

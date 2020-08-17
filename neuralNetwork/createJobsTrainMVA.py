@@ -23,7 +23,8 @@ if __name__ == "__main__":
     parser.add_option('-c', '--cmssw', action='store', type=str, dest='cmssw', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/") #CMSSW release
     
     #Files to be considered
-    parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
+    parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018) 
+    parser.add_option('-g', '--tag', action='store', type=str, dest='tag', default="default") #Tag to identify the training performed
     parser.add_option('-s', '--signalQuery', action='store', type=str, dest='signalQuery', default="TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100_,DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100_") #Comma separated string to be matched when searching for the files (do not use the nanoLatino prefix!)
     parser.add_option('-b', '--backgroundQuery', action='store', type=str, dest='backgroundQuery', default="TTTo2L2Nu__part,ST_s-channel_ext1,ST_t-channel_antitop,ST_t-channel_top,ST_tW_antitop_ext1,ST_tW_top_ext1") #Comma separated string to be matched when searching for the files
 
@@ -34,6 +35,7 @@ if __name__ == "__main__":
 
     cmssw = opts.cmssw
     year = opts.year
+    tag = opts.tag
     signalQuery = opts.signalQuery
     backgroundQuery = opts.backgroundQuery
     test = opts.test
@@ -44,6 +46,7 @@ if __name__ == "__main__":
         print("-> OPTIONS USED:")
         print("CMSSW: " + str(cmssw))
         print("Year: " + str(year))
+        print("Tag: " + str(tag))
         print("Signal query: " + str(signalQuery))
         print("Background query: " + str(backgroundQuery))
         print("=================================================")
@@ -90,6 +93,7 @@ if __name__ == "__main__":
     executable = executable + " -s " + ','.join(signalFilesToProcess)
     executable = executable + " -b " + ','.join(backgroundFilesToProcess)
     executable = executable + " -y " + str(year)
+    executable = executable + " --tags " + str(tag)
 
     template = templateCONDOR
     template = template.replace('CMSSWRELEASE', cmssw)

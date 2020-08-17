@@ -121,9 +121,9 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     #Additional variables needed for latino
     outputTree.SetBranchStatus("event", 1);
     outputTree.SetBranchStatus("Gen_ZGstar_mass", 1);
-    outputTree.SetBranchStatus("LepCut2l__ele_mvaFall17V1Iso_WP90__mu_cut_Tight_HWWW", 1);
+    outputTree.SetBranchStatus("LepCut2l*", 1);
     outputTree.SetBranchStatus("fakeW", 1);
-    outputTree.SetBranchStatus("fakeW2l_ele_mvaFall17V1Iso_WP90_mu_cut_Tight_HWWW*", 1);
+    outputTree.SetBranchStatus("fakeW2l*", 1);
     outputTree.SetBranchStatus("GenPart_pt", 1);
     outputTree.SetBranchStatus("GenPart_pdgId", 1);
     outputTree.SetBranchStatus("GenPart_statusFlags", 1);
@@ -134,8 +134,8 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("Jet_btagSF_shape_*", 1);
     outputTree.SetBranchStatus("nllw", 1);
     outputTree.SetBranchStatus("SFweight2l", 1);
-    outputTree.SetBranchStatus("LepSF2l__ele_mvaFall17V1Iso_WP90*", 1);
-    outputTree.SetBranchStatus("LepSF2l__mu_cut_Tight_HWWW*", 1);
+    outputTree.SetBranchStatus("LepSF2l*", 1);
+    outputTree.SetBranchStatus("LepSF2l*", 1);
     outputTree.SetBranchStatus("LepWPCut", 1);
     outputTree.SetBranchStatus("btagSF", 1);
     outputTree.SetBranchStatus("SFweight*", 1);
