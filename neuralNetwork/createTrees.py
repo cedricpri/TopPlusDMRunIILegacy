@@ -235,6 +235,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             continue
         if ev.Lepton_pdgId[0]*ev.Lepton_pdgId[1] >= 0: #Opposite sign leptons only
             continue
+        if abs(ev.Lepton_eta[0]) > 2.4 or abs(ev.Lepton_eta[1]) > 2.4:
 
         if ev.mll < 20.:
             continue
@@ -242,15 +243,17 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #The jet does not always exist, so let's check if it does exist
         try:
             jetpt1 = ev.CleanJet_pt[0]
+            jeteta1 = ev.CleanJet_eta[0]
         except:
             jetpt1 = 0.
 
         try:
             jetpt2 = ev.CleanJet_pt[1]
+            jeteta2 = ev.CleanJet_eta[1]
         except:
             jetpt2 = 0.
 
-        if jetpt1 < 30.:# or jetpt2 < 30.: #At least two jets with pt > 30 GeV
+        if jetpt1 < 30. and abs(jeteta1) < 2.4:# or jetpt2 < 30.: #At least two jets with pt > 30 GeV
             continue
 
         #Additional cut removing events having less than one b-jet performed later, once the b-jets have been computed
