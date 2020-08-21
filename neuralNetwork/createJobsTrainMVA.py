@@ -99,10 +99,10 @@ if __name__ == "__main__":
     template = template.replace('CMSSWRELEASE', cmssw)
     template = template.replace('EXENAME', executable) 
                 
-    f = open('sh/send_trainMVA.sh', 'w')
+    f = open('sh/send_trainMVA_' + str(year) + '.sh', 'w')
     f.write(template)
     f.close()
-    os.chmod('sh/send_trainMVA.sh', 0755)     
+    os.chmod('sh/send_trainMVA_' + str(year) + '.sh', 0755)     
 
     print(str(len(signalFilesToProcess)) + " signal file(s) matching the requirements have been found.")
     print(str(len(backgroundFilesToProcess)) + " background file(s) matching the requirements have been found.")

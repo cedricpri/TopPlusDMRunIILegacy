@@ -189,6 +189,11 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.Branch("costhetal2b2", costhetal2b2, "costhetal2b2/F")
     cosphill = array("f", [0.])
     outputTree.Branch("cosphill", cosphill, "cosphill/F")
+    
+    r2l = array("f", [0.]) #ATLAS publication
+    outputTree.Branch("r2l", cosphill, "r2l/F")
+    r2l4j = array("f", [0.])
+    outputTree.Branch("r2l4j", cosphill, "r2l4j/F")
 
     nEvents = inputFile.Events.GetEntries()
     if test:
@@ -235,7 +240,6 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             continue
         if ev.Lepton_pdgId[0]*ev.Lepton_pdgId[1] >= 0: #Opposite sign leptons only
             continue
-        if abs(ev.Lepton_eta[0]) > 2.4 or abs(ev.Lepton_eta[1]) > 2.4:
 
         if ev.mll < 20.:
             continue
@@ -253,7 +257,25 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         except:
             jetpt2 = 0.
 
-        if jetpt1 < 30. and abs(jeteta1) < 2.4:# or jetpt2 < 30.: #At least two jets with pt > 30 GeV
+        try:
+            jetpt3 = ev.CleanJet_pt[2]
+            jeteta3 = ev.CleanJet_eta[2]
+        except:
+            jetpt3 = 0.
+
+        try:
+            jetpt4 = ev.CleanJet_pt[3]
+            jeteta4 = ev.CleanJet_eta[3]
+        except:
+            jetpt4 = 0.
+
+        #We want at least one jet with pt > 20 and abs(eta) < 2.4
+        passJet = False
+        for j, jet in enumerate(ev.CleanJet_pt):
+            if ev.CleanJet_pt[j] < 30. and abs(ev.CleanJet_eta[j]) < 2.4:
+                passJet = True
+
+        if not passJet:
             continue
 
         #Additional cut removing events having less than one b-jet performed later, once the b-jets have been computed
@@ -460,6 +482,9 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             Tlep2Eta0.SetPtEtaPhiM(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.M())
             massT[0] = (TMETEta0 + Tb1Eta0 + Tb2Eta0 + Tlep1Eta0 + Tlep2Eta0).M()
 
+            r2l[0] = ev.PuppiMET_pt / (eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt())
+            r2l4j[0] = ev.PuppiMET_pt / (eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt() + jetpt1 + jetpt2 + jetpt3 + jetpt4)
+
             if recoWorked:
                 totalET[0] = ev.PuppiMET_sumEt + bestReconstructedKinematic.Tb1.Pt() + bestReconstructedKinematic.Tb2.Pt() + bestReconstructedKinematic.Tlep1.Pt() + bestReconstructedKinematic.Tlep2.Pt()
                 
@@ -525,6 +550,9 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
                 cosphill[0] = -99.0 #We need the nu information for this variable, so default value if reco failed
         else:
             totalET[0] = -99.0
+
+            r2l[0] = ev.PuppiMET_pt / (ev.Lepton_pt[0] + ev.Lepton_pt[1])
+            r2l4j[0] = ev.PuppiMET_pt / (ev.Lepton_pt[0] + ev.Lepton_pt[1] + jetpt1 + jetpt2 + jetpt3 + jetpt4)
 
             costhetall[0] = -99.0
             costhetal1b1[0] = -99.0

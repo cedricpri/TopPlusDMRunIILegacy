@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     for i in filesToProcess:
 
-        executable = baseDir + "/runMVA.py -e -f " + i + " -i " + inputDir + " -d " + baseDir + " -w " + weightsDir
+        executable = baseDir + "/runMVA.py -e -f " + i + " -i " + inputDir + " -d " + baseDir + " -w " + weightsDir + " -y " + str(year)
         
         if test:
             executable = executable + " -t"
