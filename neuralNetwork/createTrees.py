@@ -92,7 +92,6 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     #Jets
     outputTree.SetBranchStatus("nJet", 1);
     outputTree.SetBranchStatus("Jet_btagDeepB", 1);
-    outputTree.SetBranchStatus("Jet_btagSF_shape", 1);
 
     #Clean jets
     outputTree.SetBranchStatus("nCleanJet", 1);
@@ -100,6 +99,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("CleanJet_eta", 1);
     outputTree.SetBranchStatus("CleanJet_phi", 1);
     outputTree.SetBranchStatus("CleanJet_jetIdx", 1);
+    outputTree.SetBranchStatus("nCleanGenJet", 1);
 
     #Additional discriminating variables
     outputTree.SetBranchStatus("PuppiMET_pt", 1);
@@ -131,19 +131,19 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("antitopGenPt", 1);
     outputTree.SetBranchStatus("LeptonGen_pt", 1);
     outputTree.SetBranchStatus("LeptonGen_isPrompt", 1);
-    outputTree.SetBranchStatus("Jet_btagSF_shape_*", 1);
+    outputTree.SetBranchStatus("Jet_btagSF_*shape_*", 1);
+    outputTree.SetBranchStatus("Jet_PUIDSF_loose", 1);
     outputTree.SetBranchStatus("nllw", 1);
-    outputTree.SetBranchStatus("SFweight2l", 1);
-    outputTree.SetBranchStatus("LepSF2l*", 1);
     outputTree.SetBranchStatus("LepSF2l*", 1);
     outputTree.SetBranchStatus("LepWPCut", 1);
-    outputTree.SetBranchStatus("btagSF", 1);
+    outputTree.SetBranchStatus("*btagSF*", 1);
     outputTree.SetBranchStatus("SFweight*", 1);
+    outputTree.SetBranchStatus("*PSWeight*", 1);
     outputTree.SetBranchStatus("TriggerEffWeight_2l*", 1);
     outputTree.SetBranchStatus("baseW", 1);
     outputTree.SetBranchStatus("puWeight*", 1);
     outputTree.SetBranchStatus("LHEScaleWeight", 1);
-    outputTree.SetBranchStatus("nllW", 1);
+    outputTree.SetBranchStatus("nllW*", 1);
     outputTree.SetBranchStatus("Trigger_*", 1);
     outputTree.SetBranchStatus("XSWeight", 1);
     outputTree.SetBranchStatus("genWeight", 1);
@@ -191,9 +191,9 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.Branch("cosphill", cosphill, "cosphill/F")
     
     r2l = array("f", [0.]) #ATLAS publication
-    outputTree.Branch("r2l", cosphill, "r2l/F")
+    outputTree.Branch("r2l", r2l, "r2l/F")
     r2l4j = array("f", [0.])
-    outputTree.Branch("r2l4j", cosphill, "r2l4j/F")
+    outputTree.Branch("r2l4j", r2l4j, "r2l4j/F")
 
     nEvents = inputFile.Events.GetEntries()
     if test:

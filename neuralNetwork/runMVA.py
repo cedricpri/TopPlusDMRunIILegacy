@@ -19,7 +19,7 @@ from array import array
 #Training variables
 #variables = ["PuppiMET_pt", "mt2ll", "totalET", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]", "Lepton_eta[1]", "Lepton_phi[0]", "Lepton_phi[1]", "thetall", "thetal1b1", "thetal2b2", "dark_pt", "overlapping_factor", "reco_weight"] #cosphill missing, mt2bl as well
 #variables = ["PuppiMET_pt", "MET_significance", "mll", "mt2ll", "mt2bl", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "Lepton_eta[0]", "Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight", "cosphill", "nbJet"] 
-variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt"]#, "MET_significance", "massT", "cosphill", "reco_weight", "mt2bl"] 
+variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "MET_significance", "mt2bl", "massT", "reco_weight", "cosphill", "costhetall", "dark_pt", "overlapping_factor", "r2l", "r2l4j"]
 
 trainPercentage = 50
 normalizeProcesses = True #Normalize all the processes to have the same input training events in each case
@@ -278,7 +278,7 @@ def evaluateMVA(baseDir, inputDir, filename, weightsDir, year, test):
 
         #Read the variables used for the training
         weights = baseDir + "/" + str(year) + "/" + weightTag
-        print(weights)
+
         trainingFile = ROOT.TFile.Open(weights + "/training/TMVA.root", "READ")
         trainingTree = trainingFile.Get("dataset/TrainTree")
         trainVariables = trainingTree.GetListOfBranches()
@@ -290,7 +290,10 @@ def evaluateMVA(baseDir, inputDir, filename, weightsDir, year, test):
             variableName = variable.GetName().replace("_0_", "[0]").replace("_1_", "[1]")
             if variableName not in ["classID", "className", "weight", "BDT", "PyKeras"]:
                 branch = inputTree.GetBranch(variableName)
-                branchName = branch.GetName()
+                try:
+                    branchName = branch.GetName()
+                except Exception as e:
+                    branchName = variableName
                 branches[branchName] = array('f', [-999])
                 reader.AddVariable(branchName, branches[branchName])
                 inputTree.SetBranchAddress(branchName, branches[branchName])

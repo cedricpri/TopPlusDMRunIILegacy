@@ -85,8 +85,8 @@ if __name__ == "__main__":
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6" + trailer
     elif year == 2017:
         if signal:
-            #inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6" + trailer
-            inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6" + trailer
+            inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6" + trailer
+            #inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6" + trailer
         elif data:
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2017_102X_nAODv5_Full2017v6/DATAl1loose2017v6__l2loose__l2tightOR2017v6/"
         elif fakes:
@@ -156,7 +156,7 @@ if __name__ == "__main__":
             #Check if the file is missing in the output directory
             fileToCheck = outputDir + "/" + productionName + fileToProcess['outputName']
             if not os.path.exists(fileToCheck):
-                if data or fakes or signal or query == "*":
+                if data or fakes or signal or query != "*":
                     filesToResubmit.append(fileToProcess)
                 #pass
             else: #If the file exists, check if the tree Events has been created successfully
@@ -191,9 +191,16 @@ if __name__ == "__main__":
         template = template.replace('EXENAME', executable) 
         template = template.replace('CMSSWRELEASE', cmssw)
 
-        f = open('sh/send_' + fileToProcess['outputName'].replace('.root', '') + '.sh', 'w')
+        if fakes:
+            f = open('sh/send_' + fileToProcess['outputName'].replace('.root', '') + '_fakes.sh', 'w')
+        else:
+            f = open('sh/send_' + fileToProcess['outputName'].replace('.root', '') + '.sh', 'w')
         f.write(template)
         f.close()
-        os.chmod('sh/send_' + fileToProcess['outputName'].replace('.root', '') + '.sh', 0755)     
+
+        if fakes:
+            os.chmod('sh/send_' + fileToProcess['outputName'].replace('.root', '') + '_fakes.sh', 0755)     
+        else:
+            os.chmod('sh/send_' + fileToProcess['outputName'].replace('.root', '') + '.sh', 0755)     
 
     print(str(len(filesToProcess)) + " file(s) matching the requirements have been found.")

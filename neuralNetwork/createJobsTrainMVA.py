@@ -71,14 +71,16 @@ if __name__ == "__main__":
     backgroundFilesToProcess = []
     if inputDir != "":
         
-        maxFiles = 10000
+        maxFiles = 20000
         if test: #If the test option is used, then only consider a few files for each process
             maxFiles = 50
 
         for i, signalProcess in enumerate(signalProcesses):
-            signalFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + signalProcess + '*'))) #For now we keep all the signal files as then have less stat
+            if signalProcess != "":
+                signalFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + signalProcess + '*.root'))) #For now we keep all the signal files as then have less stat
         for i, backgroundProcess in enumerate(backgroundProcesses):
-            backgroundFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + backgroundProcess + '*')[:maxFiles])) 
+            if backgroundProcess != "":
+                backgroundFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + backgroundProcess + '*.root')[:maxFiles])) 
         
     try:
         #shutil.rmtree('sh')
@@ -91,7 +93,7 @@ if __name__ == "__main__":
 
     #Add the files as arguments
     executable = executable + " -s " + ','.join(signalFilesToProcess)
-    executable = executable + " -b " + ','.join(backgroundFilesToProcess)
+    executable = executable + " -b " + ','.join(backgroundFilesToProcess).replace(',,', ',')
     executable = executable + " -y " + str(year)
     executable = executable + " --tags " + str(tag)
 
