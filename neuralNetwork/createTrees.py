@@ -91,7 +91,8 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     
     #Jets
     outputTree.SetBranchStatus("nJet", 1);
-    outputTree.SetBranchStatus("Jet_btagDeepB", 1);
+    outputTree.SetBranchStatus("Jet_*", 1);
+    outputTree.SetBranchStatus("CleanJet_*", 1);
 
     #Clean jets
     outputTree.SetBranchStatus("nCleanJet", 1);
@@ -236,10 +237,11 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         except:
             pt3 = 0.
 
-        if ev.Lepton_pt[0] < 25. or ev.Lepton_pt[1] < 20. or pt3 > 10.: #Exactly two leptons
+        if ev.Lepton_pt[0] < 25. or ev.Lepton_pt[1] < 20.: #or pt3 > 10.: #Exactly two leptons, removed for the ttV CR
             continue
-        if ev.Lepton_pdgId[0]*ev.Lepton_pdgId[1] >= 0: #Opposite sign leptons only
-            continue
+            
+        #if ev.Lepton_pdgId[0]*ev.Lepton_pdgId[1] >= 0: #Opposite sign leptons only, removed for the fakes CR
+        #    continue
 
         if ev.mll < 20.:
             continue
@@ -269,10 +271,10 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         except:
             jetpt4 = 0.
 
-        #We want at least one jet with pt > 20 and abs(eta) < 2.4
+        #We want at least one jet with pt > 30 and abs(eta) < 2.4
         passJet = False
         for j, jet in enumerate(ev.CleanJet_pt):
-            if ev.CleanJet_pt[j] < 30. and abs(ev.CleanJet_eta[j]) < 2.4:
+            if ev.CleanJet_pt[j] > 30. and abs(ev.CleanJet_eta[j]) < 2.4:
                 passJet = True
 
         if not passJet:

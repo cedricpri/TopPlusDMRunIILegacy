@@ -105,7 +105,17 @@ if __name__ == "__main__":
                     tree = f.Get("Events")
                     if not f.GetListOfKeys().Contains("Events"):
                         filesToResubmit.append(fileToProcess)
-                except:
+                    else:
+                        
+                        resubmitThis = False
+                        for weight in weightsDir.split(","):
+                            if not tree.GetBranch("DNN_output_category_" + weight):
+                                resubmitThis = True
+
+                        if resubmitThis:        
+                            filesToResubmit.append(fileToProcess)
+                except Exception as e:
+                    print(e)
                     filesToResubmit.append(fileToProcess)
 
         filesToProcess = filesToResubmit
@@ -133,9 +143,16 @@ if __name__ == "__main__":
         template = template.replace('CMSSWRELEASE', cmssw)
         template = template.replace('EXENAME', executable) 
 
-        f = open('sh/send_' + i.replace('.root', '') + '.sh', 'w')
+        if fakes:
+            f = open('sh/send_' + i.replace('.root', '') + '_fakes.sh', 'w')
+        else:
+            f = open('sh/send_' + i.replace('.root', '') + '.sh', 'w')
         f.write(template)
         f.close()
-        os.chmod('sh/send_' + i.replace('.root', '') + '.sh', 0755)     
+
+        if fakes:
+            os.chmod('sh/send_' + i.replace('.root', '') + '_fakes.sh', 0755)     
+        else:
+            os.chmod('sh/send_' + i.replace('.root', '') + '.sh', 0755)     
 
     print(str(len(filesToProcess)) + " file(s) matching the requirements have been found.")
