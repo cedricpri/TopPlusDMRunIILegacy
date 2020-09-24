@@ -19,10 +19,14 @@ from array import array
 #Training variables
 #variables = ["PuppiMET_pt", "mt2ll", "totalET", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]", "Lepton_eta[1]", "Lepton_phi[0]", "Lepton_phi[1]", "thetall", "thetal1b1", "thetal2b2", "dark_pt", "overlapping_factor", "reco_weight"] #cosphill missing, mt2bl as well
 #variables = ["PuppiMET_pt", "MET_significance", "mll", "mt2ll", "mt2bl", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "Lepton_eta[0]", "Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight", "cosphill", "nbJet"] 
-variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "MET_significance", "mt2bl", "massT", "reco_weight", "cosphill", "costhetall", "dark_pt", "overlapping_factor", "r2l", "r2l4j"]
+#variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "mt2bl", "massT", "reco_weight", "cosphill", "costhetall", "dark_pt", "overlapping_factor", "r2l", "r2l4j"]
+#variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "massT", "reco_weight", "r2l", "r2l4j"] #Step 7
+variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "massT", "reco_weight", "dark_pt", "r2l", "r2l4j"] #Step 8
+
 
 trainPercentage = 50
 normalizeProcesses = True #Normalize all the processes to have the same input training events in each case
+cut = "mt2ll > 80."
 
 #=========================================================================================================
 # HELPERS
@@ -141,9 +145,9 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
         for signalFile in signalFiles:
             signalChain.AddFile(inputDir+signalFile)
 
-        signalEvents.append(signalChain.GetEntries())
-        if signalChain.GetEntries() < minEvents: 
-            minEvents = signalChain.GetEntries()
+        signalEvents.append(signalChain.GetEntries(cut))
+        if signalChain.GetEntries(cut) < minEvents: 
+            minEvents = signalChain.GetEntries(cut)
 
         dataloader.AddTree(signalChain, 'Signal' + str(index))
 
@@ -155,9 +159,9 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
         for backgroundFile in backgroundFiles:
             backgroundChain.AddFile(inputDir+backgroundFile)
 
-        backgroundEvents.append(backgroundChain.GetEntries())
-        if backgroundChain.GetEntries() < minEvents: 
-            minEvents = backgroundChain.GetEntries()
+        backgroundEvents.append(backgroundChain.GetEntries(cut))
+        if backgroundChain.GetEntries(cut) < minEvents: 
+            minEvents = backgroundChain.GetEntries(cut)
 
         dataloader.AddTree(backgroundChain, 'Background' + str(index))
 
@@ -181,12 +185,14 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
         else:
             numberEvents = signalEvents[i]
 
-        dataloaderOptions = dataloaderOptions + ':nTrain_Signal' + str(i) + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Signal' + str(i) + '=' + str(int(numberEvents*testPercentage/100)) #TOCHECK: for now, we consider a 50%/50% splitting
+        dataloaderOptions = dataloaderOptions + ':nTrain_Signal' + str(i) + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Signal' + str(i) + '=' + str(int(numberEvents*testPercentage/100))
+        #dataloaderOptions = dataloaderOptions + ':nTrain_Signal' + str(i) + '=0:nTest_Signal' + str(i) + '=0' #TOCHECK: for now, we consider a 50%/50% splitting
 
     for i, backgroundProcess in enumerate(backgroundProcesses):
-        dataloaderOptions = dataloaderOptions + ':nTrain_Background' + str(i) + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Background' + str(i) + '=' + str(int(numberEvents*testPercentage/100)) #TOCHECK: for now, we consider a 50%/50% splitting
+        dataloaderOptions = dataloaderOptions + ':nTrain_Background' + str(i) + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Background' + str(i) + '=' + str(int(numberEvents*testPercentage/100))
+        #dataloaderOptions = dataloaderOptions + ':nTrain_Background' + str(i) + '=0:nTest_Background' + str(i) + '=0' #TOCHECK: for now, we consider a 50%/50% splitting
 
-    dataloader.PrepareTrainingAndTestTree(ROOT.TCut(''), dataloaderOptions + ':SplitMode=Random:NormMode=EqualNumEvents:!V')
+    dataloader.PrepareTrainingAndTestTree(ROOT.TCut(cut), dataloaderOptions + ':SplitMode=Random:NormMode=EqualNumEvents:!V')
 
     # ===========================================
     # Keras model with grid search
@@ -324,13 +330,13 @@ def evaluateMVA(baseDir, inputDir, filename, weightsDir, year, test):
         outputTree.Branch("DNN_output_background1_" + weightTag, DNN_output_background1, "DNN_output_background1_" + weightTag + "/F")
         outputTree.Branch("DNN_output_category_" + weightTag, DNN_output_category, "DNN_output_category_" + weightTag + "/I")
 
-        nEvents = inputTree.GetEntries()
+        nEvents = inputTree.GetEntries(cut)
         if test:
             nEvents = 1000
 
         for index, ev in enumerate(inputTree):
             inputTree.GetEntry(index)
-            if index % 100 == 0: #Update the loading bar every 100 events
+            if index % 100 == 0 and nEvents != 0: #Update the loading bar every 100 events
                 updateProgress(round(index/float(nEvents), 2))
             
             #For testing only

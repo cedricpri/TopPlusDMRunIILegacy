@@ -35,7 +35,7 @@ def updateProgress(progress):
 
 #Let's consider the ttbar files in a chain
 #baseDir = os.getcwd()+"/"
-baseDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
+baseDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Autumn18_102X_nAODv7_Full2018v7/MCl1loose2018v7__MCCorr2018v7__l2loose__l2tightOR2018v7/"
 filesChain = r.TChain("Events")
 listOfFiles = os.listdir(baseDir)
 pattern = "*"+"TTTo2L2Nu__part"+"*.root"

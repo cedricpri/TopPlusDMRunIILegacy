@@ -3,7 +3,7 @@ import ROOT as r
 
 #Check the baseW value obtained for a sample
 processToSearch = "nanoLatino_DMscalar_Dilepton_top_tWChan_Mchi1_Mphi1000*"
-directoryToSearch = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
+directoryToSearch = "/eos/user/c/cprieels/work/SignalsPostProcessing/Pablo/Autumn18_102X_nAODv7_Full2018v7/MCl1loose2018v7__MCCorr2018v7__l2loose__l2tightOR2018v7/"
 processCrossSection = 0.0002863
 
 baseWFound = 0.0
