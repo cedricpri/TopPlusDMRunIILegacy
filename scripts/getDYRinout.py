@@ -17,7 +17,7 @@ MCObjects = ['histo_DY;1', 'histo_DY;2']
 dataObjects = ['histo_DATA;1']
 
 #MET bins used to plot the Routin factor
-metbins = ['', '10', '20', '40', '100']
+metbins = ['0', '1', '2', '3', '4', '5'] #Matching the definition of the cuts in the cuts.py file: 0 is the inclusive distribution
 
 #Let's get started
 f = r.TFile.Open(haddFile, "read")
@@ -39,11 +39,10 @@ def getIntegralBetweenValues(hist, xmin, xmax):
     except Exception as e:
         return 0
 
-def getYields(obj, channel, category, region, metbin = ''):
+def getYields(obj, channel, category, region, metbin):
     global f, xmin, xmax
 
-    metbinPath = '' if metbin == '' else '_met' + str(metbin)
-    objectPath = region + '_' + channel + metbinPath + '/mll/' + obj
+    objectPath = region + '_' + channel + '_met' + metbin + '/mll/' + obj
     if category == 'in':
         yields = getIntegralBetweenValues(extractHistogramFromFile(f, objectPath), xmin, xmax)
     else: 
@@ -54,7 +53,7 @@ def getYields(obj, channel, category, region, metbin = ''):
 yieldsMC = {}
 yieldsData = {}
 
-for region in ['0bjet', '1bjet']:
+for region in ['0bjet', '1bjetOrMore']:
     yieldsMC[region] = {}
     yieldsData[region] = {}
 
@@ -82,15 +81,15 @@ kappa = {}
 RoutinMC = {}
 
 for channel in channels:
-    RoutinMC0bjet = (yieldsMC['0bjet']['out'][channel]/yieldsMC['0bjet']['in'][channel])
-    RoutinData0bjet = (yieldsData['0bjet']['out'][channel]/yieldsData['0bjet']['in'][channel])
+    RoutinMC0bjet = (yieldsMC['0bjet']['out'][channel]['0']/yieldsMC['0bjet']['in'][channel]['0'])
+    RoutinData0bjet = (yieldsData['0bjet']['out'][channel]['0']/yieldsData['0bjet']['in'][channel]['0'])
 
     kappa[channel] = RoutinMC0bjet/RoutinData0bjet
-    RoutinMC[channel] = kappa[channel] * (yieldsData['1bjet']['out'][channel]/yieldsData['1bjet']['in'][channel])
+    RoutinMC[channel] = kappa[channel] * (yieldsData['1bjetOrMore']['out'][channel]['0']/yieldsData['1bjetOrMore']['in'][channel]['0'])
 
 print(kappa, RoutinMC)
 
-#Plot the Pfmet histogram
+#Plot the pfmet histogram
 
 """
 #First, get the number of yields in and out of the Z mass window in the 0bjet region
