@@ -1,12 +1,14 @@
 #Rin-out method for the DY estimation
 
 import ROOT as r
+from array import array
 
+#!!TODO: apply this method to the region of the analysis (mt2ll cut, for example)
 haddFile = 'rootFile/plots_ttDM2018_DY.root'
 
 #General parameters
 year = 2018
-channels = ['ee', 'mm', 'll']
+channels = ['ee', 'mm']
 
 #Z window width
 xmin = 76
@@ -17,9 +19,15 @@ MCObjects = ['histo_DY;1', 'histo_DY;2']
 dataObjects = ['histo_DATA;1']
 
 #MET bins used to plot the Routin factor
-metbins = ['0', '1', '2', '3', '4', '5'] #Matching the definition of the cuts in the cuts.py file: 0 is the inclusive distribution
+metBins = ['0', '1', '2', '3', '4', '5'] #Matching the definition of the cuts in the cuts.py file: 0 is the inclusive distribution
+metValues = [-1, 10, 20, 40, 100, -1]
 
-#Let's get started
+#Additional options
+channelColors = [r.kBlack, r.kRed, r.kBlue] 
+
+#==================================================================
+#Let's get started with some functions
+
 f = r.TFile.Open(haddFile, "read")
 
 def extractHistogramFromFile(f, objectName):
@@ -39,17 +47,19 @@ def getIntegralBetweenValues(hist, xmin, xmax):
     except Exception as e:
         return 0
 
-def getYields(obj, channel, category, region, metbin):
+def getYields(obj, channel, category, region, metBin):
     global f, xmin, xmax
 
-    objectPath = region + '_' + channel + '_met' + metbin + '/mll/' + obj
+    objectPath = region + '_' + channel + '_met' + metBin + '/mll/' + obj
     if category == 'in':
         yields = getIntegralBetweenValues(extractHistogramFromFile(f, objectPath), xmin, xmax)
     else: 
         yields = getIntegralBetweenValues(extractHistogramFromFile(f, objectPath), 0, xmin) + getIntegralBetweenValues(extractHistogramFromFile(f, objectPath), xmax, 10000)
     return yields
 
+#==================================================================
 #Compute all the possible yields we are going to need
+
 yieldsMC = {}
 yieldsData = {}
 
@@ -66,49 +76,68 @@ for region in ['0bjet', '1bjetOrMore']:
             yieldsData[region][category][channel] = {}
 
             #Yields divided depending on the value of the Pfmet
-            for metbin in metbins:
-                yieldsMC[region][category][channel][metbin] = 0
-                yieldsData[region][category][channel][metbin] = 0
+            for metBin in metBins:
+                yieldsMC[region][category][channel][metBin] = 0
+                yieldsData[region][category][channel][metBin] = 0
 
                 for MCObject in MCObjects:
-                    yieldsMC[region][category][channel][metbin] = yieldsMC[region][category][channel][metbin] + getYields(MCObject, channel, category, region, metbin)
+                    yieldsMC[region][category][channel][metBin] = yieldsMC[region][category][channel][metBin] + getYields(MCObject, channel, category, region, metBin)
 
                 for dataObject in dataObjects:
-                    yieldsData[region][category][channel][metbin] = yieldsData[region][category][channel][metbin] + getYields(dataObject, channel, category, region, metbin)
+                    yieldsData[region][category][channel][metBin] = yieldsData[region][category][channel][metBin] + getYields(dataObject, channel, category, region, metBin)
 
-#Compute the global Routin factor in the different channels
+#==================================================================
+#Compute the global Routin factor and scale factor in the different channels and for different met cuts
 kappa = {}
 RoutinMC = {}
 
 for channel in channels:
-    RoutinMC0bjet = (yieldsMC['0bjet']['out'][channel]['0']/yieldsMC['0bjet']['in'][channel]['0'])
-    RoutinData0bjet = (yieldsData['0bjet']['out'][channel]['0']/yieldsData['0bjet']['in'][channel]['0'])
+    kappa[channel] = {}
+    RoutinMC[channel] = {}
 
-    kappa[channel] = RoutinMC0bjet/RoutinData0bjet
-    RoutinMC[channel] = kappa[channel] * (yieldsData['1bjetOrMore']['out'][channel]['0']/yieldsData['1bjetOrMore']['in'][channel]['0'])
+    for metBin in metBins:
+        RoutinMC0bjet = (yieldsMC['0bjet']['out'][channel][metBin]/yieldsMC['0bjet']['in'][channel][metBin])
+        RoutinData0bjet = (yieldsData['0bjet']['out'][channel][metBin]/yieldsData['0bjet']['in'][channel][metBin])
 
-print(kappa, RoutinMC)
+        kappa[channel][metBin] = RoutinMC0bjet/RoutinData0bjet
+        RoutinMC[channel][metBin] = kappa[channel][metBin] * (yieldsData['1bjetOrMore']['out'][channel][metBin]/yieldsData['1bjetOrMore']['in'][channel][metBin])
 
-#Plot the pfmet histogram
+print(kappa)
+print(RoutinMC)
 
-"""
-#First, get the number of yields in and out of the Z mass window in the 0bjet region
-yieldsInMC0bj = getIntegralBetweenValues(extractHistogramFromFile(f, '0bjet/mll/histo_DY;1'), xmin, xmax) + getIntegralBetweenValues(extractHistogramFromFile(f, '0bjet/mll/histo_DY;2'), xmin, xmax)
-yieldsOutMC0bj = getIntegralBetweenValues(extractHistogramFromFile(f, '0bjet/mll/histo_DY;1'), 0, xmin) + getIntegralBetweenValues(extractHistogramFromFile(f, '0bjet/mll/histo_DY;1'), xmax, 10000) + getIntegralBetweenValues(extractHistogramFromFile(f, '0bjet/mll/histo_DY;2'), 0, xmin) + getIntegralBetweenValues(extractHistogramFromFile(f, '0bjet/mll/histo_DY;2'), xmax, 10000)
-RoutinMC0bj = yieldsOutMC0bj/yieldsInMC0bj
+#==================================================================
+#Plot the results
 
-yieldsInData0bj = getIntegralBetweenValues(extractHistogramFromFile(f, '0bjet/mll/histo_DATA;1'), xmin, xmax)
-yieldsOutData0bj = getIntegralBetweenValues(extractHistogramFromFile(f, '0bjet/mll/histo_DATA;1'), 0, xmin) + getIntegralBetweenValues(extractHistogramFromFile(f, '0bjet/mll/histo_DATA;1'), xmax, 10000)
-RoutinData0bj = yieldsOutData0bj/yieldsInData0bj
+n = len(metBins)
+canvas = r.TCanvas("canvas", "canvas")
+multiGraph = r.TMultiGraph()
 
-kappa = RoutinMC0bj/RoutinData0bj
-print("Kappa: " + str(kappa))
+for i, channel in enumerate(channels):
+    x, y = array( 'd' ), array( 'd' )
 
-#Apply kappa to the 1bj region to get RoutinMC
-yieldsInData1bj = getIntegralBetweenValues(extractHistogramFromFile(f, '1bjetOrMore/mll/histo_DATA;1'), xmin, xmax)
-yieldsOutData1bj = getIntegralBetweenValues(extractHistogramFromFile(f, '1bjetOrMore/mll/histo_DATA;1'), 0, xmin) + getIntegralBetweenValues(extractHistogramFromFile(f, '1bjetOrMore/mll/histo_DATA;1'), xmax, 10000)
-RoutinData1bj = yieldsOutData1bj/yieldsInData1bj
+    for j, metBin in enumerate(metBins):
+        if j == 0 or j == len(metBins):
+            continue ## Don't plot the inclusive met cut and the last met cut
 
-RoutinMC = kappa * RoutinData1bj
-print("RoutinMC: " + str(RoutinMC))
-"""
+        x.append(int(metValues[j]))
+        y.append(RoutinMC[channel][metBin])
+
+    graph = r.TGraph(n, x, y)
+    graph.SetTitle(channel)
+    graph.SetMinimum(0)
+    graph.SetMaximum(2)
+    graph.SetMarkerStyle(21)
+    graph.SetMarkerColor(channelColors[i])
+    graph.SetMarkerSize(1.2)
+    #graph.Draw()
+    
+    multiGraph.Add(graph, "ap")
+
+multiGraph.GetXaxis().SetTitle("Pf MET [GeV]")
+multiGraph.GetYaxis().SetTitle("R^{out/in} = N^{out} / N^{in}")
+multiGraph.SetTitle('DY Rin-out scale factor (' + str(year) + ')')
+multiGraph.Draw()
+
+canvas.BuildLegend(0.78, 0.78, 0.9, 0.9)
+canvas.Update()
+canvas.SaveAs("Rinout.png")
