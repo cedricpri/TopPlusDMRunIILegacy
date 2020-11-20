@@ -24,6 +24,7 @@ metBins = ['0', '1', '2', '3', '4', '5'] #Matching the definition of the cuts in
 metValues = [0, 10, 20, 40, 100, 200]
 
 #Additional options
+use0bjet = True
 channelColors = [r.kBlack, r.kRed, r.kBlue] 
 
 #==================================================================
@@ -86,6 +87,7 @@ for region in ['0bjet', '1bjetOrMore']:
 
                 for dataObject in dataObjects:
                     yieldsData[region][category][channel][metBin] = yieldsData[region][category][channel][metBin] + getYields(dataObject, channel, category, region, metBin)
+print(yieldsMC)
 
 #==================================================================
 #Compute the global Routin factor and scale factor in the different channels and for different met cuts
@@ -111,20 +113,27 @@ for channel in channels:
     outputScaleFactor[channel] = {}
 
     for metBin in metBins:
-        RoutinMC0bjet = (yieldsMC['0bjet']['out'][channel][metBin]/yieldsMC['0bjet']['in'][channel][metBin])
-        errorRoutinMC0bjet = RoutinMC0bjet * math.sqrt((1/yieldsMC['0bjet']['out'][channel][metBin]) + (1/yieldsMC['0bjet']['in'][channel][metBin]))
+        if use0bjet:
+            RoutinMC0bjet = (yieldsMC['0bjet']['out'][channel][metBin]/yieldsMC['0bjet']['in'][channel][metBin])
+            errorRoutinMC0bjet = RoutinMC0bjet * math.sqrt((1/yieldsMC['0bjet']['out'][channel][metBin]) + (1/yieldsMC['0bjet']['in'][channel][metBin]))
+        
+            RoutinData0bjet = (yieldsData['0bjet']['out'][channel][metBin]/yieldsData['0bjet']['in'][channel][metBin])
+            errorRoutinData0bjet = RoutinData0bjet * math.sqrt((1/yieldsData['0bjet']['out'][channel][metBin]) + (1/yieldsData['0bjet']['in'][channel][metBin]))
 
-        RoutinData0bjet = (yieldsData['0bjet']['out'][channel][metBin]/yieldsData['0bjet']['in'][channel][metBin])
-        errorRoutinData0bjet = RoutinData0bjet * math.sqrt((1/yieldsData['0bjet']['out'][channel][metBin]) + (1/yieldsData['0bjet']['in'][channel][metBin]))
+            #Statistical error only, at least for now
+            kappa[channel][metBin] = RoutinMC0bjet/RoutinData0bjet
+            errorKappa[channel][metBin] = kappa[channel][metBin] * math.sqrt((errorRoutinMC0bjet/RoutinMC0bjet) ** 2 + (errorRoutinData0bjet/RoutinData0bjet) ** 2)
+            outputKappa[channel][metBin] = str(kappa[channel][metBin]) + " +- " + str(errorKappa[channel][metBin])
 
-        #Statistical error only for now
-        kappa[channel][metBin] = RoutinMC0bjet/RoutinData0bjet
-        errorKappa[channel][metBin] = kappa[channel][metBin] * math.sqrt((errorRoutinMC0bjet/RoutinMC0bjet) ** 2 + (errorRoutinData0bjet/RoutinData0bjet) ** 2)
-        outputKappa[channel][metBin] = str(kappa[channel][metBin]) + " +- " + str(errorKappa[channel][metBin])
+        else:
+            kappa[channel][metBin] = 1
+            errorKappa[channel][metBin] = 0.0000001
+            outputKappa[channel][metBin] = str(kappa[channel][metBin]) + " +- " + str(errorKappa[channel][metBin])
 
         RoutinMC[channel][metBin] = kappa[channel][metBin] * (yieldsData['1bjetOrMore']['out'][channel][metBin]/yieldsData['1bjetOrMore']['in'][channel][metBin])
-        intermediateError = (yieldsData['1bjetOrMore']['out'][channel][metBin]/yieldsData['1bjetOrMore']['in'][channel][metBin]) * math.sqrt((1/yieldsData['1bjetOrMore']['out'][channel][metBin]) + (1/yieldsData['1bjetOrMore']['in'][channel][metBin]))
-        errorRoutinMC[channel][metBin] = RoutinMC[channel][metBin] * math.sqrt((errorKappa[channel][metBin]/kappa[channel][metBin]) ** 2 + (intermediateError/(yieldsData['1bjetOrMore']['out'][channel][metBin]/yieldsData['1bjetOrMore']['in'][channel][metBin])) ** 2)
+        #intermediateError = (yieldsData['1bjetOrMore']['out'][channel][metBin]/yieldsData['1bjetOrMore']['in'][channel][metBin]) * math.sqrt((1/yieldsData['1bjetOrMore']['out'][channel][metBin]) + (1/yieldsData['1bjetOrMore']['in'][channel][metBin]))
+        #errorRoutinMC[channel][metBin] = RoutinMC[channel][metBin] * math.sqrt((errorKappa[channel][metBin]/kappa[channel][metBin]) ** 2 + (intermediateError/(yieldsData['1bjetOrMore']['out'][channel][metBin]/yieldsData['1bjetOrMore']['in'][channel][metBin])) ** 2)
+        errorRoutinMC[channel][metBin] = RoutinMC[channel][metBin] * math.sqrt((errorKappa[channel][metBin]/kappa[channel][metBin]) + (1/yieldsData['1bjetOrMore']['out'][channel][metBin]) + (1/yieldsData['1bjetOrMore']['in'][channel][metBin]))
         outputRoutinMC[channel][metBin] = str(RoutinMC[channel][metBin]) + " +- " + str(errorRoutinMC[channel][metBin])
 
         numberExpectedOutDYYields = RoutinMC[channel][metBin] * yieldsData['1bjetOrMore']['in'][channel][metBin]
@@ -167,7 +176,7 @@ for i, channel in enumerate(channels):
         h[i].SetLineColor(channelColors[i])
         h[i].SetLineWidth(2)
         h[i].SetMarkerStyle(21)
-        h[i].GetYaxis().SetRangeUser(1.0, 2.2)
+        h[i].GetYaxis().SetRangeUser(0.8, 2.6)
         h[i].SetMarkerColor(channelColors[i])
         h[i].Draw("same")
 
