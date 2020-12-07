@@ -16,16 +16,18 @@ xmin = 76
 xmax = 106
 
 #Histograms to be considered for the computation
-MCObjects = ['histo_DY;1', 'histo_DY;2']
+DYObjects = ['histo_DY;1', 'histo_DY;2']
+MCObjects = ['histo_ttZ;1', 'histo_Vg;1', 'histo_VgS_L;1', 'histo_ttbar;1', 'histo_ttbar;2', 'histo_ttW;1', 'histo_ttW;2', 'histo_TTToSemiLeptonic;1', 'histo_TTToSemiLeptonic;2', 'histo_singleTop;1', 'histo_singleTop;2', 'histo_VVV;1', 'histo_WW;1', 'histo_VgS_H;1', 'histo_VZ;1'] #Backgrounds to be substracted to only keep DY-like data events
 dataObjects = ['histo_DATA;1']
 
 #MET bins used to plot the Routin factor
 metBins = ['0', '1', '2', '3', '4', '5'] #Matching the definition of the cuts in the cuts.py file: 0 is the inclusive distribution
-metValues = [0, 10, 20, 40, 100, 200]
+metValues = [0, 40, 70, 100, 250]
 
 #Additional options
 use0bjet = True
 channelColors = [r.kBlack, r.kRed, r.kBlue] 
+systematicValue = 0.2
 
 #==================================================================
 #Let's get started with some functions
@@ -49,14 +51,25 @@ def getIntegralBetweenValues(hist, xmin, xmax):
     except Exception as e:
         return 0
 
-def getYields(obj, channel, category, region, metBin):
+def getYields(obj, channel, category, region, metBin, substractObject = None):
     global f, xmin, xmax
 
-    objectPath = region + '_' + channel + '_met' + metBin + '/mll/' + obj
-    if category == 'in':
-        yields = getIntegralBetweenValues(extractHistogramFromFile(f, objectPath), xmin, xmax)
-    else: 
-        yields = getIntegralBetweenValues(extractHistogramFromFile(f, objectPath), 0, xmin) + getIntegralBetweenValues(extractHistogramFromFile(f, objectPath), xmax, 10000)
+    yields = 0
+    objectPath = region + '_' + channel + '_met' + metBin + '/mll/'
+    
+    for o in obj:
+        if category == 'in':
+            yields += getIntegralBetweenValues(extractHistogramFromFile(f, objectPath + o), xmin, xmax)
+            if substractObject is not None:
+                for s in substractObject:
+                    yields -= getIntegralBetweenValues(extractHistogramFromFile(f, objectPath + s), xmin, xmax)
+
+        else: 
+            yields += getIntegralBetweenValues(extractHistogramFromFile(f, objectPath + o), 0, xmin) + getIntegralBetweenValues(extractHistogramFromFile(f, objectPath + o), xmax, 10000)
+            if substractObject is not None:
+                for s in substractObject:
+                    yields -= getIntegralBetweenValues(extractHistogramFromFile(f, objectPath + s), 0, xmin) + getIntegralBetweenValues(extractHistogramFromFile(f, objectPath + s), xmax, 10000)
+                
     return yields
 
 #==================================================================
@@ -83,11 +96,15 @@ for region in ['0bjet', '1bjetOrMore']:
                 yieldsData[region][category][channel][metBin] = 0
 
                 for MCObject in MCObjects:
-                    yieldsMC[region][category][channel][metBin] = yieldsMC[region][category][channel][metBin] + getYields(MCObject, channel, category, region, metBin)
+                    yieldsMC[region][category][channel][metBin] = yieldsMC[region][category][channel][metBin] + getYields(DYObjects, channel, category, region, metBin)
 
                 for dataObject in dataObjects:
-                    yieldsData[region][category][channel][metBin] = yieldsData[region][category][channel][metBin] + getYields(dataObject, channel, category, region, metBin)
+                    yieldsData[region][category][channel][metBin] = yieldsData[region][category][channel][metBin] + getYields(dataObjects, channel, category, region, metBin, MCObjects)
+print("Yields MC:") 
 print(yieldsMC)
+
+print("Yields data:")
+print(yieldsData)
 
 #==================================================================
 #Compute the global Routin factor and scale factor in the different channels and for different met cuts
@@ -131,8 +148,6 @@ for channel in channels:
             outputKappa[channel][metBin] = str(kappa[channel][metBin]) + " +- " + str(errorKappa[channel][metBin])
 
         RoutinMC[channel][metBin] = kappa[channel][metBin] * (yieldsData['1bjetOrMore']['out'][channel][metBin]/yieldsData['1bjetOrMore']['in'][channel][metBin])
-        #intermediateError = (yieldsData['1bjetOrMore']['out'][channel][metBin]/yieldsData['1bjetOrMore']['in'][channel][metBin]) * math.sqrt((1/yieldsData['1bjetOrMore']['out'][channel][metBin]) + (1/yieldsData['1bjetOrMore']['in'][channel][metBin]))
-        #errorRoutinMC[channel][metBin] = RoutinMC[channel][metBin] * math.sqrt((errorKappa[channel][metBin]/kappa[channel][metBin]) ** 2 + (intermediateError/(yieldsData['1bjetOrMore']['out'][channel][metBin]/yieldsData['1bjetOrMore']['in'][channel][metBin])) ** 2)
         errorRoutinMC[channel][metBin] = RoutinMC[channel][metBin] * math.sqrt((errorKappa[channel][metBin]/kappa[channel][metBin]) + (1/yieldsData['1bjetOrMore']['out'][channel][metBin]) + (1/yieldsData['1bjetOrMore']['in'][channel][metBin]))
         outputRoutinMC[channel][metBin] = str(RoutinMC[channel][metBin]) + " +- " + str(errorRoutinMC[channel][metBin])
 
@@ -176,15 +191,28 @@ for i, channel in enumerate(channels):
         h[i].SetLineColor(channelColors[i])
         h[i].SetLineWidth(2)
         h[i].SetMarkerStyle(21)
-        h[i].GetYaxis().SetRangeUser(0.8, 2.6)
+        h[i].GetYaxis().SetRangeUser(0.8, 1.6)
         h[i].SetMarkerColor(channelColors[i])
         h[i].Draw("same")
-
+        
     legend.AddEntry(h[i], channel)
+
+#Plot the inclusive value
+line = r.TLine(0, (scaleFactor["ee"]["0"] + scaleFactor["mm"]["0"])/2, 250, (scaleFactor["ee"]["0"] + scaleFactor["mm"]["0"])/2);
+line.SetLineStyle(9)
+line.Draw()
+
+lineUp = r.TLine(0, (scaleFactor["ee"]["0"] + scaleFactor["mm"]["0"])/2 + systematicValue, 250, (scaleFactor["ee"]["0"] + scaleFactor["mm"]["0"])/2 + systematicValue);
+lineUp.SetLineStyle(4)
+lineUp.Draw()
+lineDown = r.TLine(0, (scaleFactor["ee"]["0"] + scaleFactor["mm"]["0"])/2 - systematicValue, 250, (scaleFactor["ee"]["0"] + scaleFactor["mm"]["0"])/2 - systematicValue);
+lineDown.SetLineStyle(4)
+lineDown.Draw()
 
 legend.SetBorderSize(0)
 legend.Draw()
 canvas.SaveAs("Rinout.png")
+canvas.SaveAs("Rinout.root")
 
 """
     graph = r.TGraph(n, x, y)
