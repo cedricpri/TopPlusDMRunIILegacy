@@ -107,6 +107,10 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("PuppiMET_phi", 1);
     outputTree.SetBranchStatus("PuppiMET_sumEt", 1);
     outputTree.SetBranchStatus("MET_pt", 1);
+    outputTree.SetBranchStatus("METFixEE2017_pt", 1);
+    outputTree.SetBranchStatus("METFixEE2017_phi", 1);
+    outputTree.SetBranchStatus("METFixEE2017_significance", 1);
+    outputTree.SetBranchStatus("METFixEE2017_sumEt", 1);
     outputTree.SetBranchStatus("TkMET_pt", 1);
     outputTree.SetBranchStatus("MET_significance", 1);
     outputTree.SetBranchStatus("mT2", 1); #mT2 computed by Latino
@@ -127,10 +131,13 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("fakeW2l*", 1);
     outputTree.SetBranchStatus("GenPart_pt", 1);
     outputTree.SetBranchStatus("GenPart_pdgId", 1);
+    outputTree.SetBranchStatus("GenPart_genPartIdxMother", 1);
     outputTree.SetBranchStatus("GenPart_statusFlags", 1);
     outputTree.SetBranchStatus("topGenPt", 1);
     outputTree.SetBranchStatus("antitopGenPt", 1);
+    outputTree.SetBranchStatus("nGenPart", 1);
     outputTree.SetBranchStatus("LeptonGen_pt", 1);
+    outputTree.SetBranchStatus("LeptonGen_pdgId", 1);
     outputTree.SetBranchStatus("LeptonGen_isPrompt", 1);
     outputTree.SetBranchStatus("Jet_btagSF_*shape_*", 1);
     outputTree.SetBranchStatus("Jet_PUIDSF_loose", 1);
@@ -145,6 +152,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("puWeight*", 1);
     outputTree.SetBranchStatus("LHEScaleWeight", 1);
     outputTree.SetBranchStatus("nllW*", 1);
+    outputTree.SetBranchStatus("gen_mll", 1);
     outputTree.SetBranchStatus("Trigger_*", 1);
     outputTree.SetBranchStatus("XSWeight", 1);
     outputTree.SetBranchStatus("genWeight", 1);
@@ -333,7 +341,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         Tlep2.SetPtEtaPhiM(ev.Lepton_pt[1], ev.Lepton_eta[1], ev.Lepton_phi[1], 0.000511 if (abs(ev.Lepton_pdgId[1]) == 11) else 0.106)
         #Tnu1.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0) #Not needed for the ttbar reconstruction and not available, we can pass default values
         #Tnu2.SetPtEtaPhiM(-99.0, -99.0, -99.0, -99.0)
-        TMET.SetPtEtaPhiM(ev.MET_pt, 0.0, ev.MET_phi, 0.0) #TOCHECK: use the MET or PUPPIMET?
+        TMET.SetPtEtaPhiM(ev.MET_pt, 0.0, ev.MET_phi, 0.0)
 
         #===================================================
         #Ttbar reconstruction
@@ -455,14 +463,15 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #MT2 computation
         #===================================================
 
+        mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET) 
+
         if eventKinematic is not None:
-            mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET) 
             if bestReconstructedKinematicWithoutSmearing is not None and bestReconstructedKinematicWithoutSmearing.weight > 0:
                 mt2bl[0] = computeMT2(bestReconstructedKinematicWithoutSmearing.Tlep1 + bestReconstructedKinematicWithoutSmearing.Tb1, bestReconstructedKinematicWithoutSmearing.Tlep2 + bestReconstructedKinematicWithoutSmearing.Tb2, bestReconstructedKinematicWithoutSmearing.TMET) 
             else: #TOCHECK: put default value instead?
                 mt2bl[0] = computeMT2(eventKinematic.Tlep1 + eventKinematic.Tb1, eventKinematic.Tlep2 + eventKinematic.Tb2, eventKinematic.TMET) 
         else:
-            mt2ll[0] = -99.0
+            mt2bl[0] = -99.0
 
         #===================================================
         #Additional variables computation
@@ -484,11 +493,11 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             Tlep2Eta0.SetPtEtaPhiM(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.M())
             massT[0] = (TMETEta0 + Tb1Eta0 + Tb2Eta0 + Tlep1Eta0 + Tlep2Eta0).M()
 
-            r2l[0] = ev.PuppiMET_pt / (eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt())
-            r2l4j[0] = ev.PuppiMET_pt / (eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt() + jetpt1 + jetpt2 + jetpt3 + jetpt4)
+            r2l[0] = ev.MET_pt / (eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt())
+            r2l4j[0] = ev.MET_pt / (eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt() + jetpt1 + jetpt2 + jetpt3 + jetpt4)
 
             if recoWorked:
-                totalET[0] = ev.PuppiMET_sumEt + bestReconstructedKinematic.Tb1.Pt() + bestReconstructedKinematic.Tb2.Pt() + bestReconstructedKinematic.Tlep1.Pt() + bestReconstructedKinematic.Tlep2.Pt()
+                totalET[0] = ev.MET_sumEt + bestReconstructedKinematic.Tb1.Pt() + bestReconstructedKinematic.Tb2.Pt() + bestReconstructedKinematic.Tlep1.Pt() + bestReconstructedKinematic.Tlep2.Pt()
                 
                 costhetall[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tlep2.CosTheta()
                 costhetal1b1[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tb1.CosTheta()
@@ -543,7 +552,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
                     cosphill[0] = -49.0
 
             else: #TOCHECK: put default value instead?
-                totalET[0] = ev.PuppiMET_sumEt + eventKinematic.Tb1.Pt() + eventKinematic.Tb2.Pt() + eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt()
+                totalET[0] = ev.MET_sumEt + eventKinematic.Tb1.Pt() + eventKinematic.Tb2.Pt() + eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt()
 
                 costhetall[0] = -99.0
                 costhetal1b1[0] = -99.0
@@ -553,8 +562,8 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         else:
             totalET[0] = -99.0
 
-            r2l[0] = ev.PuppiMET_pt / (ev.Lepton_pt[0] + ev.Lepton_pt[1])
-            r2l4j[0] = ev.PuppiMET_pt / (ev.Lepton_pt[0] + ev.Lepton_pt[1] + jetpt1 + jetpt2 + jetpt3 + jetpt4)
+            r2l[0] = ev.MET_pt / (ev.Lepton_pt[0] + ev.Lepton_pt[1])
+            r2l4j[0] = ev.MET_pt / (ev.Lepton_pt[0] + ev.Lepton_pt[1] + jetpt1 + jetpt2 + jetpt3 + jetpt4)
 
             costhetall[0] = -99.0
             costhetal1b1[0] = -99.0
