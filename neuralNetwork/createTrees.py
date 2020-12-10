@@ -463,13 +463,15 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #MT2 computation
         #===================================================
 
-        mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET) 
-
+        mt2ll[0] = computeMT2(Tlep1, Tlep2, TMET)
         if eventKinematic is not None:
+            #mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET) 
+
             if bestReconstructedKinematicWithoutSmearing is not None and bestReconstructedKinematicWithoutSmearing.weight > 0:
                 mt2bl[0] = computeMT2(bestReconstructedKinematicWithoutSmearing.Tlep1 + bestReconstructedKinematicWithoutSmearing.Tb1, bestReconstructedKinematicWithoutSmearing.Tlep2 + bestReconstructedKinematicWithoutSmearing.Tb2, bestReconstructedKinematicWithoutSmearing.TMET) 
             else: #TOCHECK: put default value instead?
                 mt2bl[0] = computeMT2(eventKinematic.Tlep1 + eventKinematic.Tb1, eventKinematic.Tlep2 + eventKinematic.Tb2, eventKinematic.TMET) 
+        
         else:
             mt2bl[0] = -99.0
 
