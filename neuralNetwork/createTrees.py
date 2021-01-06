@@ -172,6 +172,11 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     bJetsIdx = array("i", 10*[0])
     outputTree.Branch("bJetsIdx", bJetsIdx, "bJetsIdx[nbJet]/I")
 
+    METcorrected_pt = array("f", [0.])
+    outputTree.Branch("METcorrected_pt", METcorrected_pt, "METcorrected_pt/F")
+    METcorrected_phi = array("f", [0.])
+    outputTree.Branch("METcorrected_phi", METcorrected_phi, "METcorrected_phi/F")
+
     mt2ll = array("f", [0.])
     outputTree.Branch("mt2ll", mt2ll, "mt2ll/F")
     mt2bl = array("f", [0.])
@@ -213,7 +218,8 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     nAttempts, nWorked = 0, 0
 
     #Compile the code for the mt2 calculation
-    r.gROOT.ProcessLine('.L '+baseDir+'/mt2Calculation/lester_mt2_bisect.h+')
+    r.gROOT.ProcessLine('.L '+baseDir+'/met/XYMETCorrection.h+')
+    r.gROOT.ProcessLine('.L '+baseDir+'/mt2Calculation/lester_mt2_bisect.h')
     try:
         r.asymm_mt2_lester_bisect.disableCopyrightMessage()
     except:
@@ -460,11 +466,23 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             overlapping_factor[0] = -99.0
 
         #===================================================
+        #MET XY Correction
+        #===================================================
+
+        if(year == 2017):
+            METcorrected_pt_phi = r.METXYCorr_Met_MetPhi(ev.METFixEE2017_pt, ev.METFixEE2017_phi, ev.run, year, "Run" in filename, ev.nvtx)
+        else:
+            METcorrected_pt_phi = r.METXYCorr_Met_MetPhi(ev.MET_pt, ev.MET_phi, ev.run, year, "Run" in filename, ev.nvtx)
+
+        METcorrected_pt = METcorrected_pt_phi[0]
+        METcorrected_phi = METcorrected_pt_phi[1]
+
+        #===================================================
         #MT2 computation
         #===================================================
 
         mt2ll[0] = computeMT2(Tlep1, Tlep2, TMET)
-        if eventKinematic is not None:
+        #if eventKinematic is not None:
             #mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET) 
 
         if eventKinematic is not None:
