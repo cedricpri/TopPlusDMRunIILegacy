@@ -219,7 +219,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
 
     #Compile the code for the mt2 calculation
     r.gROOT.ProcessLine('.L '+baseDir+'/met/XYMETCorrection.h+')
-    r.gROOT.ProcessLine('.L '+baseDir+'/mt2Calculation/lester_mt2_bisect.h')
+    r.gROOT.ProcessLine('.L '+baseDir+'/mt2Calculation/lester_mt2_bisect.h+')
     try:
         r.asymm_mt2_lester_bisect.disableCopyrightMessage()
     except:
@@ -470,12 +470,13 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #===================================================
 
         if(year == 2017):
-            METcorrected_pt_phi = r.METXYCorr_Met_MetPhi(ev.METFixEE2017_pt, ev.METFixEE2017_phi, ev.run, year, "Run" in filename, ev.nvtx)
+            METcorrected_pt_phi = r.METXYCorr_Met_MetPhi(ev.METFixEE2017_pt, ev.METFixEE2017_phi, ev.run, year, "Run" in filename, ev.PV_npvs)
         else:
-            METcorrected_pt_phi = r.METXYCorr_Met_MetPhi(ev.MET_pt, ev.MET_phi, ev.run, year, "Run" in filename, ev.nvtx)
+            METcorrected_pt_phi = r.METXYCorr_Met_MetPhi(ev.MET_pt, ev.MET_phi, ev.run, year, "Run" in filename, ev.PV_npvs)
 
-        METcorrected_pt = METcorrected_pt_phi[0]
-        METcorrected_phi = METcorrected_pt_phi[1]
+        METcorrected_pt[0] = METcorrected_pt_phi[0]
+        METcorrected_phi[0] = METcorrected_pt_phi[1]
+        TMET.SetPtEtaPhiM(METcorrected_pt_phi[0], 0.0, METcorrected_pt_phi[1], 0.0)
 
         #===================================================
         #MT2 computation

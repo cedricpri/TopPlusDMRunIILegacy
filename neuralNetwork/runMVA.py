@@ -22,7 +22,7 @@ from array import array
 #variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "mt2bl", "massT", "reco_weight", "cosphill", "costhetall", "dark_pt", "overlapping_factor", "r2l", "r2l4j"]
 #variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "massT", "reco_weight", "r2l", "r2l4j"] #Step 7
 variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "massT", "reco_weight", "dark_pt", "r2l", "r2l4j"] #Step 8
-
+#variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt"]
 
 trainPercentage = 50
 normalizeProcesses = True #Normalize all the processes to have the same input training events in each case
@@ -123,7 +123,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
     signalProcesses = splitByProcess(signalFiles, test, False)
     backgroundProcesses = splitByProcess(backgroundFiles, test, True)
 
-    print(bcolors.WARNING + "\n --> I found " + str(len(signalProcesses)) + " signal processes and " + str(len(backgroundProcesses)) + " background processes.")
+    print(bcolors.WARNING + "\n --> I found " + str(len(signalProcesses)) + " signal and " + str(len(backgroundProcesses)) + " background processes.")
     print("Please check if these numbers seem to be correct! \n" + bcolors.ENDC)
 
     #canvas = ROOT.TCanvas("canvas")

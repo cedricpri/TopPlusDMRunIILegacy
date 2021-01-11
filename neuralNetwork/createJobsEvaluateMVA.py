@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser.add_option('-w', '--weightsDir', action='store', type=str, dest='weightsDir', default="scalar_LO_Mchi_1_Mphi_100_default") #Directory(ies) where the weights are stored and waiting for application, without the year, as a comma separated string
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
     parser.add_option('-d', '--data', action='store_true', dest='data') #Process a data file or background/signal?
-    parser.add_option('-f', '--fakes', action='store_true', dest='fakes') #Process a fakes file?a
+    parser.add_option('-f', '--fakes', action='store_true', dest='fakes') #Process a fakes file?
     parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files (do not use the nanoLatino prefix!)
 
     parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed based on the log files and missing Tree events
