@@ -245,7 +245,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
 #=========================================================================================================
 # APPLICATION
 #=========================================================================================================
-def evaluateMVA(baseDir, inputDir, filename, weightsDir, year, test):
+def evaluateMVA(baseDir, inputDir, filename, weightsDir, year, evaluationBackgroundThreshold, test):
     """
     Function used to evaluate the MVA after being trained
     """
@@ -261,6 +261,11 @@ def evaluateMVA(baseDir, inputDir, filename, weightsDir, year, test):
     except:
         pass
     
+    if evaluationBackgroundThreshold > 0:
+        evaluationBranchTag = "_threshold_" + str(evaluationBackgroundThreshold)
+    else:
+        evaluationBranchTag = ""
+
     for weightTag in weightsDir:
 
         #Check if the weighted tree already exists
@@ -313,22 +318,22 @@ def evaluateMVA(baseDir, inputDir, filename, weightsDir, year, test):
         BDT_output_background0 = array("f", [0.])
         BDT_output_background1 = array("f", [0.])
         BDT_output_category = array("i", [0]) #Which category gets the highest softmax output?
-        outputTree.Branch("BDT_output_signal0_" + weightTag, BDT_output_signal0, "BDT_output_signal0_" + weightTag + "/I")
-        outputTree.Branch("BDT_output_signal1_" + weightTag, BDT_output_signal1, "BDT_output_signal1_" + weightTag + "/I")
-        outputTree.Branch("BDT_output_background0_" + weightTag, BDT_output_background0, "BDT_output_background0_" + weightTag + "/I")
-        outputTree.Branch("BDT_output_background1_" + weightTag, BDT_output_background1, "BDT_output_background_" + weightTag + "/I")
-        outputTree.Branch("BDT_output_category_" + weightTag, BDT_output_category, "BDT_output_category_" + weightTag + "/I")
+        outputTree.Branch("BDT_output_signal0_" + weightTag + evaluationBranchTag, BDT_output_signal0, "BDT_output_signal0_" + weightTag + evaluationBranchTag + "/I")
+        outputTree.Branch("BDT_output_signal1_" + weightTag + evaluationBranchTag, BDT_output_signal1, "BDT_output_signal1_" + weightTag + evaluationBranchTag + "/I")
+        outputTree.Branch("BDT_output_background0_" + weightTag + evaluationBranchTag, BDT_output_background0, "BDT_output_background0_" + weightTag + evaluationBranchTag + "/I")
+        outputTree.Branch("BDT_output_background1_" + weightTag + evaluationBranchTag, BDT_output_background1, "BDT_output_background1_" + weightTag + evaluationBranchTag + "/I")
+        outputTree.Branch("BDT_output_category_" + weightTag + evaluationBranchTag, BDT_output_category, "BDT_output_category_" + weightTag + evaluationBranchTag + "/I")
         
         DNN_output_signal0 = array("f", [0.])
         DNN_output_signal1 = array("f", [0.])
         DNN_output_background0 = array("f", [0.])
         DNN_output_background1 = array("f", [0.])
         DNN_output_category = array("i", [0]) #Which category gets the highest softmax output?
-        outputTree.Branch("DNN_output_signal0_" + weightTag, DNN_output_signal0, "DNN_output_signal0_" + weightTag + "/F")
-        outputTree.Branch("DNN_output_signal1_" + weightTag, DNN_output_signal1, "DNN_output_signal1_" + weightTag + "/F")
-        outputTree.Branch("DNN_output_background0_" + weightTag, DNN_output_background0, "DNN_output_background_" + weightTag + "/F")
-        outputTree.Branch("DNN_output_background1_" + weightTag, DNN_output_background1, "DNN_output_background1_" + weightTag + "/F")
-        outputTree.Branch("DNN_output_category_" + weightTag, DNN_output_category, "DNN_output_category_" + weightTag + "/I")
+        outputTree.Branch("DNN_output_signal0_" + weightTag + evaluationBranchTag, DNN_output_signal0, "DNN_output_signal0_" + weightTag + evaluationBranchTag + "/F")
+        outputTree.Branch("DNN_output_signal1_" + weightTag + evaluationBranchTag, DNN_output_signal1, "DNN_output_signal1_" + weightTag + evaluationBranchTag + "/F")
+        outputTree.Branch("DNN_output_background0_" + weightTag + evaluationBranchTag, DNN_output_background0, "DNN_output_background0_" + weightTag + evaluationBranchTag + "/F")
+        outputTree.Branch("DNN_output_background1_" + weightTag + evaluationBranchTag, DNN_output_background1, "DNN_output_background1_" + weightTag + evaluationBranchTag + "/F")
+        outputTree.Branch("DNN_output_category_" + weightTag + evaluationBranchTag, DNN_output_category, "DNN_output_category_" + weightTag + evaluationBranchTag + "/I")
 
         nEvents = inputTree.GetEntries(cut)
         if test:
@@ -350,21 +355,35 @@ def evaluateMVA(baseDir, inputDir, filename, weightsDir, year, test):
                 BDT_output_signal1[0] = 0
                 BDT_output_background0[0] = BDTValues[1]
                 BDT_output_background1[0] = 0
+
+                if evaluationBackgroundThreshold > 0:
+                    if BDT_output_background0[0] > evaluationBackgroundThreshold:
+                        BDT_output_category[0] = 1
+                    else: #Assign the signal label depending on the most probably category
+                        BDT_output_category[0] = 0
+                else:
+                    BDT_output_category[0] = BDTValues.index(max(BDTValues))
+
             elif len(BDTValues) == 3:
                 BDT_output_signal0[0] = BDTValues[0] 
                 BDT_output_signal1[0] = BDTValues[1] #Signal1 label will be assigned to the single top process, as during the training
                 BDT_output_background0[0] = BDTValues[2]
                 BDT_output_background1[0] = 0
-            elif len(BDTValues) == 4:
-                BDT_output_signal0[0] = BDTValues[0]
-                BDT_output_signal1[0] = BDTValues[1]
-                BDT_output_background0[0] = BDTValues[2]
-                BDT_output_background1[0] = BDTValues[3]
+
+                if evaluationBackgroundThreshold > 0:
+                    if BDT_output_background0[0] > evaluationBackgroundThreshold:
+                        BDT_output_category[0] = 2
+                    else: #Assign the signal label depending on the most probably category
+                        if BDT_output_signal0[0] > BDT_output_signal1[0]:
+                            BDT_output_category[0] = 0
+                        else:
+                            BDT_output_category[0] = 1
+                else:
+                    BDT_output_category[0] = BDTValues.index(max(BDTValues))
+
             else:
                 print("Incorrect number of processes.")
                 break
-
-            BDT_output_category[0] = BDTValues.index(max(BDTValues))
 
             #Fill the DNN variables
             DNNValues = list(reader.EvaluateMulticlass("PyKeras_" + weightTag))
@@ -373,21 +392,36 @@ def evaluateMVA(baseDir, inputDir, filename, weightsDir, year, test):
                 DNN_output_signal1[0] = 0
                 DNN_output_background0[0] = DNNValues[1]
                 DNN_output_background1[0] = 0
+
+                if evaluationBackgroundThreshold > 0:
+                    if DNN_output_background0[0] > evaluationBackgroundThreshold:
+                        DNN_output_category[0] = 1
+                    else: #Assign the signal label depending on the most probably category
+                        DNN_output_category[0] = 0
+                else:
+                    DNN_output_category[0] = DNNValues.index(max(DNNValues))
+
             elif len(DNNValues) == 3:
                 DNN_output_signal0[0] = DNNValues[0]
                 DNN_output_signal1[0] = DNNValues[1]
                 DNN_output_background0[0] = DNNValues[2]
                 DNN_output_background1[0] = 0
-            elif len(DNNValues) == 4:
-                DNN_output_signal0[0] = DNNValues[0]
-                DNN_output_signal1[0] = DNNValues[1]
-                DNN_output_background0[0] = DNNValues[2]
-                DNN_output_background1[0] = DNNValues[3]
+
+                if evaluationBackgroundThreshold > 0:
+                    if DNN_output_background0[0] > evaluationBackgroundThreshold:
+                        DNN_output_category[0] = 2
+                    else: #Assign the signal label depending on the most probably category
+                        if DNN_output_signal0[0] > DNN_output_signal1[0]:
+                            DNN_output_category[0] = 0
+                        else:
+                            DNN_output_category[0] = 1
+                else:
+                    DNN_output_category[0] = DNNValues.index(max(DNNValues))
+
             else:
                 print("Incorrect number of processes.")
                 break
 
-            DNN_output_category[0] = DNNValues.index(max(DNNValues))
             outputTree.Fill()
 
         outputFile.cd()
@@ -401,7 +435,7 @@ if __name__ == "__main__":
     # ===========================================
     # Argument parser
     # ===========================================
-    parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0')
+    parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0', add_help_option=False)
     parser.add_option('-s', '--signalFiles', action='store', type=str, dest='signalFiles', default=[], help='Name of the signal files to be used to train the MVA')
     parser.add_option('-b', '--backgroundFiles', action='store', type=str, dest='backgroundFiles', default=[], help='Name of the background files samples to train the MVA')
     parser.add_option('-f', '--filename', action='store', type=str, dest='filename', default='', help='Name of the file to be evaluated')
@@ -410,6 +444,7 @@ if __name__ == "__main__":
     parser.add_option('-w', '--weightsDir', action='store', type=str, dest='weightsDir', default="scalar_LO_Mchi_1_Mphi_100_default")
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
     parser.add_option('-g', '--tags', action='store', type=str, dest='tags', default="default")
+    parser.add_option('-h', '--threshold', action='store', type=float, dest='threshold', default=1.0)
     parser.add_option('-e', '--evaluate', action='store_true', dest='evaluate') #Evaluate the MVA or train it?
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only run on a single file
     (opts, args) = parser.parse_args()
@@ -422,6 +457,7 @@ if __name__ == "__main__":
     weightsDir= opts.weightsDir
     year = opts.year
     tags = opts.tags
+    threshold = opts.threshold
     evaluate = opts.evaluate
     test = opts.test
 
@@ -430,7 +466,7 @@ if __name__ == "__main__":
 
         #The mass points to be added to the trees are also passed as comma separated values
         weightsList = [str(item) for item in weightsDir.split(",")]
-        evaluateMVA(baseDir, inputDir, filename, weightsList, year, test)
+        evaluateMVA(baseDir, inputDir, filename, weightsList, year, threshold, test)
 
     else: #To train, we need to pass a list containing all the files at once
 

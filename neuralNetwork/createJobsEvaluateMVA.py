@@ -16,13 +16,14 @@ if __name__ == "__main__":
     # ===========================================                                                        
     # Argument parser                                                                                    
     # ===========================================                                                        
-    parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0')
+    parser = optparse.OptionParser(usage='usage: %prog [opts] FilenameWithSamples', version='%prog 1.0', add_help_option=False)
     parser.add_option('-c', '--cmssw', action='store', type=str, dest='cmssw', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/") #CMSSW release
     parser.add_option('-w', '--weightsDir', action='store', type=str, dest='weightsDir', default="scalar_LO_Mchi_1_Mphi_100_default") #Directory(ies) where the weights are stored and waiting for application, without the year, as a comma separated string
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
     parser.add_option('-d', '--data', action='store_true', dest='data') #Process a data file or background/signal?
     parser.add_option('-f', '--fakes', action='store_true', dest='fakes') #Process a fakes file?
     parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files (do not use the nanoLatino prefix!)
+    parser.add_option('-h', '--threshold', action='store', type=float, dest='threshold', default=-1.0) #Threshold for background assignment
 
     parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed based on the log files and missing Tree events
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only process a few files and a few events, for testing purposes
@@ -35,6 +36,7 @@ if __name__ == "__main__":
     data = opts.data
     fakes = opts.fakes
     query = opts.query
+    threshold = opts.threshold
 
     test = opts.test
     resubmit = opts.resubmit
@@ -49,6 +51,7 @@ if __name__ == "__main__":
         print("Weights directory: " + str(weightsDir))
         print("Year: " + str(year))
         print("Query: " + str(query))
+        print("Threshold: " + str(threshold))
         print("Test: " + str(test))
         print("Resubmit: " + str(resubmit))
         print("=================================================")
@@ -134,7 +137,7 @@ if __name__ == "__main__":
 
     for i in filesToProcess:
 
-        executable = baseDir + "/runMVA.py -e -f " + i + " -i " + inputDir + " -d " + baseDir + " -w " + weightsDir + " -y " + str(year)
+        executable = baseDir + "/runMVA.py -e -f " + i + " -i " + inputDir + " -d " + baseDir + " -w " + weightsDir + " -y " + str(year) + " --threshold " + str(threshold)
         
         if test:
             executable = executable + " -t"
