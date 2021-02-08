@@ -5,10 +5,10 @@ import math
 from array import array
 
 #!!TODO: apply this method to the region of the analysis (mt2ll cut, for example)
-haddFile = 'rootFile/plots_ttDM2016_DY.root'
+haddFile = 'rootFile/plots_ttDM2017_DY.root'
 
 #General parameters
-year = 2016
+year = 2017
 channels = ['ee', 'mm']
 
 #Z window width
@@ -16,9 +16,9 @@ xmin = 76
 xmax = 106
 
 #Histograms to be considered for the computation
-DYObjects = ['histo_DY;1', 'histo_DY;2']
-MCObjects = ['histo_ttZ;1', 'histo_Vg;1', 'histo_VgS_L;1', 'histo_ttbar;1', 'histo_ttW;1', 'histo_TTToSemiLeptonic;1', 'histo_singleTop;1', 'histo_VVV;1', 'histo_WW;1', 'histo_VgS_H;1', 'histo_VZ;1', 'histo_Fake;1'] #Backgrounds to be substracted to only keep DY-like data events
-dataObjects = ['histo_DATA;1']
+DYObjects = ['histo_DY']
+MCObjects = ['histo_ttZ', 'histo_Vg', 'histo_VgS_L', 'histo_ttbar', 'histo_ttW', 'histo_TTToSemiLeptonic', 'histo_singleTop', 'histo_VVV', 'histo_WW', 'histo_VgS_H', 'histo_VZ', 'histo_Fake'] #Backgrounds to be substracted to only keep DY-like data events
+dataObjects = ['histo_DATA']
 
 #MET bins used to plot the Routin factor
 metBins = ['0', '1', '2', '3', '4', '5'] #Matching the definition of the cuts in the cuts.py file: 0 is the inclusive distribution
@@ -217,7 +217,7 @@ for i, channel in enumerate(channels):
         h[i].SetLineColor(channelColors[i])
         h[i].SetLineWidth(2)
         h[i].SetMarkerStyle(21)
-        h[i].GetYaxis().SetRangeUser(0, 0.08)
+        h[i].GetYaxis().SetRangeUser(0, 0.16)
         h[i].SetMarkerColor(channelColors[i])
         h[i].Draw("same")
         
