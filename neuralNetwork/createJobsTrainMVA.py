@@ -24,7 +24,7 @@ if __name__ == "__main__":
     
     #Files to be considered
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018) 
-    parser.add_option('-g', '--tag', action='store', type=str, dest='tag', default="default") #Tag to identify the training performed
+    parser.add_option('-g', '--tag', action='store', type=str, dest='tag', default="") #Tag to identify the training performed
     parser.add_option('-s', '--signalQuery', action='store', type=str, dest='signalQuery', default="TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100_,DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100_") #Comma separated string to be matched when searching for the files (do not use the nanoLatino prefix!)
     parser.add_option('-b', '--backgroundQuery', action='store', type=str, dest='backgroundQuery', default="TTTo2L2Nu__part,ST_s-channel_ext1,ST_t-channel_antitop,ST_t-channel_top,ST_tW_antitop_ext1,ST_tW_top_ext1") #Comma separated string to be matched when searching for the files
 
@@ -98,16 +98,17 @@ if __name__ == "__main__":
     executable = executable + " -s " + ','.join(signalFilesToProcess)
     executable = executable + " -b " + ','.join(backgroundFilesToProcess).replace(',,', ',')
     executable = executable + " -y " + str(year)
-    executable = executable + " --tags " + str(tag)
+    if tag != '':
+        executable = executable + " --tags " + str(tag)
 
     template = templateCONDOR
     template = template.replace('CMSSWRELEASE', cmssw)
     template = template.replace('EXENAME', executable) 
                 
-    f = open('sh/send_trainMVA_' + str(year) + '.sh', 'w')
+    f = open('sh/send_trainMVA_' + str(year) + "_" + str(signalProcesses[0][:-1]) + '.sh', 'w')
     f.write(template)
     f.close()
-    os.chmod('sh/send_trainMVA_' + str(year) + '.sh', 0755)     
+    os.chmod('sh/send_trainMVA_' + str(year) + "_" + str(signalProcesses[0][:-1]) + '.sh', 0755)     
 
     print(str(len(signalFilesToProcess)) + " signal file(s) matching the requirements have been found.")
     print(str(len(backgroundFilesToProcess)) + " background file(s) matching the requirements have been found.")

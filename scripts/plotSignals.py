@@ -13,21 +13,19 @@ variable = ["MET_pt", 100, 0, 500, "PfMET [GeV]"]
 #variable = ["massT", 50, 0, 1500, "massT [GeV]"] 
 
 signalDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv7_Full2018v7/MCl1loose2018v7__MCCorr2018v7__l2loose__l2tightOR2018v7/"
-#signalDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/" #For single top, for now
-category = "scalar"
+category = "pseudoscalar"
 trailer = "*"
 #cuts = "mt2ll > 100 && (Lepton_pdgId[0] * Lepton_pdgId[1] == -11*13 || (mll < 76 || mll > 106))"
 cuts = "baseW * genWeight"
 
-normalization = False
+normalization = True
 addBackground = True #Plot the ttbar on this plot as wel?
-logy = True
+logy = not normalization
 
 """
 files = [{'file': 'TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': 'scalar_Mchi_1_Mphi_100'},
 #         {'file': 'TTbarDMJets_Dilepton_pseudoscalar_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': 'pseudoscalar_Mchi_1_Mphi_100'},
          {'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi100'}]
-"""
 
 files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_50'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_50'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_100'},
@@ -40,7 +38,6 @@ files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_50'+ tra
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_450'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_450'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_500'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_500'}]
 
-"""
 files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_20_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_20_Mphi_100'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_30_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_30_Mphi_100'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_40_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_40_Mphi_100'},
@@ -48,20 +45,22 @@ files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_20_Mphi_100'+ t
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_49_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_49_Mphi_100'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_51_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_51_Mphi_100'}]
          #{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_55_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_55_Mphi_100'}] #Not available for pseudoscalar
-
-files = [{'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi10__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi10'},
-         {'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi20__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi20'},
-         {'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi50__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi50'},
-         {'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi100'},
-         {'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi200__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi200'},
-         {'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi300__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi300'},
-         {'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi500__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi500'},
-         {'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi1000__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi1000'}]
 """
 
+files = [{'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi50__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi50'},
+         {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi100__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi100'},
+         {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi150__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi150'},
+         {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi200__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi200'},
+         {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi250__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi250'},
+         {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi300__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi300'},
+         {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi350__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi350'},
+         {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi400__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi400'},
+         {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi450__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi450'},
+         {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi500__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi500'}]
+
 if addBackground:
-    files.append({'file': 'TTTo2L2Nu'+trailer+'.root', 'massPoint': 'TTTo2L2Nu'})
-    #files.append({'file': 'ST_'+trailer+'.root', 'massPoint': 'Single top'})
+    #files.append({'file': 'TTTo2L2Nu'+trailer+'.root', 'massPoint': 'TTTo2L2Nu'})
+    files.append({'file': 'ST_'+trailer+'.root', 'massPoint': 'Single top'})
 
 #=============================================================================
 #GET STARTED
@@ -101,7 +100,7 @@ for f, fileDict in enumerate(files):
     if len(files) <= 3: signalHist.SetLineWidth(3)
     signalHist.GetXaxis().SetTitle(variable[4])
     if logy: signalHist.GetYaxis().SetRangeUser(0.001, 3000)
-    else: signalHist.GetYaxis().SetRangeUser(0.001, 0.05)
+    else: signalHist.GetYaxis().SetRangeUser(0.001, 0.06)
 
     massPoints.append(massPoint)
     signalHistList.append(signalHist)
@@ -117,10 +116,13 @@ elif len(files) == 3:
     #legend = TLegend(0.50, 0.75, 0.70, 0.85)
     legend = TLegend(0.20, 0.2, 0.40, 0.3)
 else:
-    legend = TLegend(0.55, 0.55, 0.75, 0.85) #Scalar high DM mass
+    #legend = TLegend(0.55, 0.55, 0.75, 0.85) #Scalar high DM mass
     #legend = TLegend(0.46, 0.55, 0.75, 0.85) #Pseudoscalar high DM mass
     #legend = TLegend(0.55, 0.55, 0.75, 0.85) #Scalar high mediator mass
     #legend = TLegend(0.48, 0.55, 0.75, 0.85) #Pseudoscalar high mediator mass
+    
+    #legend = TLegend(0.48, 0.55, 0.75, 0.85) #Single top scalar high mediator mass
+    legend = TLegend(0.39, 0.55, 0.75, 0.85) #Single top pseudoscalar high mediator mass
     #legend = TLegend(0.45, 0.55, 0.75, 0.85) #Single top
 
 for i, h in enumerate(signalHistList):
@@ -138,4 +140,5 @@ legend.Draw()
 if logy: 
     canvas.SetLogy();
 
+canvas.SaveAs(variable[0]+'.png')
 canvas.SaveAs(variable[0]+'.pdf')

@@ -112,7 +112,9 @@ if __name__ == "__main__":
                         
                         resubmitThis = False
                         for weight in weightsDir.split(","):
-                            if not tree.GetBranch("DNN_output_category_" + weight):
+                            if threshold == -1.0 and not tree.GetBranch("DNN_output_category_" + weight):
+                                resubmitThis = True
+                            elif threshold > -1.0 and not tree.GetBranch("DNN_output_category_" + weight + "_threshold_" + str(threshold)):
                                 resubmitThis = True
 
                         if resubmitThis:        
@@ -147,15 +149,15 @@ if __name__ == "__main__":
         template = template.replace('EXENAME', executable) 
 
         if fakes:
-            f = open('sh/send_' + i.replace('.root', '') + '_fakes.sh', 'w')
+            f = open('sh/send_' + i.replace('.root', '') + '_fakes_' + str(year) + '.sh', 'w')
         else:
-            f = open('sh/send_' + i.replace('.root', '') + '.sh', 'w')
+            f = open('sh/send_' + i.replace('.root', '') + '_' + str(year) + '.sh', 'w')
         f.write(template)
         f.close()
 
         if fakes:
-            os.chmod('sh/send_' + i.replace('.root', '') + '_fakes.sh', 0755)     
+            os.chmod('sh/send_' + i.replace('.root', '') + '_fakes_' + str(year) + '.sh', 0755)     
         else:
-            os.chmod('sh/send_' + i.replace('.root', '') + '.sh', 0755)     
+            os.chmod('sh/send_' + i.replace('.root', '') + '_' + str(year) + '.sh', 0755)     
 
     print(str(len(filesToProcess)) + " file(s) matching the requirements have been found.")

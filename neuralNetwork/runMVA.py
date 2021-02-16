@@ -7,7 +7,6 @@ from keras.layers import Dense, Activation, Dropout
 from keras.regularizers import l2
 from keras.optimizers import SGD, RMSprop, Adam
 from keras.models import load_model
-#from keras.utils import plot_model
 
 import optparse, os, fnmatch, sys
 from array import array
@@ -19,14 +18,14 @@ from array import array
 #Training variables
 #variables = ["PuppiMET_pt", "mt2ll", "totalET", "dphill", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "mll", "nJet", "nbJet", "mtw1", "mtw2", "mth", "Lepton_eta[0]", "Lepton_eta[1]", "Lepton_phi[0]", "Lepton_phi[1]", "thetall", "thetal1b1", "thetal2b2", "dark_pt", "overlapping_factor", "reco_weight"] #cosphill missing, mt2bl as well
 #variables = ["PuppiMET_pt", "MET_significance", "mll", "mt2ll", "mt2bl", "dphillmet", "Lepton_pt[0]", "Lepton_pt[1]", "Lepton_eta[0]", "Lepton_eta[1]", "dark_pt", "overlapping_factor", "reco_weight", "cosphill", "nbJet"] 
-#variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "mt2bl", "massT", "reco_weight", "cosphill", "costhetall", "dark_pt", "overlapping_factor", "r2l", "r2l4j"]
-#variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "massT", "reco_weight", "r2l", "r2l4j"] #Step 7
-variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "massT", "reco_weight", "dark_pt", "r2l", "r2l4j"] #Step 8
+
 #variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt"]
+variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "r2l", "r2l4j"] # Set 7
+#variables = ["PuppiMET_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "mt2bl", "massT", "reco_weight", "cosphill", "costhetall", "dark_pt", "overlapping_factor", "r2l", "r2l4j"]
 
 trainPercentage = 50
 normalizeProcesses = True #Normalize all the processes to have the same input training events in each case
-cut = "mt2ll > 80."
+cut = "mt2ll > 80. && nbJet > 0"
 
 #=========================================================================================================
 # HELPERS
@@ -43,7 +42,7 @@ class bcolors:
 
 #Progress bar
 def updateProgress(progress):
-    barLength = 20 # Modify this to change the length of the progress bar
+    barLength = 50 # Modify this to change the length of the progress bar
     status = ""
     if isinstance(progress, int):
         progress = float(progress)
@@ -74,7 +73,8 @@ def splitByProcess(inputFiles, test = False, background = False):
         if background:
             process = 'backgrounds'
         else: #Only group the single top process together
-            if 'ST' in process: process = 'ST'
+            #if 'ST' in process: process = 'ST'
+            process = "signals"
 
         alreadyFound = [i for i, d in enumerate(processes) if process in d.keys()]
         if len(alreadyFound) == 0:
@@ -94,7 +94,8 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
     """
 
     massPoint = signalFiles[0].split("_")[3:9]
-    massPoint = "_".join(massPoint).replace(".root", "") + "_" + tag
+    if(tag != ""): massPoint = "_".join(massPoint).replace(".root", "") + "_" + tag
+    else: massPoint = "_".join(massPoint).replace(".root", "")
 
     #Move to the correct directory to save the model and its weights
     outputDirTraining = baseDir + "/" + str(year) + "/" + massPoint + "/training/"
@@ -149,7 +150,10 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
         if signalChain.GetEntries(cut) < minEvents: 
             minEvents = signalChain.GetEntries(cut)
 
-        dataloader.AddTree(signalChain, 'Signal' + str(index))
+        if numberSignals > 1:
+            dataloader.AddTree(signalChain, 'Signal' + str(index))
+        else:
+            dataloader.AddTree(signalChain, 'Signal')
 
     for index in range(len(backgroundProcesses)):
 
@@ -163,7 +167,10 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
         if backgroundChain.GetEntries(cut) < minEvents: 
             minEvents = backgroundChain.GetEntries(cut)
 
-        dataloader.AddTree(backgroundChain, 'Background' + str(index))
+        if numberProcesses > 2:
+            dataloader.AddTree(backgroundChain, 'Background' + str(index))
+        else:
+            dataloader.AddTree(backgroundChain, 'Background')
 
     # ===========================================
     # TMVA setup
@@ -185,53 +192,35 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
         else:
             numberEvents = signalEvents[i]
 
-        dataloaderOptions = dataloaderOptions + ':nTrain_Signal' + str(i) + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Signal' + str(i) + '=' + str(int(numberEvents*testPercentage/100))
-        #dataloaderOptions = dataloaderOptions + ':nTrain_Signal' + str(i) + '=0:nTest_Signal' + str(i) + '=0' #TOCHECK: for now, we consider a 50%/50% splitting
+        if numberSignals > 1:
+            dataloaderOptions = dataloaderOptions + ':nTrain_Signal' + str(i) + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Signal' + str(i) + '=' + str(int(numberEvents*testPercentage/100))
+        else:
+            dataloaderOptions = dataloaderOptions + ':nTrain_Signal' + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Signal' + '=' + str(int(numberEvents*testPercentage/100))
 
     for i, backgroundProcess in enumerate(backgroundProcesses):
-        dataloaderOptions = dataloaderOptions + ':nTrain_Background' + str(i) + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Background' + str(i) + '=' + str(int(numberEvents*testPercentage/100))
-        #dataloaderOptions = dataloaderOptions + ':nTrain_Background' + str(i) + '=0:nTest_Background' + str(i) + '=0' #TOCHECK: for now, we consider a 50%/50% splitting
+        if(numberProcesses > 2):
+            dataloaderOptions = dataloaderOptions + ':nTrain_Background' + str(i) + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Background' + str(i) + '=' + str(int(numberEvents*testPercentage/100))
+        else:
+            dataloaderOptions = dataloaderOptions + ':nTrain_Background' + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Background' + '=' + str(int(numberEvents*testPercentage/100))
 
     dataloader.PrepareTrainingAndTestTree(ROOT.TCut(cut), dataloaderOptions + ':SplitMode=Random:NormMode=EqualNumEvents:!V')
 
     # ===========================================
-    # Keras model with grid search
+    # Keras model
     # ===========================================
     model = Sequential()
-    model.add(Dense(20, activation='relu', input_dim=len(variables)))
-    model.add(Dense(15, activation='relu'))
-    model.add(Dense(10, activation='relu'))
-    model.add(Dense(numberProcesses, activation='softmax'))
-
-    # Set loss and optimizer and save the model
-    model.compile(loss='categorical_crossentropy', optimizer=Adam(0.005), metrics=['accuracy', 'mse'])
-    model.save(outputDirTraining+'Adam1.h5')
-    model.summary()
-
-    model.compile(loss='categorical_crossentropy', optimizer=Adam(0.001), metrics=['accuracy', 'mse'])
-    model.save(outputDirTraining+'Adam2.h5')
-    model.summary()
-
-    model.compile(loss='categorical_crossentropy', optimizer=Adam(0.0005), metrics=['accuracy', 'mse'])
-    model.save(outputDirTraining+'Adam3.h5')
-    model.summary()
-
-    #Repeat 2016 analysis
-    model = Sequential()
-    model.add(Dense(20, activation='relu', input_dim=len(variables)))
-    model.add(Dense(15, activation='relu'))
-    model.add(Dense(10, activation='relu'))
+    model.add(Dense(80, activation='relu', input_dim=len(variables)))
+    model.add(Dense(80, activation='relu'))
+    model.add(Dense(40, activation='relu'))
     model.add(Dense(numberProcesses, activation='softmax'))
 
     model.compile(loss='categorical_crossentropy', optimizer=Adam(0.005), metrics=['accuracy', 'mse'])
-    model.save(outputDirTraining+'Juan.h5')
+    model.save(outputDirTraining+'PyKeras.h5')
     model.summary()
 
     # Book method
-    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=1000000:MinNodeSize=1%:!H:!V')
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'Juan.h5:FilenameTrainedModel=' + outputDirTraining + 'JuanTrained.h5:NumEpochs=250:BatchSize=250:VarTransform=N')
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=300:BoostType=Grad:Shrinkage=0.3:MaxDepth=4:ncuts=20:MinNodeSize=1%:!H:!V')
-    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kMLP, 'Juan', 'H:!V:NeuronType=sigmoid:NCycles=50:VarTransform=Norm:HiddenLayers=6,3:TestRate=3:LearningRate=0.005')
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=100:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=250:MinNodeSize=1%:!H:!V')
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'PyKeras.h5:FilenameTrainedModel=' + outputDirTraining + 'PyKerasTrained.h5:NumEpochs=100:BatchSize=250:VarTransform=N')
 
     # ===========================================
     # Run training, test and evaluation
@@ -240,7 +229,6 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
     factory.TrainAllMethods()
     factory.TestAllMethods()
     factory.EvaluateAllMethods()
-
 
 #=========================================================================================================
 # APPLICATION
@@ -335,15 +323,20 @@ def evaluateMVA(baseDir, inputDir, filename, weightsDir, year, evaluationBackgro
         outputTree.Branch("DNN_output_background1_" + weightTag + evaluationBranchTag, DNN_output_background1, "DNN_output_background1_" + weightTag + evaluationBranchTag + "/F")
         outputTree.Branch("DNN_output_category_" + weightTag + evaluationBranchTag, DNN_output_category, "DNN_output_category_" + weightTag + evaluationBranchTag + "/I")
 
-        nEvents = inputTree.GetEntries(cut)
+        nEvents = inputTree.GetEntries()
         if test:
             nEvents = 1000
 
         for index, ev in enumerate(inputTree):
             inputTree.GetEntry(index)
+
             if index % 100 == 0 and nEvents != 0: #Update the loading bar every 100 events
                 updateProgress(round(index/float(nEvents), 2))
-            
+
+            #Skimming to reduce the size of the trees
+            if ev.nbJet < 1 or ev.mt2ll < 80:
+                continue
+
             #For testing only
             if test and index == nEvents:
                 break
@@ -443,7 +436,7 @@ if __name__ == "__main__":
     parser.add_option('-d', '--baseDir', action='store', type=str, dest='baseDir', default="/afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/src/neuralNetwork/")
     parser.add_option('-w', '--weightsDir', action='store', type=str, dest='weightsDir', default="scalar_LO_Mchi_1_Mphi_100_default")
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
-    parser.add_option('-g', '--tags', action='store', type=str, dest='tags', default="default")
+    parser.add_option('-g', '--tags', action='store', type=str, dest='tags', default="")
     parser.add_option('-h', '--threshold', action='store', type=float, dest='threshold', default=1.0)
     parser.add_option('-e', '--evaluate', action='store_true', dest='evaluate') #Evaluate the MVA or train it?
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only run on a single file

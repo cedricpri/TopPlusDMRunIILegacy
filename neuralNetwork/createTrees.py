@@ -58,7 +58,6 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     }
 
     inputFile = r.TFile.Open(inputDir+filename, "r")
-    inputTree = inputFile.Get("Events")
 
     #Create a directory to keep the files if it does not already exist
     outputDirProduction = "/".join(inputDir.split('/')[-3:-1])+"/"
@@ -73,6 +72,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     else:
         outputFile = r.TFile.Open(outputDir + filename, "recreate")
 
+    inputTree = inputFile.Get("Events")
     outputTree = inputTree.CloneTree(0)
 
     #===================================================
@@ -328,8 +328,9 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         if(len(mbltJets) < 3 and lastmlbJet is not None): mbltJets.append(lastmlbJet)
         nbJet[0] = len(bJetIndexes)
 
-        if len(bJetIndexes) == 0: #We don't consider events having less than 1 b-jet
-            continue 
+        #Commented for now as we need to have access to the mt2ll variable for 0b-jets events for the DY Rin-otu method
+        #if len(bJetIndexes) == 0: #We don't consider events having less than 1 b-jet
+        #    continue 
 
         #===================================================
         #Kinematics definition
@@ -353,72 +354,79 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #Ttbar reconstruction
         #===================================================
 
-        bJetCandidateIndexes = []
-        if len(bJetIndexes) > 1:
-            bJetCandidateIndexes = bJetIndexes
-        else: #If we have exactly one -bjet, then we keep it as the first element while the rest of the list will be made out of usual jets for which we will try to apply the ttbar reconstruction, to try and recover some efficiency of the b-tagging
-            bJetCandidateIndexes = bJetIndexes + jetIndexes
+        #Only try to perform the top reconstruction if we have at least one b-jet
+        if len(bJetIndexes) > 0:
+            bJetCandidateIndexes = []
+            if len(bJetIndexes) > 1:
+                bJetCandidateIndexes = bJetIndexes
+            else: #If we have exactly one -bjet, then we keep it as the first element while the rest of the list will be made out of usual jets for which we will try to apply the ttbar reconstruction, to try and recover some efficiency of the b-tagging
+                bJetCandidateIndexes = bJetIndexes + jetIndexes
 
-        #Remove the duplicates to avoid counting the same jet twice
-        bJetCandidateIndexes = list(set(bJetCandidateIndexes))
+            #Remove the duplicates to avoid counting the same jet twice
+            bJetCandidateIndexes = list(set(bJetCandidateIndexes))
 
-        maxWeight = 0.0 #Criteria to know which b-jet/lepton combination to keep
-        eventKinematic1 = None
-        eventKinematic2 = None
-        bestReconstructedKinematicWithoutSmearing = None
-        bestReconstructedKinematic = None
-        inverseOrder = False #Keep track of the b-jet/lepton combination used
+            maxWeight = 0.0 #Criteria to know which b-jet/lepton combination to keep
+            eventKinematic1 = None
+            eventKinematic2 = None
+            bestReconstructedKinematicWithoutSmearing = None
+            bestReconstructedKinematic = None
+            inverseOrder = False #Keep track of the b-jet/lepton combination used
 
-        for j, jet in enumerate(bJetCandidateIndexes):
+            for j, jet in enumerate(bJetCandidateIndexes):
 
-            if j == 0:
-                #By construction, we know that the first element of bJetCandidateIndexes is a b-jet
-                Tb1.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
-            else:
-                Tb2.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
+                if j == 0:
+                    #By construction, we know that the first element of bJetCandidateIndexes is a b-jet
+                    Tb1.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
+                else:
+                    Tb2.SetPtEtaPhiM(ev.CleanJet_pt[jet], ev.CleanJet_eta[jet], ev.CleanJet_phi[jet], ev.Jet_mass[ev.CleanJet_jetIdx[jet]])
 
-                eventKinematic1 = EventKinematic(Tlep1, Tlep2, Tb1, Tb2, Tnu1, Tnu2, TMET)
-                eventKinematic1Original = deepcopy(eventKinematic1)
-                eventKinematic2 = EventKinematic(Tlep2, Tlep1, Tb1, Tb2, Tnu1, Tnu2, TMET)
-                eventKinematic2Original = deepcopy(eventKinematic2)
+                    eventKinematic1 = EventKinematic(Tlep1, Tlep2, Tb1, Tb2, Tnu1, Tnu2, TMET)
+                    eventKinematic1Original = deepcopy(eventKinematic1)
+                    eventKinematic2 = EventKinematic(Tlep2, Tlep1, Tb1, Tb2, Tnu1, Tnu2, TMET)
+                    eventKinematic2Original = deepcopy(eventKinematic2)
 
-                #Perform first of all the reco without smearing
-                eventKinematic1.runReco()
-                eventKinematic1.findBestSolution(distributions["mlb"])
-                if eventKinematic1.weight > maxWeight:
-                    bestReconstructedKinematic = eventKinematic1
-                    bestReconstructedKinematicWithoutSmearing = eventKinematic1
-                    inverseOrder = False
-                    maxWeight = eventKinematic1.weight
+                    #Perform first of all the reco without smearing
+                    eventKinematic1.runReco()
+                    eventKinematic1.findBestSolution(distributions["mlb"])
+                    if eventKinematic1.weight > maxWeight:
+                        bestReconstructedKinematic = eventKinematic1
+                        bestReconstructedKinematicWithoutSmearing = eventKinematic1
+                        inverseOrder = False
+                        maxWeight = eventKinematic1.weight
                     
-                eventKinematic2.runReco()
-                eventKinematic2.findBestSolution(distributions["mlb"])
-                if eventKinematic2.weight > maxWeight:
-                    bestReconstructedKinematic = eventKinematic2
-                    bestReconstructedKinematicWithoutSmearing = eventKinematic2
-                    inverseOrder = True
-                    maxWeight = eventKinematic2.weight
+                    eventKinematic2.runReco()
+                    eventKinematic2.findBestSolution(distributions["mlb"])
+                    if eventKinematic2.weight > maxWeight:
+                        bestReconstructedKinematic = eventKinematic2
+                        bestReconstructedKinematicWithoutSmearing = eventKinematic2
+                        inverseOrder = True
+                        maxWeight = eventKinematic2.weight
 
-                if bestReconstructedKinematic is None: #Try to perform the smearing until reaching a solution
-                    if runSmearing:
-                        for i in range(runSmearingNumber): 
-                            smearedEventKinematic1 = deepcopy(eventKinematic1Original).runSmearingOnce(distributions) #Get a new object by copying the original one
-                            #Keep the solution that has the higher weight
-                            if smearedEventKinematic1 is not None and smearedEventKinematic1.weight > maxWeight:
-                                bestReconstructedKinematic = smearedEventKinematic1
-                                inverseOrder = False
-                                maxWeight = smearedEventKinematic1.weight
-                                break
+                    if bestReconstructedKinematic is None: #Try to perform the smearing until reaching a solution
+                        if runSmearing:
+                            for i in range(runSmearingNumber): 
+                                smearedEventKinematic1 = deepcopy(eventKinematic1Original).runSmearingOnce(distributions) #Get a new object by copying the original one
+                                #Keep the solution that has the higher weight
+                                if smearedEventKinematic1 is not None and smearedEventKinematic1.weight > maxWeight:
+                                    bestReconstructedKinematic = smearedEventKinematic1
+                                    inverseOrder = False
+                                    maxWeight = smearedEventKinematic1.weight
+                                    break
 
-                            #Do the same by reversing the leptons
-                            smearedEventKinematic2 = deepcopy(eventKinematic2Original).runSmearingOnce(distributions)
-                            #Keep the solution that has the higher weight
-                            if smearedEventKinematic2 is not None and smearedEventKinematic2.weight > maxWeight:
-                                bestReconstructedKinematic = smearedEventKinematic2
-                                inverseOrder = True
-                                maxWeight = smearedEventKinematic2.weight
-                                break
-
+                                #Do the same by reversing the leptons
+                                smearedEventKinematic2 = deepcopy(eventKinematic2Original).runSmearingOnce(distributions)
+                                #Keep the solution that has the higher weight
+                                if smearedEventKinematic2 is not None and smearedEventKinematic2.weight > maxWeight:
+                                    bestReconstructedKinematic = smearedEventKinematic2
+                                    inverseOrder = True
+                                    maxWeight = smearedEventKinematic2.weight
+                                    break
+        else:
+            eventKinematic1 = None
+            eventKinematic2 = None
+            bestReconstructedKinematicWithoutSmearing = None
+            bestReconstructedKinematic = None
+            inverseOrder = False
 
         #Keep track of all the weights needed to computed the top quark pt later on
         weights = []
@@ -483,7 +491,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #===================================================
 
         mt2ll[0] = computeMT2(Tlep1, Tlep2, TMET)
-        #if eventKinematic is not None:
+        #if eventKinematic is not None: --> Removed to synch our results with Dominic's
             #mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET) 
 
         if eventKinematic is not None:
@@ -553,20 +561,9 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
                     bestReconstructedKinematic.Tlep1.Boost(-boostvectorTT)
                     bestReconstructedKinematic.Tlep1.Boost(-boostvector)
 
-                    #bestReconstructedKinematic.Tb1.Boost(-boostvectorTT)
-                    #bestReconstructedKinematic.Tb1.Boost(-boostvector)
-                    #bestReconstructedKinematic.Tnu1.Boost(-boostvectorTT)
-                    #bestReconstructedKinematic.Tnu1.Boost(-boostvector)
-
                     boostvector = Ttop2.BoostVector()
                     bestReconstructedKinematic.Tlep2.Boost(-boostvectorTT)
                     bestReconstructedKinematic.Tlep2.Boost(-boostvector)
-                    
-                    #bestReconstructedKinematic.Tb2.Boost(-boostvectorTT)
-                    #bestReconstructedKinematic.Tb2.Boost(-boostvector)
-                    #bestReconstructedKinematic.Tnu2.Boost(-boostvectorTT)
-                    #bestReconstructedKinematic.Tnu2.Boost(-boostvector)
-                    #print("Momentum: " + str((bestReconstructedKinematic.Tlep1+bestReconstructedKinematic.Tb1+bestReconstructedKinematic.Tnu1).P()))
 
                     cosphill[0] = (bestReconstructedKinematic.Tlep1.Vect().Unit().Dot(bestReconstructedKinematic.Tlep2.Vect().Unit()))
                 except Exception as e:
@@ -613,8 +610,9 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             mblt[0] = min(mbltPossibilities)
         else:
             mblt[0] = -99.0
-        outputTree.Fill()
 
+        outputTree.Fill()
+        
     try:
         print '\nThe ttbar reconstruction worked for ' + str(round((nWorked/float(nAttempts))*100, 2)) + '% of the events considered'
         print 'Total execution time: ' + str(time.time() - start_time) + ' seconds'
