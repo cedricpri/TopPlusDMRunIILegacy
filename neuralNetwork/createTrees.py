@@ -107,6 +107,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("PuppiMET_phi", 1);
     outputTree.SetBranchStatus("PuppiMET_sumEt", 1);
     outputTree.SetBranchStatus("MET_pt", 1);
+    outputTree.SetBranchStatus("MET_phi", 1);
     outputTree.SetBranchStatus("METFixEE2017_pt", 1);
     outputTree.SetBranchStatus("METFixEE2017_phi", 1);
     outputTree.SetBranchStatus("METFixEE2017_significance", 1);

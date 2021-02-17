@@ -164,7 +164,7 @@ for channel in channels:
         errorRoutinMC0bjet = RoutinMC0bjet * math.sqrt(((errorsMC['0bjet']['out'][channel][metBin])/(yieldsMC['0bjet']['out'][channel][metBin])) ** 2 + ((errorsMC['0bjet']['in'][channel][metBin])/(yieldsMC['0bjet']['in'][channel][metBin])) ** 2)
         
         RoutinData0bjet = (yieldsData['0bjet']['out'][channel][metBin]/yieldsData['0bjet']['in'][channel][metBin])
-        errorRoutinData0bjet = RoutinMC0bjet * math.sqrt(((errorsData['0bjet']['out'][channel][metBin])/(yieldsData['0bjet']['out'][channel][metBin])) ** 2 + ((errorsData['0bjet']['in'][channel][metBin])/(yieldsData['0bjet']['in'][channel][metBin])) ** 2)            
+        errorRoutinData0bjet = RoutinData0bjet * math.sqrt(((errorsData['0bjet']['out'][channel][metBin])/(yieldsData['0bjet']['out'][channel][metBin])) ** 2 + ((errorsData['0bjet']['in'][channel][metBin])/(yieldsData['0bjet']['in'][channel][metBin])) ** 2)            
 
         #Statistical error only, at least for now
         kappa[channel][metBin] = RoutinMC0bjet/RoutinData0bjet
