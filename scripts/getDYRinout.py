@@ -5,10 +5,10 @@ import math
 from array import array
 
 #!!TODO: apply this method to the region of the analysis (mt2ll cut, for example)
-haddFile = 'rootFile/plots_ttDM2017_DY.root'
+haddFile = 'rootFile/plots_ttDM2016_DY.root'
 
 #General parameters
-year = 2017
+year = 2016
 channels = ['ee', 'mm']
 
 #Z window width
@@ -16,9 +16,9 @@ xmin = 76
 xmax = 106
 
 #Histograms to be considered for the computation
-DYObjects = ['histo_DY']
+DYObjects = ['histo_DY;1', 'histo_DY;2']
 MCObjects = ['histo_ttZ', 'histo_Vg', 'histo_VgS_L', 'histo_ttbar', 'histo_ttW', 'histo_TTToSemiLeptonic', 'histo_singleTop', 'histo_VVV', 'histo_WW', 'histo_VgS_H', 'histo_VZ', 'histo_Fake'] #Backgrounds to be substracted to only keep DY-like data events
-dataObjects = ['histo_DATA']
+dataObjects = ['histo_DATA;1']
 
 #MET bins used to plot the Routin factor
 metBins = ['0', '1', '2', '3', '4', '5'] #Matching the definition of the cuts in the cuts.py file: 0 is the inclusive distribution
@@ -128,22 +128,28 @@ for region in ['0bjet', '1bjetOrMore']:
 
 print("Yields MC:") 
 print(yieldsMC)
-print("Errors MC:") 
-print(errorsMC)
 
 print("Yields data:")
 print(yieldsData)
-print("Errors data:")
-print(errorsData)
 
 #==================================================================
 #Compute the global Routin factor and scale factor in the different channels and for different met cuts
 kappa = {}
 errorKappa = {}
 outputKappa = {}
+
 RoutinMC = {}
 errorRoutinMC = {}
 outputRoutinMC = {}
+RoutinData = {}
+errorRoutinData = {}
+outputRoutinData = {}
+
+RoutinMC0bjet = {}
+errorRoutinMC0bjet = {}
+RoutinData0bjet = {}
+errorRoutinData0bjet = {}
+
 scaleFactor = {}
 errorScaleFactor = {}
 outputScaleFactor = {}
@@ -152,28 +158,48 @@ for channel in channels:
     kappa[channel] = {}
     errorKappa[channel] = {}
     outputKappa[channel] = {}
+
     RoutinMC[channel] = {}
     errorRoutinMC[channel] = {}
     outputRoutinMC[channel] = {}
+    RoutinData[channel] = {}
+    errorRoutinData[channel] = {}
+    outputRoutinData[channel] = {}
+
+    RoutinMC0bjet[channel] = {}
+    errorRoutinMC0bjet[channel] = {}
+    RoutinData0bjet[channel] = {}
+    errorRoutinData0bjet[channel] = {}
+
     scaleFactor[channel] = {}
     errorScaleFactor[channel] = {}
     outputScaleFactor[channel] = {}
 
     for metBin in metBins:
-        RoutinMC0bjet = (yieldsMC['0bjet']['out'][channel][metBin]/yieldsMC['0bjet']['in'][channel][metBin])
-        errorRoutinMC0bjet = RoutinMC0bjet * math.sqrt(((errorsMC['0bjet']['out'][channel][metBin])/(yieldsMC['0bjet']['out'][channel][metBin])) ** 2 + ((errorsMC['0bjet']['in'][channel][metBin])/(yieldsMC['0bjet']['in'][channel][metBin])) ** 2)
+        RoutinMC0bjetNumber = (yieldsMC['0bjet']['out'][channel][metBin]/yieldsMC['0bjet']['in'][channel][metBin])
+        errorRoutinMC0bjetNumber = RoutinMC0bjetNumber * math.sqrt(((errorsMC['0bjet']['out'][channel][metBin])/(yieldsMC['0bjet']['out'][channel][metBin])) ** 2 + ((errorsMC['0bjet']['in'][channel][metBin])/(yieldsMC['0bjet']['in'][channel][metBin])) ** 2)
         
-        RoutinData0bjet = (yieldsData['0bjet']['out'][channel][metBin]/yieldsData['0bjet']['in'][channel][metBin])
-        errorRoutinData0bjet = RoutinData0bjet * math.sqrt(((errorsData['0bjet']['out'][channel][metBin])/(yieldsData['0bjet']['out'][channel][metBin])) ** 2 + ((errorsData['0bjet']['in'][channel][metBin])/(yieldsData['0bjet']['in'][channel][metBin])) ** 2)            
+        RoutinMC0bjet[channel][metBin] = RoutinMC0bjetNumber
+        errorRoutinMC0bjet[channel][metBin] = errorRoutinMC0bjetNumber
+
+        RoutinData0bjetNumber = (yieldsData['0bjet']['out'][channel][metBin]/yieldsData['0bjet']['in'][channel][metBin])
+        errorRoutinData0bjetNumber = RoutinData0bjetNumber * math.sqrt(((errorsData['0bjet']['out'][channel][metBin])/(yieldsData['0bjet']['out'][channel][metBin])) ** 2 + ((errorsData['0bjet']['in'][channel][metBin])/(yieldsData['0bjet']['in'][channel][metBin])) ** 2)            
+
+        RoutinData0bjet[channel][metBin] = RoutinData0bjetNumber
+        errorRoutinData0bjet[channel][metBin] = errorRoutinData0bjetNumber
 
         #Statistical error only, at least for now
-        kappa[channel][metBin] = RoutinMC0bjet/RoutinData0bjet
-        errorKappa[channel][metBin] = kappa[channel][metBin] * math.sqrt((errorRoutinMC0bjet/RoutinMC0bjet) ** 2 + (errorRoutinData0bjet/RoutinData0bjet) ** 2)
+        kappa[channel][metBin] = RoutinMC0bjetNumber/RoutinData0bjetNumber
+        errorKappa[channel][metBin] = kappa[channel][metBin] * math.sqrt((errorRoutinMC0bjetNumber/RoutinMC0bjetNumber) ** 2 + (errorRoutinData0bjetNumber/RoutinData0bjetNumber) ** 2)
         outputKappa[channel][metBin] = str(kappa[channel][metBin]) + " +- " + str(errorKappa[channel][metBin])
 
         RoutinMC[channel][metBin] = kappa[channel][metBin] * (yieldsMC['1bjetOrMore']['out'][channel][metBin]/yieldsMC['1bjetOrMore']['in'][channel][metBin])
         errorRoutinMC[channel][metBin] = RoutinMC[channel][metBin] * math.sqrt((errorKappa[channel][metBin]/kappa[channel][metBin]) + (errorsMC['1bjetOrMore']['out'][channel][metBin]/yieldsMC['1bjetOrMore']['out'][channel][metBin]) ** 2 + (errorsMC['1bjetOrMore']['in'][channel][metBin]/yieldsMC['1bjetOrMore']['in'][channel][metBin]) ** 2)
         outputRoutinMC[channel][metBin] = str(RoutinMC[channel][metBin]) + " +- " + str(errorRoutinMC[channel][metBin])
+
+        RoutinData[channel][metBin] = kappa[channel][metBin] * (yieldsData['1bjetOrMore']['out'][channel][metBin]/yieldsData['1bjetOrMore']['in'][channel][metBin])
+        errorRoutinData[channel][metBin] = RoutinData[channel][metBin] * math.sqrt((errorKappa[channel][metBin]/kappa[channel][metBin]) + (errorsData['1bjetOrMore']['out'][channel][metBin]/yieldsData['1bjetOrMore']['out'][channel][metBin]) ** 2 + (errorsData['1bjetOrMore']['in'][channel][metBin]/yieldsData['1bjetOrMore']['in'][channel][metBin]) ** 2)
+        outputRoutinData[channel][metBin] = str(RoutinData[channel][metBin]) + " +- " + str(errorRoutinData[channel][metBin])
 
         numberExpectedOutDYYields = RoutinMC[channel][metBin] * yieldsData['1bjetOrMore']['in'][channel][metBin]
         errorNumberExpectedOutDYYields = numberExpectedOutDYYields * math.sqrt((errorRoutinMC[channel][metBin]/RoutinMC[channel][metBin]) ** 2 + (errorsData['1bjetOrMore']['in'][channel][metBin]/yieldsData['1bjetOrMore']['in'][channel][metBin]) ** 2)
@@ -188,6 +214,9 @@ print(outputKappa)
 print("RoutinMC: ")
 print(outputRoutinMC)
 
+print("RoutinData: ")
+print(outputRoutinData)
+
 print("Scale factor: ")
 print(outputScaleFactor)
 
@@ -199,46 +228,55 @@ legend = r.TLegend(0.15, 0.74, 0.35, 0.85)
 r.gStyle.SetOptStat(0)
 
 h = []
-for i, channel in enumerate(channels):
-    h.append(r.TH1D())
+plots = [
+    [RoutinData, errorRoutinData, "data"], 
+    [RoutinMC, errorRoutinMC, "MC"], 
+    [RoutinData0bjet, errorRoutinData0bjet, "data_0bjet"],
+    [RoutinMC0bjet, errorRoutinMC0bjet, "MC_objet"]
+]
 
-    if(i == 0):
-        h[i].GetXaxis().SetTitle("Pf MET [GeV]")
-        h[i].GetYaxis().SetTitle("R^{out/in} = N^{out} / N^{in}")
-        #h[i].GetYaxis().SetTitle("DY SF")
-        h[i].SetTitle('DY Rin-out (' + str(year) + ')')
-        #h[i].SetTitle('DY Rin-out scale factor (' + str(year) + ')')
+for p, plot in enumerate(plots):
+    for i, channel in enumerate(channels):
+        h.append(r.TH1D())
 
-    h[i].SetBins(len(metValues) - 1, array('d', metValues))
+        if(i == 0):
+            h[i].GetXaxis().SetTitle("Pf MET [GeV]")
+            h[i].GetYaxis().SetTitle("R^{out/in} = N^{out} / N^{in}")
+            #h[i].GetYaxis().SetTitle("DY SF")
+            h[i].SetTitle('DY Rin-out (' + str(year) + ')')
+            #h[i].SetTitle('DY Rin-out scale factor (' + str(year) + ')')
 
-    for j in range(1, len(metValues)): #Start at 1 to avoid plotting the inclusive MET bin
-        h[i].SetBinContent(j, RoutinMC[channel][str(j)])
-        h[i].SetBinError(j, errorRoutinMC[channel][str(j)])
-        h[i].SetLineColor(channelColors[i])
-        h[i].SetLineWidth(2)
-        h[i].SetMarkerStyle(21)
-        h[i].GetYaxis().SetRangeUser(0, 0.16)
-        h[i].SetMarkerColor(channelColors[i])
-        h[i].Draw("same")
+        h[i].SetBins(len(metValues) - 1, array('d', metValues))
+
+        for j in range(1, len(metValues)): #Start at 1 to avoid plotting the inclusive MET bin
+            h[i].SetBinContent(j, plot[0][channel][str(j)])
+            h[i].SetBinError(j, plot[1][channel][str(j)])
+            h[i].SetLineColor(channelColors[i])
+            h[i].SetLineWidth(2)
+            h[i].SetMarkerStyle(21)
+            #h[i].GetYaxis().SetRangeUser(0, 0.16)
+            h[i].SetMarkerColor(channelColors[i])
+            h[i].Draw("same")
         
-    legend.AddEntry(h[i], channel)
+        if(p == 0): 
+            legend.AddEntry(h[i], channel)
 
-#Plot the inclusive value
-inputData = RoutinMC
-line = r.TLine(0, (inputData["ee"]["0"] + inputData["mm"]["0"])/2, 250, (inputData["ee"]["0"] + inputData["mm"]["0"])/2);
-line.SetLineStyle(9)
-line.Draw()
+    #Plot the inclusive value
+    inputData = plot[0]
+    line = r.TLine(0, (inputData["ee"]["0"] + inputData["mm"]["0"])/2, 250, (inputData["ee"]["0"] + inputData["mm"]["0"])/2);
+    line.SetLineStyle(9)
+    line.Draw()
 
-if systematicValue > 0.0:
-    lineUp = r.TLine(0, (inputData["ee"]["0"] + inputData["mm"]["0"])/2 + systematicValue, 250, (inputData["ee"]["0"] + inputData["mm"]["0"])/2 + systematicValue);
-    lineUp.SetLineStyle(4)
-    lineUp.Draw()
+    if systematicValue > 0.0:
+        lineUp = r.TLine(0, (inputData["ee"]["0"] + inputData["mm"]["0"])/2 + systematicValue, 250, (inputData["ee"]["0"] + inputData["mm"]["0"])/2 + systematicValue);
+        lineUp.SetLineStyle(4)
+        lineUp.Draw()
+        
+        lineDown = r.TLine(0, (inputData["ee"]["0"] + inputData["mm"]["0"])/2 - systematicValue, 250, (inputData["ee"]["0"] + inputData["mm"]["0"])/2 - systematicValue);
+        lineDown.SetLineStyle(4)
+        lineDown.Draw()
 
-    lineDown = r.TLine(0, (inputData["ee"]["0"] + inputData["mm"]["0"])/2 - systematicValue, 250, (inputData["ee"]["0"] + inputData["mm"]["0"])/2 - systematicValue);
-    lineDown.SetLineStyle(4)
-    lineDown.Draw()
-
-legend.SetBorderSize(0)
-legend.Draw()
-canvas.SaveAs("Rinout" + str(year) + ".png")
-canvas.SaveAs("Rinout" + str(year) + ".root")
+    legend.SetBorderSize(0)
+    legend.Draw()
+    canvas.SaveAs("Rinout" + str(year) + "_" + plot[2] + ".png")
+    canvas.SaveAs("Rinout" + str(year) + "_" + plot[2] + ".root")
