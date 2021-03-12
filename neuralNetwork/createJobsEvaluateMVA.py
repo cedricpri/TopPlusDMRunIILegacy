@@ -10,6 +10,11 @@ pushd
 python EXENAME
 """
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
 ########################## Main program #####################################
 if __name__ == "__main__":
     
@@ -137,27 +142,28 @@ if __name__ == "__main__":
     except:
         pass #Directory already exists, this is fine
 
-    for i in filesToProcess:
-
-        executable = baseDir + "/runMVA.py -e -f " + i + " -i " + inputDir + " -d " + baseDir + " -w " + weightsDir + " -y " + str(year) + " --threshold " + str(threshold)
+    chunckedProcesses = list(chunks(filesToProcess, 5))
+    for index, i in enumerate(chunckedProcesses):
+        
+        executable = baseDir + "/runMVA.py -e -f " + ','.join(i) + " -i " + inputDir + " -d " + baseDir + " -w " + weightsDir + " -y " + str(year) + " --threshold " + str(threshold)
         
         if test:
             executable = executable + " -t"
-
+        print(executable)
         template = templateCONDOR
         template = template.replace('CMSSWRELEASE', cmssw)
         template = template.replace('EXENAME', executable) 
-
+            
         if fakes:
-            f = open('sh/send_' + i.replace('.root', '') + '_fakes_' + str(year) + '.sh', 'w')
+            f = open('sh/send_' + i[0].replace('.root', '') + '_fakes_' + str(year) + '.sh', 'w')
         else:
-            f = open('sh/send_' + i.replace('.root', '') + '_' + str(year) + '.sh', 'w')
+            f = open('sh/send_' + i[0].replace('.root', '') + '_' + str(year) + '.sh', 'w')
         f.write(template)
         f.close()
 
         if fakes:
-            os.chmod('sh/send_' + i.replace('.root', '') + '_fakes_' + str(year) + '.sh', 0755)     
+            os.chmod('sh/send_' + i[0].replace('.root', '') + '_fakes_' + str(year) + '.sh', 0755)     
         else:
-            os.chmod('sh/send_' + i.replace('.root', '') + '_' + str(year) + '.sh', 0755)     
+            os.chmod('sh/send_' + i[0].replace('.root', '') + '_' + str(year) + '.sh', 0755)     
 
     print(str(len(filesToProcess)) + " file(s) matching the requirements have been found.")

@@ -166,6 +166,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("PrefireWeight", 1);
     outputTree.SetBranchStatus("*Up*", 1);
     outputTree.SetBranchStatus("*Down*", 1);
+    outputTree.SetBranchStatus("*Top_pTrw*", 1);
 
     #New variables
     nbJet = array("i", [0])

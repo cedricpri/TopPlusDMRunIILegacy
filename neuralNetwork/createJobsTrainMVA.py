@@ -98,17 +98,22 @@ if __name__ == "__main__":
     executable = executable + " -s " + ','.join(signalFilesToProcess)
     executable = executable + " -b " + ','.join(backgroundFilesToProcess).replace(',,', ',')
     executable = executable + " -y " + str(year)
+
+    trailer = ""
     if tag != '':
         executable = executable + " --tags " + str(tag)
+        trailer = "_" + str(tag)
 
     template = templateCONDOR
     template = template.replace('CMSSWRELEASE', cmssw)
     template = template.replace('EXENAME', executable) 
                 
-    f = open('sh/send_trainMVA_' + str(year) + "_" + str(signalProcesses[0][:-1]) + '.sh', 'w')
+    
+
+    f = open('sh/send_trainMVA_' + str(year) + "_" + str(signalProcesses[0][:-1]) + trailer + '.sh', 'w')
     f.write(template)
     f.close()
-    os.chmod('sh/send_trainMVA_' + str(year) + "_" + str(signalProcesses[0][:-1]) + '.sh', 0755)     
+    os.chmod('sh/send_trainMVA_' + str(year) + "_" + str(signalProcesses[0][:-1]) + trailer + '.sh', 0755)     
 
     print(str(len(signalFilesToProcess)) + " signal file(s) matching the requirements have been found.")
     print(str(len(backgroundFilesToProcess)) + " background file(s) matching the requirements have been found.")

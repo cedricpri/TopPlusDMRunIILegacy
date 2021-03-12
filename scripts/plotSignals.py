@@ -5,28 +5,27 @@ import fnmatch, os
 #SETUP
 #=============================================================================
 #variable = ["Puppi_MET", 100, 0, 500, "Puppi MET [GeV]"] #Variable name, bins, from, to, xaxis title
-variable = ["MET_pt", 100, 0, 500, "PfMET [GeV]"]
+#variable = ["MET_pt", 100, 0, 500, "PfMET [GeV]"]
 #variable = ["dark_pt", 50, 0, 800, "Dark pt [GeV]"] 
 #variable = ["overlapingFactor", 40, 0, 4, "Overlapping factor"] 
-#variable = ["nbJet", 6, 0, 6, "Loose deepCSV b-jets"] 
-#variable = ["mblt", 50, 0, 350, "mblt [GeV]"] 
+#variable = ["nbJet", 6, 0, 6, "Medium deepCSV b-jets"] 
+variable = ["mblt", 50, 0, 350, "mblt [GeV]"] 
 #variable = ["massT", 50, 0, 1500, "massT [GeV]"] 
 
-signalDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv7_Full2018v7/MCl1loose2018v7__MCCorr2018v7__l2loose__l2tightOR2018v7/"
+signalDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv7_Full2018v7/MCl1loose2018v7__MCCorr2018v7__l2loose__l2tightOR2018v7_weighted/"
 category = "pseudoscalar"
 trailer = "*"
-#cuts = "mt2ll > 100 && (Lepton_pdgId[0] * Lepton_pdgId[1] == -11*13 || (mll < 76 || mll > 106))"
-cuts = "baseW * genWeight"
+cuts = "baseW * genWeight * (mll > 20.) * (mt2ll > 80.) * (Lepton_pdgId[0] * Lepton_pdgId[1] == -11*13 || (mll < 76 || mll > 106)) * (nJet > 0) * (nbJet > 0)"
+#cuts = "baseW * genWeight"
 
-normalization = True
-addBackground = True #Plot the ttbar on this plot as wel?
+normalization = False
+addBackground = False #Plot the ttbar on this plot as wel?
 logy = not normalization
 
-"""
-files = [{'file': 'TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': 'scalar_Mchi_1_Mphi_100'},
-#         {'file': 'TTbarDMJets_Dilepton_pseudoscalar_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': 'pseudoscalar_Mchi_1_Mphi_100'},
-         {'file': 'DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100__part' + trailer + '.root', 'massPoint': 'tWChan_scalar_Mchi1_Mphi100'}]
+files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_100'},
+         {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi100__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi100'}]
 
+"""
 files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_50'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_50'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_100'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_1_Mphi_150'+ trailer +'.root', 'massPoint': category + '_Mchi_1_Mphi_150'},
@@ -44,8 +43,7 @@ files = [{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_20_Mphi_100'+ t
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_45_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_45_Mphi_100'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_49_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_49_Mphi_100'},
          {'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_51_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_51_Mphi_100'}]
-         #{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_55_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_55_Mphi_100'}] #Not available for pseudoscalar
-"""
+         #{'file': 'TTbarDMJets_Dilepton_' + category + '_LO_Mchi_55_Mphi_100'+ trailer +'.root', 'massPoint': category + '_Mchi_55_Mphi_100'}] #Not available for pseudoscalar"
 
 files = [{'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi50__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi50'},
          {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi100__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi100'},
@@ -57,10 +55,11 @@ files = [{'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi50__part' + 
          {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi400__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi400'},
          {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi450__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi450'},
          {'file': 'DM' + category + '_Dilepton_top_tWChan_Mchi1_Mphi500__part' + trailer + '.root', 'massPoint': 'tWChan_' + category + '_Mchi1_Mphi500'}]
+"""
 
 if addBackground:
-    #files.append({'file': 'TTTo2L2Nu'+trailer+'.root', 'massPoint': 'TTTo2L2Nu'})
-    files.append({'file': 'ST_'+trailer+'.root', 'massPoint': 'Single top'})
+    files.append({'file': 'TTTo2L2Nu'+trailer+'.root', 'massPoint': 'TTTo2L2Nu'})
+    #files.append({'file': 'ST_'+trailer+'.root', 'massPoint': 'Single top'})
 
 #=============================================================================
 #GET STARTED
@@ -99,8 +98,8 @@ for f, fileDict in enumerate(files):
     signalHist.SetLineColor(colors[f])
     if len(files) <= 3: signalHist.SetLineWidth(3)
     signalHist.GetXaxis().SetTitle(variable[4])
-    if logy: signalHist.GetYaxis().SetRangeUser(0.001, 3000)
-    else: signalHist.GetYaxis().SetRangeUser(0.001, 0.06)
+    #if logy: signalHist.GetYaxis().SetRangeUser(0.001, 3000)
+    #else: signalHist.GetYaxis().SetRangeUser(0.001, 0.06)
 
     massPoints.append(massPoint)
     signalHistList.append(signalHist)
