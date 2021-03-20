@@ -29,6 +29,7 @@ if __name__ == "__main__":
     parser.add_option('-f', '--fakes', action='store_true', dest='fakes') #Process a fakes file?
     parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files (do not use the nanoLatino prefix!)
     parser.add_option('-h', '--threshold', action='store', type=float, dest='threshold', default=-1.0) #Threshold for background assignment
+    parser.add_option('-g', '--groupJobs', action='store', type=int, dest='groupJobs', default=5) #Group jobs before sending them to the queue
 
     parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed based on the log files and missing Tree events
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only process a few files and a few events, for testing purposes
@@ -42,6 +43,7 @@ if __name__ == "__main__":
     fakes = opts.fakes
     query = opts.query
     threshold = opts.threshold
+    groupJobs = opts.groupJobs
 
     test = opts.test
     resubmit = opts.resubmit
@@ -92,6 +94,14 @@ if __name__ == "__main__":
         print("The year option has to be used, and the year should be 2016, 2017 or 2018.")
     outputDir = inputDir[:-1] + "_weighted/"
 
+    #Move all the files in folder to the global directory
+    for root, dirs, files in os.walk(outputDir):
+        for subdir in dirs:
+            filesInSubdir = fnmatch.filter(os.listdir(root + subdir), 'nanoLatino*' + query + '*')
+            for fileInSubdir in filesInSubdir:
+                shutil.move(os.path.join(root + subdir, fileInSubdir), outputDir)
+
+    exit
     filesToProcess = []
     if inputDir != "":
         filesToProcess = fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + query + '*')
@@ -117,9 +127,9 @@ if __name__ == "__main__":
                         
                         resubmitThis = False
                         for weight in weightsDir.split(","):
-                            if threshold == -1.0 and not tree.GetBranch("DNN_output_category_" + weight):
+                            if threshold == -1.0 and (not tree.GetBranch("TTbar_DNN_output_category_" + weight) or not tree.GetBranch("ST_DNN_output_category_" + weight)):
                                 resubmitThis = True
-                            elif threshold > -1.0 and not tree.GetBranch("DNN_output_category_" + weight + "_threshold_" + str(threshold)):
+                            elif threshold > -1.0 and (not tree.GetBranch("TTbar_DNN_output_category_" + weight + "_threshold_" + str(threshold)) or not tree.GetBranch("ST_DNN_output_category_" + weight + "_threshold_" + str(threshold))):
                                 resubmitThis = True
 
                         if resubmitThis:        
@@ -142,14 +152,14 @@ if __name__ == "__main__":
     except:
         pass #Directory already exists, this is fine
 
-    chunckedProcesses = list(chunks(filesToProcess, 5))
+    chunckedProcesses = list(chunks(filesToProcess, groupJobs))
     for index, i in enumerate(chunckedProcesses):
         
         executable = baseDir + "/runMVA.py -e -f " + ','.join(i) + " -i " + inputDir + " -d " + baseDir + " -w " + weightsDir + " -y " + str(year) + " --threshold " + str(threshold)
         
         if test:
             executable = executable + " -t"
-        print(executable)
+
         template = templateCONDOR
         template = template.replace('CMSSWRELEASE', cmssw)
         template = template.replace('EXENAME', executable) 
