@@ -273,34 +273,36 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
 
     #Check if the weighted tree already exists
     for filename in filenames:
-        if os.path.isfile(inputDir[:-1] + '_weighted/' + filename):
-            rootfile = ROOT.TFile.Open(inputDir[:-1] + '_weighted/' + filename, "READ")
-            try:
-                if not rootfile.Get("Events"):
-                    rootfile = ROOT.TFile.Open(inputDir+filename, "READ")
-            except Exception as e:
-                rootfile = ROOT.TFile.Open(inputDir+filename, "READ")
-        else:
-            rootfile = ROOT.TFile.Open(inputDir+filename, "READ")
-
-        inputTree = rootfile.Get("Events")
-        inputTree.SetBranchStatus("*", 1)
-            
         outputDir = inputDir[:-1] + '_weighted/' + filename.split("__part")[0] + "/"
         try:
             os.stat(outputDir)
         except:
             os.makedirs(outputDir)
 
-        outputFile = ROOT.TFile.Open(outputDir + filename, "RECREATE")
-        outputTree = inputTree.CloneTree(0)
-
         for SR in ["ST", "TTbar"]:
             for weightTag in weightsDir:
                 print(bcolors.WARNING + "\n \n \n Now evaluating the tag " + str(weightTag) + bcolors.ENDC)
 
+                #Check if the weighted tree already exists
+                if os.path.isfile(outputDir + filename):
+                    rootfile = ROOT.TFile.Open(outputDir + filename, "READ")
+                    try:
+                        if not rootfile.Get("Events"):
+                            rootfile = ROOT.TFile.Open(inputDir + filename, "READ")
+                    except Exception as e:
+                        rootfile = ROOT.TFile.Open(inputDir + filename, "READ")
+                else:
+                    rootfile = ROOT.TFile.Open(inputDir + filename, "READ")
+
+                inputTree = rootfile.Get("Events")
+                inputTree.SetBranchStatus("*", 1)
+                    
+                outputFile = ROOT.TFile.Open(outputDir + filename, "RECREATE")
+                outputTree = inputTree.CloneTree(0)
+
                 #Read the variables used for the training
                 weights = baseDir + "/" + str(year) + "/" + SR + "_" + weightTag
+
                 trainingFile = ROOT.TFile.Open(weights + "/training/TMVA.root", "READ")
                 trainingTree = trainingFile.Get("dataset/TrainTree")
                 trainVariables = trainingTree.GetListOfBranches()
@@ -324,21 +326,31 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
                 reader.BookMVA("BDT_" + weightTag, weights + "/dataset/weights/TMVAClassification_BDT.weights.xml")
                 reader.BookMVA("PyKeras_" + weightTag, weights + "/dataset/weights/TMVAClassification_PyKeras.weights.xml")
 
-                outputVariables = {}
-                outputVariables[SR] = {}
-                outputVariables[SR]["BDT"] = [array("f", [0.]), array("f", [0.]), array("i", [0])] #Signal, background, highest output category
-                outputVariables[SR]["DNN"] = [array("f", [0.]), array("f", [0.]), array("i", [0])] 
-
-                outputTree.Branch(SR + "_BDT_output_signal0_" + weightTag + evaluationBranchTag, outputVariables[SR]["BDT"][0], SR + "_BDT_output_signal0_" + weightTag + evaluationBranchTag + "/F")
-                outputTree.Branch(SR + "_BDT_output_background0_" + weightTag + evaluationBranchTag, outputVariables[SR]["BDT"][1], SR + "_BDT_output_background0_" + weightTag + evaluationBranchTag + "/F")
-                outputTree.Branch(SR + "_BDT_output_category_" + weightTag + evaluationBranchTag, outputVariables[SR]["BDT"][2], SR + "_BDT_output_category_" + weightTag + evaluationBranchTag + "/I")
-                outputTree.Branch(SR + "_DNN_output_signal0_" + weightTag + evaluationBranchTag, outputVariables[SR]["DNN"][0], SR + "_DNN_output_signal0_" + weightTag + evaluationBranchTag + "/F")
-                outputTree.Branch(SR + "_DNN_output_background0_" + weightTag + evaluationBranchTag, outputVariables[SR]["DNN"][1], SR + "_DNN_output_background0_" + weightTag + evaluationBranchTag + "/F")
-                outputTree.Branch(SR + "_DNN_output_category_" + weightTag + evaluationBranchTag, outputVariables[SR]["DNN"][2], SR + "_DNN_output_category_" + weightTag + evaluationBranchTag + "/I")
+                BDT_output_signal0 = array("f", [0.])
+                BDT_output_signal1 = array("f", [0.])
+                BDT_output_background0 = array("f", [0.])
+                BDT_output_background1 = array("f", [0.])
+                BDT_output_category = array("i", [0]) #Which category gets the highest softmax output?
+                outputTree.Branch(SR + "_BDT_output_signal0_" + weightTag + evaluationBranchTag, BDT_output_signal0, SR + "_BDT_output_signal0_" + weightTag + evaluationBranchTag + "/I")
+                outputTree.Branch(SR + "_BDT_output_signal1_" + weightTag + evaluationBranchTag, BDT_output_signal1, SR + "_BDT_output_signal1_" + weightTag + evaluationBranchTag + "/I")
+                outputTree.Branch(SR + "_BDT_output_background0_" + weightTag + evaluationBranchTag, BDT_output_background0, SR + "_BDT_output_background0_" + weightTag + evaluationBranchTag + "/I")
+                outputTree.Branch(SR + "_BDT_output_background1_" + weightTag + evaluationBranchTag, BDT_output_background1, SR + "_BDT_output_background1_" + weightTag + evaluationBranchTag + "/I")
+                outputTree.Branch(SR + "_BDT_output_category_" + weightTag + evaluationBranchTag, BDT_output_category, SR + "_BDT_output_category_" + weightTag + evaluationBranchTag + "/I")
         
+                DNN_output_signal0 = array("f", [0.])
+                DNN_output_signal1 = array("f", [0.])
+                DNN_output_background0 = array("f", [0.])
+                DNN_output_background1 = array("f", [0.])
+                DNN_output_category = array("i", [0]) #Which category gets the highest softmax output?
+                outputTree.Branch(SR + "_DNN_output_signal0_" + weightTag + evaluationBranchTag, DNN_output_signal0, SR + "_DNN_output_signal0_" + weightTag + evaluationBranchTag + "/F")
+                outputTree.Branch(SR + "_DNN_output_signal1_" + weightTag + evaluationBranchTag, DNN_output_signal1, SR + "_DNN_output_signal1_" + weightTag + evaluationBranchTag + "/F")
+                outputTree.Branch(SR + "_DNN_output_background0_" + weightTag + evaluationBranchTag, DNN_output_background0, SR + "_DNN_output_background0_" + weightTag + evaluationBranchTag + "/F")
+                outputTree.Branch(SR + "_DNN_output_background1_" + weightTag + evaluationBranchTag, DNN_output_background1, SR + "_DNN_output_background1_" + weightTag + evaluationBranchTag + "/F")
+                outputTree.Branch(SR + "_DNN_output_category_" + weightTag + evaluationBranchTag, DNN_output_category, SR + "_DNN_output_category_" + weightTag + evaluationBranchTag + "/I")
+
                 nEvents = inputTree.GetEntries()
                 if test:
-                    nEvents = min(1000, nEvents)
+                    nEvents = 1000
 
                 for index, ev in enumerate(inputTree):
                     inputTree.GetEntry(index)
@@ -353,39 +365,87 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
                     #For testing only
                     if test and index == nEvents:
                         break
-           
+            
                     #Fill the BDT variables
                     BDTValues = list(reader.EvaluateMulticlass("BDT_" + weightTag))
-                    outputVariables[SR]["BDT"][0][0] = BDTValues[0]
-                    outputVariables[SR]["BDT"][1][0] = BDTValues[1]
-                    
-                    if evaluationBackgroundThreshold > 0:
-                        if BDT_output_background0[0] > evaluationBackgroundThreshold:
-                            outputVariables[SR]["BDT"][2][0] = 1
-                        else: #Assign the signal label depending on the most probably category
-                            outputVariables[SR]["BDT"][2][0] = 0
+                    if len(BDTValues) == 2:
+                        BDT_output_signal0[0] = BDTValues[0]
+                        BDT_output_signal1[0] = 0
+                        BDT_output_background0[0] = BDTValues[1]
+                        BDT_output_background1[0] = 0
+
+                        if evaluationBackgroundThreshold > 0:
+                            if BDT_output_background0[0] > evaluationBackgroundThreshold:
+                                BDT_output_category[0] = 1
+                            else: #Assign the signal label depending on the most probably category
+                                BDT_output_category[0] = 0
+                        else:
+                            BDT_output_category[0] = BDTValues.index(max(BDTValues))
+
+                    elif len(BDTValues) == 3:
+                        BDT_output_signal0[0] = BDTValues[0] 
+                        BDT_output_signal1[0] = BDTValues[1] #Signal1 label will be assigned to the single top process, as during the training
+                        BDT_output_background0[0] = BDTValues[2]
+                        BDT_output_background1[0] = 0
+                        
+                        if evaluationBackgroundThreshold > 0:
+                            if BDT_output_background0[0] > evaluationBackgroundThreshold:
+                                BDT_output_category[0] = 2
+                            else: #Assign the signal label depending on the most probably category
+                                if BDT_output_signal0[0] > BDT_output_signal1[0]:
+                                    BDT_output_category[0] = 0
+                                else:
+                                    BDT_output_category[0] = 1
+                        else:
+                            BDT_output_category[0] = BDTValues.index(max(BDTValues))
+
                     else:
-                        outputVariables[SR]["BDT"][2][0] = BDTValues.index(max(BDTValues))
-                    
+                        print("Incorrect number of processes.")
+                        break
+
                     #Fill the DNN variables
                     DNNValues = list(reader.EvaluateMulticlass("PyKeras_" + weightTag))
-                    outputVariables[SR]["DNN"][0][0] = DNNValues[0]
-                    outputVariables[SR]["DNN"][1][0] = DNNValues[1]
+                    if len(DNNValues) == 2:
+                        DNN_output_signal0[0] = DNNValues[0]
+                        DNN_output_signal1[0] = 0
+                        DNN_output_background0[0] = DNNValues[1]
+                        DNN_output_background1[0] = 0
 
-                    if evaluationBackgroundThreshold > 0:
-                        if DNN_output_background0[0] > evaluationBackgroundThreshold:
-                            outputVariables[SR]["DNN"][2][0] = 1
-                        else: #Assign the signal label depending on the most probably category
-                            outputVariables[SR]["DNN"][2][0] = 0
+                        if evaluationBackgroundThreshold > 0:
+                            if DNN_output_background0[0] > evaluationBackgroundThreshold:
+                                DNN_output_category[0] = 1
+                            else: #Assign the signal label depending on the most probably category
+                                DNN_output_category[0] = 0
+                        else:
+                            DNN_output_category[0] = DNNValues.index(max(DNNValues))
+
+                    elif len(DNNValues) == 3:
+                        DNN_output_signal0[0] = DNNValues[0]
+                        DNN_output_signal1[0] = DNNValues[1]
+                        DNN_output_background0[0] = DNNValues[2]
+                        DNN_output_background1[0] = 0
+                        
+                        if evaluationBackgroundThreshold > 0:
+                            if DNN_output_background0[0] > evaluationBackgroundThreshold:
+                                DNN_output_category[0] = 2
+                            else: #Assign the signal label depending on the most probably category
+                                if DNN_output_signal0[0] > DNN_output_signal1[0]:
+                                    DNN_output_category[0] = 0
+                                else:
+                                    DNN_output_category[0] = 1
+                        else:
+                            DNN_output_category[0] = DNNValues.index(max(DNNValues))
+
                     else:
-                        outputVariables[SR]["DNN"][2][0] = DNNValues.index(max(DNNValues))
-                
+                        print("Incorrect number of processes.")
+                        break
+
                     outputTree.Fill()
 
-            outputFile.cd()
-            outputTree.Write()
-        rootfile.Close()
-        outputFile.Close()
+                outputFile.cd()
+                outputTree.Write()
+                rootfile.Close()
+                outputFile.Close()
 
 if __name__ == "__main__":
 
