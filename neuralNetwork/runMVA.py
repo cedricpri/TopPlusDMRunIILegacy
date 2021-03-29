@@ -284,8 +284,9 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
         #Check if the weighted tree already exists
         inputFile = ROOT.TFile.Open(inputDir + filename, "READ")
         inputTree = inputFile.Get("Events")
+        inputTree.SetBranchStatus("*", 1)
 
-        outputFile = ROOT.TFile.Open(outputDir + filename, "READ")
+        outputFile = ROOT.TFile.Open(outputDir + filename, "RECREATE")
         outputTree = inputTree.CloneTree(0)
         outputTree.SetBranchStatus("*", 0)
         outputTree.SetBranchStatus("nbJet", 1)
@@ -326,11 +327,11 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
                             branchName = branch.GetName()
                         except Exception as e:
                             branchName = variableName
-                            
+
                         branches[branchName] = array('f', [-999.0])
                         reader[SR][weightTag].AddVariable(branchName, branches[branchName])
 
-                        outputTree.SetBranchAddress(branchName, branches[branchName])
+                        inputTree.SetBranchAddress(branchName, branches[branchName])
                         outputTree.SetBranchStatus(variableName, 1)
 
                 reader[SR][weightTag].BookMVA("BDT_" + weightTag, weightsLocation + "/dataset/weights/TMVAClassification_BDT.weights.xml")
@@ -349,6 +350,8 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
                 outputTree.Branch(SR + "_DNN_output_signal_" + weightTag + evaluationBranchTag, DNN_output_signal[SR][weightTag], SR + "_DNN_output_signal_" + weightTag + evaluationBranchTag + "/F")
                 outputTree.Branch(SR + "_DNN_output_background_" + weightTag + evaluationBranchTag, DNN_output_background[SR][weightTag], SR + "_DNN_output_background_" + weightTag + evaluationBranchTag + "/F")
                 outputTree.Branch(SR + "_DNN_output_category_" + weightTag + evaluationBranchTag, DNN_output_category[SR][weightTag], SR + "_DNN_output_category_" + weightTag + evaluationBranchTag + "/I")
+
+                trainingFile.Close()
 
         #Now we can apply the weights
         nEvents = inputTree.GetEntries()
@@ -404,7 +407,7 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
         outputFile.cd()
         outputTree.Write()
         outputFile.Close()
-    inputFile.Close()
+        inputFile.Close()
 
 if __name__ == "__main__":
 
