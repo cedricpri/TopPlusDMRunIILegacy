@@ -288,11 +288,9 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
 
         outputFile = ROOT.TFile.Open(outputDir + filename, "RECREATE")
         outputTree = inputTree.CloneTree(0)
-        outputTree.SetBranchStatus("*", 0)
-        outputTree.SetBranchStatus("nbJet", 1)
-        outputTree.SetBranchStatus("mt2ll", 1)
 
         reader = {}
+        branchAddresses = {}
         BDT_output_signal = {}
         BDT_output_background = {}
         BDT_output_category = {}
@@ -300,8 +298,10 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
         DNN_output_background = {}
         DNN_output_category = {}
 
-        for SR in ["ST", "TTbar"]:
+        #for SR in ["ST", "TTbar"]:
+        for SR in ["TTbar"]:
             reader[SR] = {}
+            branchAddresses[SR] = {}
             BDT_output_signal[SR] = {}
             BDT_output_background[SR] = {}
             BDT_output_category[SR] = {}
@@ -330,12 +330,12 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
 
                         branches[branchName] = array('f', [-999.0])
                         reader[SR][weightTag].AddVariable(branchName, branches[branchName])
-
+                        branchAddresses[SR][weightTag] = [branchName, branches[branchName]]
                         inputTree.SetBranchAddress(branchName, branches[branchName])
-                        outputTree.SetBranchStatus(variableName, 1)
+                        outputTree.SetBranchAddress(branchName, branches[branchName])
 
-                reader[SR][weightTag].BookMVA("BDT_" + weightTag, weightsLocation + "/dataset/weights/TMVAClassification_BDT.weights.xml")
-                reader[SR][weightTag].BookMVA("PyKeras_" + weightTag, weightsLocation + "/dataset/weights/TMVAClassification_PyKeras.weights.xml")
+                reader[SR][weightTag].BookMVA("BDT", weightsLocation + "/dataset/weights/TMVAClassification_BDT.weights.xml")
+                reader[SR][weightTag].BookMVA("PyKeras", weightsLocation + "/dataset/weights/TMVAClassification_PyKeras.weights.xml")
                 
                 BDT_output_signal[SR][weightTag] = array("f", [0.])
                 BDT_output_background[SR][weightTag] = array("f", [0.])
@@ -373,11 +373,12 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
                 break
 
             #Let's get started
-            for SR in ["ST", "TTbar"]:
+            #for SR in ["ST", "TTbar"]:
+            for SR in ["TTbar"]:
                 for weightTag in weightsDir:
-            
+
                     #Fill the BDT variables
-                    BDTValues = list(reader[SR][weightTag].EvaluateMulticlass("BDT_" + weightTag))
+                    BDTValues = list(reader[SR][weightTag].EvaluateMulticlass("BDT"))
                     BDT_output_signal[SR][weightTag][0] = BDTValues[0]
                     BDT_output_background[SR][weightTag][0] = BDTValues[1]
 
@@ -388,9 +389,10 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
                             BDT_output_category[SR][weightTag][0] = 0
                     else:
                         BDT_output_category[SR][weightTag][0] = BDTValues.index(max(BDTValues))
+                    print("BDT_" + SR + "_" + weightTag, BDTValues)
 
                     #Fill the DNN variables
-                    DNNValues = list(reader[SR][weightTag].EvaluateMulticlass("PyKeras_" + weightTag))
+                    DNNValues = list(reader[SR][weightTag].EvaluateMulticlass("PyKeras"))
                     DNN_output_signal[SR][weightTag][0] = DNNValues[0]
                     DNN_output_background[SR][weightTag][0] = DNNValues[1]
 
@@ -406,8 +408,8 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
 
         outputFile.cd()
         outputTree.Write()
-        outputFile.Close()
         inputFile.Close()
+        outputFile.Close()
 
 if __name__ == "__main__":
 
