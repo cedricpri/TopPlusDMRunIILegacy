@@ -29,7 +29,7 @@ if __name__ == "__main__":
     parser.add_option('-f', '--fakes', action='store_true', dest='fakes') #Process a fakes file?
     parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files (do not use the nanoLatino prefix!)
     parser.add_option('-h', '--threshold', action='store', type=float, dest='threshold', default=-1.0) #Threshold for background assignment
-    parser.add_option('-g', '--groupJobs', action='store', type=int, dest='groupJobs', default=5) #Group jobs before sending them to the queue
+    parser.add_option('-g', '--groupJobs', action='store', type=int, dest='groupJobs', default=4) #Group jobs before sending them to the queue
 
     parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed based on the log files and missing Tree events
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only process a few files and a few events, for testing purposes
@@ -96,9 +96,14 @@ if __name__ == "__main__":
 
     #Move all the files in folder to the global directory
     for root, dirs, files in os.walk(outputDir):
-        for subdir in dirs:
+        for subdir in dirs: 
             filesInSubdir = fnmatch.filter(os.listdir(root + subdir), 'nanoLatino*' + query + '*')
             for fileInSubdir in filesInSubdir:
+                try:
+                    os.remove(outputDir + fileInSubdir)
+                except Exception as e:
+                    pass
+
                 shutil.move(os.path.join(root + subdir, fileInSubdir), outputDir)
 
     exit
@@ -127,9 +132,9 @@ if __name__ == "__main__":
                         
                         resubmitThis = False
                         for weight in weightsDir.split(","):
-                            if threshold == -1.0 and (not tree.GetBranch("TTbar_DNN_output_category_" + weight) or not tree.GetBranch("ST_DNN_output_category_" + weight)):
+                            if threshold == -1.0 and (not tree.GetBranch("TTbar_DNN_output_signal_" + weight) or not tree.GetBranch("ST_DNN_output_signal_" + weight)):
                                 resubmitThis = True
-                            elif threshold > -1.0 and (not tree.GetBranch("TTbar_DNN_output_category_" + weight + "_threshold_" + str(threshold)) or not tree.GetBranch("ST_DNN_output_category_" + weight + "_threshold_" + str(threshold))):
+                            elif threshold > -1.0 and (not tree.GetBranch("TTbar_DNN_output_signal_" + weight + "_threshold_" + str(threshold)) or not tree.GetBranch("ST_DNN_output_signal_" + weight + "_threshold_" + str(threshold))):
                                 resubmitThis = True
 
                         if resubmitThis:        

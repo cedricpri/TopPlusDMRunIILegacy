@@ -62,6 +62,8 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     #Create a directory to keep the files if it does not already exist
     outputDirProduction = "/".join(inputDir.split('/')[-3:-1])+"/"
     outputDir = outputDir + outputDirProduction #Add a final name to distinguish between 2016, 2017 and 2018 files
+    outputDir = outputDir + filename.split("__part")[0] + "/"
+
     try:
         os.stat(outputDir)
     except:
@@ -192,6 +194,23 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.Branch("dark_pt", dark_pt, "dark_pt/F")
     overlapping_factor = array("f", [0.])
     outputTree.Branch("overlapping_factor", overlapping_factor, "overlapping_factor/F")
+
+    mllb = array("f", [0.])
+    outputTree.Branch("mllb", mllb, "mllb/F")
+    ptllb = array("f", [0.])
+    outputTree.Branch("ptllb", ptllb, "ptllb/F")
+    ptoverp_llbMET = array("f", [0.])
+    outputTree.Branch("ptoverp_llbMET", ptoverp_llbMET, "ptoverp_llbMET/F")
+    dphilbmet = array("f", [0.])
+    outputTree.Branch("dphilbmet", dphilbmet, "dphilbmet/F")
+    mtt = array("f", [0.])
+    outputTree.Branch("mtt", mtt, "mtt/F")
+    pttt = array("f", [0.])
+    outputTree.Branch("pttt", pttt, "pttt/F")
+    dphitt = array("f", [0.])
+    outputTree.Branch("dphitt", dphitt, "dphitt/F")
+    chel = array("f", [0.])
+    outputTree.Branch("chel", chel, "chel/F")
 
     totalET = array("f", [0.])
     outputTree.Branch("totalET", totalET, "totalET/F")
@@ -493,15 +512,16 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #===================================================
 
         mt2ll[0] = computeMT2(Tlep1, Tlep2, TMET)
-        #if eventKinematic is not None: --> Removed to synch our results with Dominic's
+        #if eventKinematic is not None: --> Removed to synch our results with Dominic's and the other channels
             #mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET) 
 
         if eventKinematic is not None:
             if bestReconstructedKinematicWithoutSmearing is not None and bestReconstructedKinematicWithoutSmearing.weight > 0:
                 mt2bl[0] = computeMT2(bestReconstructedKinematicWithoutSmearing.Tlep1 + bestReconstructedKinematicWithoutSmearing.Tb1, bestReconstructedKinematicWithoutSmearing.Tlep2 + bestReconstructedKinematicWithoutSmearing.Tb2, bestReconstructedKinematicWithoutSmearing.TMET) 
-            else: #TOCHECK: put default value instead?
-                mt2bl[0] = computeMT2(eventKinematic.Tlep1 + eventKinematic.Tb1, eventKinematic.Tlep2 + eventKinematic.Tb2, eventKinematic.TMET) 
-        
+            else:
+                #mt2bl[0] = computeMT2(eventKinematic.Tlep1 + eventKinematic.Tb1, eventKinematic.Tlep2 + eventKinematic.Tb2, eventKinematic.TMET) 
+                mt2bl[0] = -99.0
+
         else:
             mt2bl[0] = -99.0
 
@@ -509,9 +529,47 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #Additional variables computation
         #===================================================
        
-        #Variables bases on DESY's AN2016-240-v10
+        #Danyer's variables
+        #===================================================
+        if bestReconstructedKinematic is not None:
+            if(bestReconstructedKinematic.Tb1.Pt() > bestReconstructedKinematic.Tb2.Pt()):
+                bestBJetCandidate = bestReconstructedKinematic.Tb1
+            else:
+                bestBJetCandidate = bestReconstructedKinematic.Tb2
 
-        #massT is defined as the mass of the phi component (eta = 0) of the TLorentzVector of the event
+            #Invariant mass of llb system
+            mllb[0] = (bestReconstructedKinematic.Tlep1 + bestReconstructedKinematic.Tlep2 + bestBJetCandidate).M()
+                       
+            #Transverse mass of llb system
+            ptllb[0] = (bestReconstructedKinematic.Tlep1 + bestReconstructedKinematic.Tlep2 + bestBJetCandidate).Pt()
+        
+            #Ratio between transverse and total momentum of the llb system (centrality)
+            #TOCHECK: is the MET included in the system?
+            systemToConsider = bestReconstructedKinematic.Tlep1 + bestReconstructedKinematic.Tlep2 + bestBJetCandidate + bestReconstructedKinematic.TMET
+            ptoverp_llbMET[0] = systemToConsider.Pt()/systemToConsider.P()
+
+            #Difference in azimuthal angle between system "bjet/closest lepton" and MET
+            deltaR1 = bestReconstructedKinematic.Tlep1.DeltaR(bestBJetCandidate)
+            deltaR2 = bestReconstructedKinematic.Tlep2.DeltaR(bestBJetCandidate)
+            if(deltaR2 < deltaR1):
+                closestLepton = bestReconstructedKinematic.Tlep2
+            else:
+                closestLepton = bestReconstructedKinematic.Tlep1
+
+            dphilbmet[0] = (closestLepton + bestBJetCandidate).DeltaPhi(bestReconstructedKinematic.TMET)
+
+            #Invariant mass of ttbar system
+            mtt[0] = (bestReconstructedKinematic.Ttop1 + bestReconstructedKinematic.Ttop2).M()
+
+            #Transverse mass of ttbar system
+            pttt[0] = (bestReconstructedKinematic.Ttop1 + bestReconstructedKinematic.Ttop2).Pt()
+
+            #Difference in azimuthal angle of ttbar system
+            dphitt[0] = (bestReconstructedKinematic.Ttop1).DeltaPhi(bestReconstructedKinematic.Ttop2)
+
+        #Variables based on DESY's AN2016-240-v10
+        #===================================================
+        #Mass of the phi component (eta = 0) of the TLorentzVector of the event
         if eventKinematic is not None:
             TMETEta0 = deepcopy(eventKinematic.TMET)
             TMETEta0.SetPtEtaPhiM(TMETEta0.Pt(), 0, TMETEta0.Phi(), TMETEta0.M())
@@ -525,17 +583,17 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             Tlep2Eta0.SetPtEtaPhiM(Tlep2Eta0.Pt(), 0, Tlep2Eta0.Phi(), Tlep2Eta0.M())
             massT[0] = (TMETEta0 + Tb1Eta0 + Tb2Eta0 + Tlep1Eta0 + Tlep2Eta0).M()
 
-            r2l[0] = ev.MET_pt / (eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt())
-            r2l4j[0] = ev.MET_pt / (eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt() + jetpt1 + jetpt2 + jetpt3 + jetpt4)
+            r2l[0] = METcorrected_pt[0] / (eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt())
+            r2l4j[0] = METcorrected_pt[0] / (eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt() + jetpt1 + jetpt2 + jetpt3 + jetpt4)
 
-            if recoWorked:
+            if bestReconstructedKinematic is not None:
                 totalET[0] = ev.MET_sumEt + bestReconstructedKinematic.Tb1.Pt() + bestReconstructedKinematic.Tb2.Pt() + bestReconstructedKinematic.Tlep1.Pt() + bestReconstructedKinematic.Tlep2.Pt()
                 
                 costhetall[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tlep2.CosTheta()
                 costhetal1b1[0] = bestReconstructedKinematic.Tlep1.CosTheta() * bestReconstructedKinematic.Tb1.CosTheta()
                 costhetal2b2[0] = bestReconstructedKinematic.Tlep2.CosTheta() * bestReconstructedKinematic.Tb2.CosTheta()
                 
-                #cos(phi) in the parent rest frame
+                #Angles in the parent rest frame
                 try:
                     
                     Ttop1 = bestReconstructedKinematic.Ttop1
@@ -568,9 +626,11 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
                     bestReconstructedKinematic.Tlep2.Boost(-boostvector)
 
                     cosphill[0] = (bestReconstructedKinematic.Tlep1.Vect().Unit().Dot(bestReconstructedKinematic.Tlep2.Vect().Unit()))
+                    chel[0] = bestReconstructedKinematic.Tlep1.Angle(bestReconstructedKinematic.Tlep2.Vect())  #Full angle between leptons in parents mass frame
                 except Exception as e:
                     print(e)
                     cosphill[0] = -49.0
+                    chel[0] = -49.0
 
             else: #TOCHECK: put default value instead?
                 totalET[0] = ev.MET_sumEt + eventKinematic.Tb1.Pt() + eventKinematic.Tb2.Pt() + eventKinematic.Tlep1.Pt() + eventKinematic.Tlep2.Pt()
@@ -580,17 +640,19 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
                 costhetal2b2[0] = -99.0
     
                 cosphill[0] = -99.0 #We need the nu information for this variable, so default value if reco failed
+                chel[0] = -99.0
         else:
             totalET[0] = -99.0
 
-            r2l[0] = ev.MET_pt / (ev.Lepton_pt[0] + ev.Lepton_pt[1])
-            r2l4j[0] = ev.MET_pt / (ev.Lepton_pt[0] + ev.Lepton_pt[1] + jetpt1 + jetpt2 + jetpt3 + jetpt4)
+            r2l[0] = METcorrected_pt[0] / (ev.Lepton_pt[0] + ev.Lepton_pt[1])
+            r2l4j[0] = METcorrected_pt[0] / (ev.Lepton_pt[0] + ev.Lepton_pt[1] + jetpt1 + jetpt2 + jetpt3 + jetpt4)
 
             costhetall[0] = -99.0
             costhetal1b1[0] = -99.0
             costhetal2b2[0] = -99.0
         
             cosphill[0] = -99.0 #We need the nu information for this variable, so default value if reco failed
+            chel[0] = -99.0
 
         #===================================================
         #Compute the mblt variable as in https://arxiv.org/pdf/1812.00694.pdf (6.1)

@@ -115,5 +115,5 @@ if __name__ == "__main__":
     f.close()
     os.chmod('sh/send_trainMVA_' + str(year) + "_" + str(signalProcesses[0][:-1]) + trailer + '.sh', 0755)     
 
-    print(str(len(signalFilesToProcess)) + " signal file(s) matching the requirements have been found.")
-    print(str(len(backgroundFilesToProcess)) + " background file(s) matching the requirements have been found.")
+    print(str(len(signalFilesToProcess)) + " signal process(es) matching the requirements have been found.")
+    print(str(len(backgroundFilesToProcess)) + " background process(es) matching the requirements have been found.")

@@ -245,7 +245,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
     
     factory.TrainAllMethods()
     factory.TestAllMethods()
-    factory.EvaluateAllMethods()
+    factory.EvaluateAllmethods()
 
 #=========================================================================================================
 # APPLICATION
@@ -288,9 +288,12 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
 
         outputFile = ROOT.TFile.Open(outputDir + filename, "RECREATE")
         outputTree = inputTree.CloneTree(0)
+        #inputTree.SetBranchStatus("*", 0)
+        #inputTree.SetBranchStatus("mt2ll", 1)
+        #inputTree.SetBranchStatus("nbJet", 1)
 
         reader = {}
-        branchAddresses = {}
+        branchesAddresses = {}
         BDT_output_signal = {}
         BDT_output_background = {}
         BDT_output_category = {}
@@ -298,10 +301,9 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
         DNN_output_background = {}
         DNN_output_category = {}
 
-        #for SR in ["ST", "TTbar"]:
-        for SR in ["TTbar"]:
+        for SR in ["ST", "TTbar"]:
             reader[SR] = {}
-            branchAddresses[SR] = {}
+            branchesAddresses[SR] = {}
             BDT_output_signal[SR] = {}
             BDT_output_background[SR] = {}
             BDT_output_category[SR] = {}
@@ -311,6 +313,7 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
 
             for weightTag in weightsDir:
                 branches = {}
+                branchesAddresses[SR][weightTag] = []
                 reader[SR][weightTag] = ROOT.TMVA.Reader("Color:!Silent")
 
                 #Read the variables used for the training
@@ -318,7 +321,7 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
                 trainingFile = ROOT.TFile.Open(weightsLocation + "/training/TMVA.root", "READ")
                 trainingTree = trainingFile.Get("dataset/TrainTree")
                 trainingVariables = trainingTree.GetListOfBranches()
-
+                
                 for variable in trainingVariables:
                     variableName = variable.GetName().replace("_0_", "[0]").replace("_1_", "[1]")
                     if variableName not in ["classID", "className", "weight", "BDT", "PyKeras"]:
@@ -330,9 +333,10 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
 
                         branches[branchName] = array('f', [-999.0])
                         reader[SR][weightTag].AddVariable(branchName, branches[branchName])
-                        branchAddresses[SR][weightTag] = [branchName, branches[branchName]]
-                        inputTree.SetBranchAddress(branchName, branches[branchName])
-                        outputTree.SetBranchAddress(branchName, branches[branchName])
+                        branchesAddresses[SR][weightTag].append([branchName, branches[branchName]])
+                        inputTree.SetBranchStatus(branchName, 1)
+                        #inputTree.SetBranchAddress(branchName, branches[branchName])
+                        #outputTree.SetBranchAddress(branchName, branches[branchName])
 
                 reader[SR][weightTag].BookMVA("BDT", weightsLocation + "/dataset/weights/TMVAClassification_BDT.weights.xml")
                 reader[SR][weightTag].BookMVA("PyKeras", weightsLocation + "/dataset/weights/TMVAClassification_PyKeras.weights.xml")
@@ -359,8 +363,6 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
             nEvents = 1000
 
         for index, ev in enumerate(inputTree):
-            inputTree.GetEntry(index)                                                                                                                                                                                  
-
             if index % 100 == 0 and nEvents != 0: #Update the loading bar every 100 events
                 updateProgress(round(index/float(nEvents), 2))
 
@@ -373,9 +375,11 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
                 break
 
             #Let's get started
-            #for SR in ["ST", "TTbar"]:
-            for SR in ["TTbar"]:
+            for SR in ["ST", "TTbar"]:
                 for weightTag in weightsDir:
+                    for branch in branchesAddresses[SR][weightTag]:
+                        inputTree.SetBranchAddress(branch[0], branch[1])
+                    inputTree.GetEntry(index)
 
                     #Fill the BDT variables
                     BDTValues = list(reader[SR][weightTag].EvaluateMulticlass("BDT"))
@@ -389,7 +393,6 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
                             BDT_output_category[SR][weightTag][0] = 0
                     else:
                         BDT_output_category[SR][weightTag][0] = BDTValues.index(max(BDTValues))
-                    print("BDT_" + SR + "_" + weightTag, BDTValues)
 
                     #Fill the DNN variables
                     DNNValues = list(reader[SR][weightTag].EvaluateMulticlass("PyKeras"))
@@ -407,6 +410,7 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
             outputTree.Fill()
 
         outputFile.cd()
+        outputTree.SetBranchStatus("*", 1)
         outputTree.Write()
         inputFile.Close()
         outputFile.Close()
