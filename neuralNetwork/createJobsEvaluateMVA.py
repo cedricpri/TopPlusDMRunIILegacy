@@ -105,8 +105,7 @@ if __name__ == "__main__":
                     pass
 
                 shutil.move(os.path.join(root + subdir, fileInSubdir), outputDir)
-
-    exit
+    #exit
     filesToProcess = []
     if inputDir != "":
         filesToProcess = fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + query + '*')

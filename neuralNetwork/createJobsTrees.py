@@ -116,6 +116,19 @@ if __name__ == "__main__":
     except:
         pass #Directories already exists, this is fine
 
+    #Move all the files in folder to the global directory
+    outputDirWithSubfolders = outputDir + "/" + productionName
+    for root, dirs, files in os.walk(outputDirWithSubfolders):
+        for subdir in dirs:
+            filesInSubdir = fnmatch.filter(os.listdir(root + subdir), 'nanoLatino*' + query + '*')
+            for fileInSubdir in filesInSubdir:
+                try:
+                    os.remove(outputDirWithSubfolders + fileInSubdir)
+                except Exception as e:
+                    pass
+                    
+                shutil.move(os.path.join(root + subdir, fileInSubdir), outputDirWithSubfolders)
+
     #Find the files to process based on the arguments given
     filesToProcess = []
 

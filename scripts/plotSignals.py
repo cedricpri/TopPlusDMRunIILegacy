@@ -15,7 +15,7 @@ variable = ["mblt", 50, 0, 350, "mblt [GeV]"]
 signalDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv7_Full2018v7/MCl1loose2018v7__MCCorr2018v7__l2loose__l2tightOR2018v7_weighted/"
 category = "pseudoscalar"
 trailer = "*"
-cuts = "baseW * genWeight * (mll > 20.) * (mt2ll > 80.) * (Lepton_pdgId[0] * Lepton_pdgId[1] == -11*13 || (mll < 76 || mll > 106)) * (nJet > 0) * (nbJet > 0)"
+cuts = "baseW * genWeight * (mll > 20.) * (mt2ll > 80.) * (Lepton_pdgId[0] * Lepton_pdgId[1] == -11*13 || (mll < 76 || mll > 106)) * (Sum$(CleanJet_pt >= 30. && abs(CleanJet_eta) < 2.4) > 0) * (nbJet > 0)"
 #cuts = "baseW * genWeight"
 
 normalization = False
