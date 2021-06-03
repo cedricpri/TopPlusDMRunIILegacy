@@ -267,6 +267,17 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #Skimming and preselection
         #===================================================
 
+        #Select two tight leptons
+        if abs(ev.Lepton_pdgId[0]) == 11 and not ev.Lepton_isTightElectron_cutBasedTightPOG[0]:
+            continue
+        if abs(ev.Lepton_pdgId[0]) == 13 and not ev.Lepton_isTightMuon_mediumRelIsoTight[0]:
+            continue
+
+        if abs(ev.Lepton_pdgId[1]) == 11 and not ev.Lepton_isTightElectron_cutBasedTightPOG[1]:
+            continue
+        if abs(ev.Lepton_pdgId[1]) == 13 and not ev.Lepton_isTightMuon_mediumRelIsoTight[1]:
+            continue
+
         try: #The third lepton is not always defined
             pt3 = ev.Lepton_pt[2]
         except:
@@ -306,10 +317,19 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         except:
             jetpt4 = 0.
 
-        #We want at least one jet with pt > 30 and abs(eta) < 2.4
+        #Let's now consider jets with a given pt and which do not pass the tight jet PU Id requirement
+        for j, jet in enumerate(ev.CleanJet_pt):
+            if ev.CleanJet_pt[j] < 50. and ev.Jet_puId[ev.CleanJet_jetIdx[j]] < 7:
+                print("\n !! Removing a jet not passing the tight jet PU ID")
+                ev.nCleanJet = ev.nCleanJet - 1                
+                ev.CleanJet_pt[j] = -99
+                ev.CleanJet_eta[j] = -99
+                ev.CleanJet_phi[j] = -99
+
+        #We want the leading jet to have pt > 30 GeV and at least one jet with pt > 20 and abs(eta) < 2.4
         passJet = False
         for j, jet in enumerate(ev.CleanJet_pt):
-            if ev.CleanJet_pt[j] > 30. and abs(ev.CleanJet_eta[j]) < 2.4:
+            if ev.CleanJet_pt[0] > 30. and ev.CleanJet_pt[j] > 20. and abs(ev.CleanJet_eta[j]) < 2.4:
                 passJet = True
 
         if not passJet:
