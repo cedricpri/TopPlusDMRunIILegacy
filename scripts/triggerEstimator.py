@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
 
     ####################################### Selection cuts ###############################################
-    leptonAcc = '(Lepton_pt[0] > 25 && Lepton_pt[1] > 20 && abs(Lepton_eta[0]) < 2.4 && abs(Lepton_eta[1]) < 2.4)'
+    leptonAcc = '(Lepton_pt[0] > 25 && Lepton_pt[1] > 20 && abs(Lepton_eta[0]) < 2.4 && abs(Lepton_eta[1]) < 2.4) * MET_pt > 150.' #TOCHECK
     if isLatino == 0:
         ee = leptonAcc + '&& ((Lepton_pdgId[0]*Lepton_pdgId[1] == -121) && (Lepton_isTightElectron_cutBasedMediumPOG[0] > 0 &&  Lepton_isTightElectron_cutBasedMediumPOG[1] > 0))'
         mm = leptonAcc + '&& ((Lepton_pdgId[0]*Lepton_pdgId[1] == -169) && (Lepton_isTightMuon_mediumRelIsoTight[0] > 0 &&  Lepton_isTightMuon_mediumRelIsoTight[1] > 0))'
