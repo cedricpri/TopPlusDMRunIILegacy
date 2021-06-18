@@ -1,13 +1,16 @@
 from optparse import OptionParser
 import ROOT as ROOT
-from array import * 
+import fnmatch
 
+from array import * 
+from os import walk
 
 #------------------------------------- MAIN --------------------------------------------
 if __name__ == '__main__':
 
     parser = OptionParser(usage="%prog --help")
     parser.add_option("-f","--filename",   dest="filename",    help="File name",       default='file.root',             type='string')
+    parser.add_option("-i","--inputDir",   dest="inputDir",    help="Input directory", default='',                      type='string')
     parser.add_option("-m","--ismc",       dest="ismc",        help="Is Montecarlo?",  default=0,                       type=int)
     parser.add_option("-l","--isLatino",   dest="isLatino",    help="Is Latino tree?", default=0,                       type=int)
     parser.add_option("-y","--year",       dest="year",        help="Year",            default='2016',                  type='string')
@@ -15,6 +18,7 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
     filename = options.filename
+    inputDir = options.inputDir
     ismc = options.ismc
     isLatino = options.isLatino
     year = options.year
@@ -41,7 +45,9 @@ if __name__ == '__main__':
         leptonReco = 'Lepton_RecoSF[0]*Lepton_RecoSF[1]' 
 
     if isLatino == 0:
-        leptonIDIso = '(Lepton_tightElectron_cutBasedMediumPOG_IdIsoSF[0]*Lepton_tightElectron_cutBasedMediumPOG_IdIsoSF[1]*zerohitLeptonWeight*Lepton_tightMuon_mediumRelIsoTight_IdIsoSF[0]*Lepton_tightMuon_mediumRelIsoTight_IdIsoSF[1])'
+        leptonIDIso = '(Lepton_tightElectron_cutBasedMediumPOG_IdIsoSF[0]*Lepton_tightElectron_cutBasedMediumPOG_IdIsoSF[1]*Lepton_tightMuon_mediumRelIsoTight_IdIsoSF[0]*Lepton_tightMuon_mediumRelIsoTight_IdIsoSF[1])'
+        if ismc == 0:
+            leptonIDIso = leptonIDIso + '*zerohitLeptonWeight'
     else:
         if year == "2016":
             leptonIDIso = 'LepSF2l__ele_mva_90p_Iso2016__mu_cut_Tight80x'
@@ -114,45 +120,94 @@ if __name__ == '__main__':
  
 
     ###################################### Open file ##################################################
-    f = ROOT.TFile(options.filename)
-    ev = f.Get('Events')
-
+    #f = ROOT.TFile(options.filename)
+    #ev = f.Get('Events')
+    
+    if ismc:
+        #Find all the MC files in the inputdir
+        filesToConsider = []
+        for (dirpath, dirnames, filenames) in walk(inputDir):
+            for filename in filenames:
+                if("TTTo2L2Nu" in filename):
+                    filesToConsider.append(ROOT.TFile(inputDir + filename))
+    else:
+        filesToConsider = [ROOT.TFile(options.filename)]
 
     ####################################### Binning ###################################################
     pt_bin = array('f', [20, 40, 60, 80, 120, 180, 240, 300])
 
-
+        
     ####################################### Histograms ################################################
     h_ee_pt_num = ROOT.TH1F("h_ee_pt_num", "", len(pt_bin)-1, pt_bin)
     h_ee_pt_num.Sumw2()
     h_ee_pt_den = ROOT.TH1F("h_ee_pt_den", "", len(pt_bin)-1, pt_bin)
     h_ee_pt_den.Sumw2()
-    
+        
     h_mm_pt_num = ROOT.TH1F("h_mm_pt_num", "", len(pt_bin)-1, pt_bin)
     h_mm_pt_num.Sumw2()
     h_mm_pt_den = ROOT.TH1F("h_mm_pt_den", "", len(pt_bin)-1, pt_bin)
     h_mm_pt_den.Sumw2()
-
+        
     h_em_pt_num = ROOT.TH1F("h_em_pt_num", "", len(pt_bin)-1, pt_bin)
     h_em_pt_num.Sumw2()
     h_em_pt_den = ROOT.TH1F("h_em_pt_den", "", len(pt_bin)-1, pt_bin)
     h_em_pt_den.Sumw2()
 
-    ################################## Projecting histograms ##########################################
-    ev.Project("h_ee_pt_num", '(Lepton_pt[0]) * ' + weight, cut_num_ee) 
-    ev.Project("h_ee_pt_den", '(Lepton_pt[0]) * ' + weight, cut_den_ee) 
-    ev.Project("h_mm_pt_num", '(Lepton_pt[0]) * ' + weight, cut_num_mm) 
-    ev.Project("h_mm_pt_den", '(Lepton_pt[0]) * ' + weight, cut_den_mm) 
-    ev.Project("h_em_pt_num", '(Lepton_pt[0]) * ' + weight, cut_num_em) 
-    ev.Project("h_em_pt_den", '(Lepton_pt[0]) * ' + weight, cut_den_em) 
+    h_ee_pt_file_num = ROOT.TH1F("h_ee_pt_file_num", "", len(pt_bin)-1, pt_bin)
+    h_ee_pt_file_num.Sumw2()
+    h_ee_pt_file_den = ROOT.TH1F("h_ee_pt_file_den", "", len(pt_bin)-1, pt_bin)
+    h_ee_pt_file_den.Sumw2()
+    
+    h_mm_pt_file_num = ROOT.TH1F("h_mm_pt_file_num", "", len(pt_bin)-1, pt_bin)
+    h_mm_pt_file_num.Sumw2()
+    h_mm_pt_file_den = ROOT.TH1F("h_mm_pt_file_den", "", len(pt_bin)-1, pt_bin)
+    h_mm_pt_file_den.Sumw2()
 
+    h_em_pt_file_num = ROOT.TH1F("h_em_pt_file_num", "", len(pt_bin)-1, pt_bin)
+    h_em_pt_file_num.Sumw2()
+    h_em_pt_file_den = ROOT.TH1F("h_em_pt_file_den", "", len(pt_bin)-1, pt_bin)
+    h_em_pt_file_den.Sumw2()
+
+    for i, fileToConsider in enumerate(filesToConsider):
+        ev = fileToConsider.Get("Events")
+        if i > 10:
+            break
+
+        print("--> Reading file number " + str(i))
+
+        ################################## Projecting histograms ##########################################
+        ev.Project("h_ee_pt_file_num", '(Lepton_pt[1]) * ' + weight, cut_num_ee) 
+        ev.Project("h_ee_pt_file_den", '(Lepton_pt[1]) * ' + weight, cut_den_ee) 
+        ev.Project("h_mm_pt_file_num", '(Lepton_pt[1]) * ' + weight, cut_num_mm) 
+        ev.Project("h_mm_pt_file_den", '(Lepton_pt[1]) * ' + weight, cut_den_mm) 
+        ev.Project("h_em_pt_file_num", '(Lepton_pt[1]) * ' + weight, cut_num_em) 
+        ev.Project("h_em_pt_file_den", '(Lepton_pt[1]) * ' + weight, cut_den_em) 
+
+
+        ################################## Add histograms ##########################################
+        h_ee_pt_num.Add(h_ee_pt_file_num)
+        h_ee_pt_den.Add(h_ee_pt_file_den)
+        h_mm_pt_num.Add(h_mm_pt_file_num)
+        h_mm_pt_den.Add(h_mm_pt_file_den)
+        h_em_pt_num.Add(h_em_pt_file_num)
+        h_em_pt_den.Add(h_em_pt_file_den)
+
+        if i == 0:
+            h_ee_pt_file_num.Draw()
+
+        h_ee_pt_file_num.Reset()
+        h_ee_pt_file_den.Reset()
+        h_mm_pt_file_num.Reset()
+        h_mm_pt_file_den.Reset()
+        h_em_pt_file_num.Reset()
+        h_em_pt_file_den.Reset()
 
     ################################## Making efficiencies ###########################################
     eff_ee = ROOT.TEfficiency(h_ee_pt_num, h_ee_pt_den)
     eff_ee.SetLineColor(632)
     eff_ee.SetLineWidth(1)
     eff_ee.SetName("Efficiency_ee_pt_" + options.year + "_" + options.tag)
-
+        
     eff_mm = ROOT.TEfficiency(h_mm_pt_num, h_mm_pt_den)
     eff_mm.SetLineColor(634)
     eff_mm.SetLineWidth(1)
