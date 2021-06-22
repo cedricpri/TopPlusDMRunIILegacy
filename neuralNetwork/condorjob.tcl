@@ -4,4 +4,4 @@ output                  = /afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunI
 error                   = /afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/src/neuralNetwork/log/$(ClusterId).$(ProcId).err
 log                     = /afs/cern.ch/user/c/cprieels/work/public/TopPlusDMRunIILegacy/CMSSW_10_4_0/src/neuralNetwork/log/$(ClusterId).$(ProcId).log
 +JobFlavour = "testmatch" 
-queue filename matching (sh/send_*sh)
+queue filename matching (sh/*.sh)

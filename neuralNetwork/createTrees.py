@@ -90,6 +90,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("Lepton_phi", 1);
     outputTree.SetBranchStatus("Lepton_pdgId", 1);
     outputTree.SetBranchStatus("Lepton_promptgenmatched", 1);
+    outputTree.SetBranchStatus("Lepton_isTight*", 1);
     
     #Jets
     outputTree.SetBranchStatus("nJet", 1);
@@ -117,8 +118,8 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("TkMET_pt", 1);
     outputTree.SetBranchStatus("MET_significance", 1);
     outputTree.SetBranchStatus("mT2", 1); #mT2 computed by Latino
-    outputTree.SetBranchStatus("dphill", 1);
-    outputTree.SetBranchStatus("dphillmet", 1);
+    #outputTree.SetBranchStatus("dphill", 1);
+    #outputTree.SetBranchStatus("dphillmet", 1);
     outputTree.SetBranchStatus("mll", 1);
     outputTree.SetBranchStatus("mtw1", 1);
     outputTree.SetBranchStatus("mtw2", 1);
@@ -128,6 +129,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
 
     #Additional variables needed for latino
     outputTree.SetBranchStatus("event", 1);
+    outputTree.SetBranchStatus("mt2ll", 1);
     outputTree.SetBranchStatus("Gen_ZGstar_mass", 1);
     outputTree.SetBranchStatus("LepCut2l*", 1);
     outputTree.SetBranchStatus("fakeW", 1);
@@ -201,6 +203,10 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.Branch("ptllb", ptllb, "ptllb/F")
     ptoverp_llbMET = array("f", [0.])
     outputTree.Branch("ptoverp_llbMET", ptoverp_llbMET, "ptoverp_llbMET/F")
+    dphill = array("f", [0.])
+    outputTree.Branch("dphill", dphill, "dphill/F")
+    dphillmet = array("f", [0.])
+    outputTree.Branch("dphillmet", dphillmet, "dphillmet/F")
     dphilbmet = array("f", [0.])
     outputTree.Branch("dphilbmet", dphilbmet, "dphilbmet/F")
     mtt = array("f", [0.])
@@ -268,12 +274,12 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #===================================================
 
         #Select two tight leptons
-        if abs(ev.Lepton_pdgId[0]) == 11 and not ev.Lepton_isTightElectron_cutBasedTightPOG[0]:
+        if abs(ev.Lepton_pdgId[0]) == 11 and not ev.Lepton_isTightElectron_cutBasedMediumPOG[0]:# ev.Lepton_isTightElectron_cutBasedTightPOG[0]:
             continue
         if abs(ev.Lepton_pdgId[0]) == 13 and not ev.Lepton_isTightMuon_mediumRelIsoTight[0]:
             continue
 
-        if abs(ev.Lepton_pdgId[1]) == 11 and not ev.Lepton_isTightElectron_cutBasedTightPOG[1]:
+        if abs(ev.Lepton_pdgId[1]) == 11 and not ev.Lepton_isTightElectron_cutBasedMediumPOG[1]:#ev.Lepton_isTightElectron_cutBasedTightPOG[1]:
             continue
         if abs(ev.Lepton_pdgId[1]) == 13 and not ev.Lepton_isTightMuon_mediumRelIsoTight[1]:
             continue
@@ -576,6 +582,8 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             else:
                 closestLepton = bestReconstructedKinematic.Tlep1
 
+            dphill[0] = (bestReconstructedKinematic.Tlep1).DeltaPhi(bestReconstructedKinematic.Tlep2)
+            dphillmet[0] = (bestReconstructedKinematic.Tlep1).DeltaPhi(bestReconstructedKinematic.TMET)
             dphilbmet[0] = (closestLepton + bestBJetCandidate).DeltaPhi(bestReconstructedKinematic.TMET)
 
             #Invariant mass of ttbar system

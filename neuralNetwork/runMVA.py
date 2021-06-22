@@ -25,7 +25,7 @@ trainPercentage = 50
 normalizeProcesses = False #Normalize all the processes to have the same input training events in each case
 #cut = "mt2ll > 80. && nbJet > 0 && ((Lepton_pdgId[0] * Lepton_pdgId[1] == -11*13) || (mll < 76 || mll > 106))"
 #cut = "mt2ll > 80. && nbJet > 0"
-cut = "((mt2ll > 80.) && ((Sum$(CleanJet_pt >= 20. && abs(CleanJet_eta) < 2.4 && (CleanJet_pt > 50. || Jet_puID[CleanJet_jetIdx] > 6))) == 1) || (Sum$(CleanJet_pt >= 20. && abs(CleanJet_eta) < 2.4 && (CleanJet_pt > 50. || Jet_puID[CleanJet_jetIdx] > 6))) == 2 && nbJet == 1)))" #Single top region
+cut = "((mt2ll > 80.) && ((Sum$(CleanJet_pt >= 20. && abs(CleanJet_eta) < 2.4)) == 1) || (Sum$(CleanJet_pt >= 20. && abs(CleanJet_eta) < 2.4)) == 2 && nbJet == 1)))" #Single top region
 #cut = "((mt2ll > 80.) && !((Sum$(CleanJet_pt >= 30. && abs(CleanJet_eta) < 2.4) == 1) || (Sum$(CleanJet_pt >= 30. && abs(CleanJet_eta) < 2.4) == 2 && nbJet == 1)))" #ttbar region
 #cut = ""
 

@@ -128,7 +128,7 @@ if __name__ == '__main__':
         filesToConsider = []
         for (dirpath, dirnames, filenames) in walk(inputDir):
             for filename in filenames:
-                if("TTTo2L2Nu" in filename):
+                if("TTTo2" in filename):
                     filesToConsider.append(ROOT.TFile(inputDir + filename))
     else:
         filesToConsider = [ROOT.TFile(options.filename)]
@@ -138,50 +138,56 @@ if __name__ == '__main__':
 
         
     ####################################### Histograms ################################################
-    h_ee_pt_num = ROOT.TH1F("h_ee_pt_num", "", len(pt_bin)-1, pt_bin)
-    h_ee_pt_num.Sumw2()
-    h_ee_pt_den = ROOT.TH1F("h_ee_pt_den", "", len(pt_bin)-1, pt_bin)
-    h_ee_pt_den.Sumw2()
-        
-    h_mm_pt_num = ROOT.TH1F("h_mm_pt_num", "", len(pt_bin)-1, pt_bin)
-    h_mm_pt_num.Sumw2()
-    h_mm_pt_den = ROOT.TH1F("h_mm_pt_den", "", len(pt_bin)-1, pt_bin)
-    h_mm_pt_den.Sumw2()
-        
-    h_em_pt_num = ROOT.TH1F("h_em_pt_num", "", len(pt_bin)-1, pt_bin)
-    h_em_pt_num.Sumw2()
-    h_em_pt_den = ROOT.TH1F("h_em_pt_den", "", len(pt_bin)-1, pt_bin)
-    h_em_pt_den.Sumw2()
-
-    h_ee_pt_file_num = ROOT.TH1F("h_ee_pt_file_num", "", len(pt_bin)-1, pt_bin)
-    h_ee_pt_file_num.Sumw2()
-    h_ee_pt_file_den = ROOT.TH1F("h_ee_pt_file_den", "", len(pt_bin)-1, pt_bin)
-    h_ee_pt_file_den.Sumw2()
-    
-    h_mm_pt_file_num = ROOT.TH1F("h_mm_pt_file_num", "", len(pt_bin)-1, pt_bin)
-    h_mm_pt_file_num.Sumw2()
-    h_mm_pt_file_den = ROOT.TH1F("h_mm_pt_file_den", "", len(pt_bin)-1, pt_bin)
-    h_mm_pt_file_den.Sumw2()
-
-    h_em_pt_file_num = ROOT.TH1F("h_em_pt_file_num", "", len(pt_bin)-1, pt_bin)
-    h_em_pt_file_num.Sumw2()
-    h_em_pt_file_den = ROOT.TH1F("h_em_pt_file_den", "", len(pt_bin)-1, pt_bin)
-    h_em_pt_file_den.Sumw2()
-
+    index = 0
     for i, fileToConsider in enumerate(filesToConsider):
         ev = fileToConsider.Get("Events")
-        if i > 10:
-            break
 
         print("--> Reading file number " + str(i))
+        
+        index = index + 1
+        if index > 1:
+            break
+
+        suffix = str(index)
+        h_ee_pt_num = ROOT.TH1F("h_ee_pt_num" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_ee_pt_num.Sumw2()
+        h_ee_pt_den = ROOT.TH1F("h_ee_pt_den" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_ee_pt_den.Sumw2()
+        
+        h_mm_pt_num = ROOT.TH1F("h_mm_pt_num" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_mm_pt_num.Sumw2()
+        h_mm_pt_den = ROOT.TH1F("h_mm_pt_den" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_mm_pt_den.Sumw2()
+        
+        h_em_pt_num = ROOT.TH1F("h_em_pt_num" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_em_pt_num.Sumw2()
+        h_em_pt_den = ROOT.TH1F("h_em_pt_den" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_em_pt_den.Sumw2()
+
+        h_ee_pt_file_num = ROOT.TH1F("h_ee_pt_file_num" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_ee_pt_file_num.Sumw2()
+        h_ee_pt_file_den = ROOT.TH1F("h_ee_pt_file_den" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_ee_pt_file_den.Sumw2()
+        
+        h_mm_pt_file_num = ROOT.TH1F("h_mm_pt_file_num" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_mm_pt_file_num.Sumw2()
+        h_mm_pt_file_den = ROOT.TH1F("h_mm_pt_file_den" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_mm_pt_file_den.Sumw2()
+
+        h_em_pt_file_num = ROOT.TH1F("h_em_pt_file_num" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_em_pt_file_num.Sumw2()
+        h_em_pt_file_den = ROOT.TH1F("h_em_pt_file_den" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_em_pt_file_den.Sumw2()
+
 
         ################################## Projecting histograms ##########################################
-        ev.Project("h_ee_pt_file_num", '(Lepton_pt[1]) * ' + weight, cut_num_ee) 
-        ev.Project("h_ee_pt_file_den", '(Lepton_pt[1]) * ' + weight, cut_den_ee) 
-        ev.Project("h_mm_pt_file_num", '(Lepton_pt[1]) * ' + weight, cut_num_mm) 
-        ev.Project("h_mm_pt_file_den", '(Lepton_pt[1]) * ' + weight, cut_den_mm) 
-        ev.Project("h_em_pt_file_num", '(Lepton_pt[1]) * ' + weight, cut_num_em) 
-        ev.Project("h_em_pt_file_den", '(Lepton_pt[1]) * ' + weight, cut_den_em) 
+        
+        ev.Project("h_ee_pt_file_num" + suffix, '(Lepton_pt[1]) * ' + weight, cut_num_ee) 
+        ev.Project("h_ee_pt_file_den" + suffix, '(Lepton_pt[1]) * ' + weight, cut_den_ee) 
+        ev.Project("h_mm_pt_file_num" + suffix, '(Lepton_pt[1]) * ' + weight, cut_num_mm) 
+        ev.Project("h_mm_pt_file_den" + suffix, '(Lepton_pt[1]) * ' + weight, cut_den_mm) 
+        ev.Project("h_em_pt_file_num" + suffix, '(Lepton_pt[1]) * ' + weight, cut_num_em) 
+        ev.Project("h_em_pt_file_den" + suffix, '(Lepton_pt[1]) * ' + weight, cut_den_em) 
 
 
         ################################## Add histograms ##########################################
@@ -192,15 +198,14 @@ if __name__ == '__main__':
         h_em_pt_num.Add(h_em_pt_file_num)
         h_em_pt_den.Add(h_em_pt_file_den)
 
-        if i == 0:
-            h_ee_pt_file_num.Draw()
-
+        """
         h_ee_pt_file_num.Reset()
         h_ee_pt_file_den.Reset()
         h_mm_pt_file_num.Reset()
         h_mm_pt_file_den.Reset()
         h_em_pt_file_num.Reset()
         h_em_pt_file_den.Reset()
+        """
 
     ################################## Making efficiencies ###########################################
     eff_ee = ROOT.TEfficiency(h_ee_pt_num, h_ee_pt_den)
