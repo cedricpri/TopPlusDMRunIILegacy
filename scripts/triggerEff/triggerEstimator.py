@@ -151,7 +151,7 @@ if __name__ == '__main__':
         print("--> Reading file number " + str(i))
         
         index = index + 1
-        #if index > 280:
+        #if index > 2:
         #    break
 
         suffix = str(index)
@@ -197,6 +197,35 @@ if __name__ == '__main__':
         except Exception as e:
             continue
 
+            
+        ################################## Making efficiencies ###########################################
+        eff_ee_partial = ROOT.TEfficiency(h_ee_pt_file_num, h_ee_pt_file_den)
+        eff_mm_partial = ROOT.TEfficiency(h_mm_pt_file_num, h_mm_pt_file_den)
+        eff_em_partial = ROOT.TEfficiency(h_em_pt_file_num, h_em_pt_file_den)
+
+
+        ################################## Add efficiencies ##########################################
+        if index == 1:
+            eff_ee = ROOT.TEfficiency(h_ee_pt_num, h_ee_pt_den)
+            eff_ee.SetLineColor(632)
+            eff_ee.SetLineWidth(1)
+            eff_ee.SetName("Efficiency_ee_pt_" + options.year + "_" + options.tag)
+        
+            eff_mm = ROOT.TEfficiency(h_mm_pt_num, h_mm_pt_den)
+            eff_mm.SetLineColor(634)
+            eff_mm.SetLineWidth(1)
+            eff_mm.SetName("Efficiency_mm_pt_" + options.year + "_" + options.tag)
+    
+            eff_em = ROOT.TEfficiency(h_em_pt_num, h_em_pt_den)
+            eff_em.SetLineColor(636)
+            eff_em.SetLineWidth(1)
+            eff_em.SetName("Efficiency_em_pt_" + options.year + "_" + options.tag)
+    
+        eff_ee.Add(eff_ee_partial)
+        eff_mm.Add(eff_mm_partial)
+        eff_em.Add(eff_em_partial)
+
+        """
         ################################## Add histograms ##########################################
         h_ee_pt_num.Add(h_ee_pt_file_num)
         h_ee_pt_den.Add(h_ee_pt_file_den)
@@ -204,25 +233,8 @@ if __name__ == '__main__':
         h_mm_pt_den.Add(h_mm_pt_file_den)
         h_em_pt_num.Add(h_em_pt_file_num)
         h_em_pt_den.Add(h_em_pt_file_den)
-
-        #fileToConsider.Close()
-
-
-    ################################## Making efficiencies ###########################################
-    eff_ee = ROOT.TEfficiency(h_ee_pt_num, h_ee_pt_den)
-    eff_ee.SetLineColor(632)
-    eff_ee.SetLineWidth(1)
-    eff_ee.SetName("Efficiency_ee_pt_" + options.year + "_" + options.tag)
+        """
         
-    eff_mm = ROOT.TEfficiency(h_mm_pt_num, h_mm_pt_den)
-    eff_mm.SetLineColor(634)
-    eff_mm.SetLineWidth(1)
-    eff_mm.SetName("Efficiency_mm_pt_" + options.year + "_" + options.tag)
-
-    eff_em = ROOT.TEfficiency(h_em_pt_num, h_em_pt_den)
-    eff_em.SetLineColor(636)
-    eff_em.SetLineWidth(1)
-    eff_em.SetName("Efficiency_em_pt_" + options.year + "_" + options.tag)
 
     ########################################## DrAwing ###############################################
     can = ROOT.TCanvas("eff", "")
