@@ -26,6 +26,8 @@ if __name__ == '__main__':
     if ismc == 1:
         tag = "MC"
 
+    plots2D = True
+
     ##########################List of weights that have to be applied to MC###############################
     mcweights  = 'baseW*genWeight*puWeight*TriggerEffWeight_2l'
 
@@ -143,7 +145,39 @@ if __name__ == '__main__':
     #pt_bin = array('f', [20, 40, 60, 80, 120, 180, 240, 300])
     pt_bin = array('f', [20, 40, 60, 80, 100, 150, 200, 500])
 
+    suffix = ""
+    if plots2D:
+        h_ee_pt_num = ROOT.TH2F("h_ee_pt_num" + suffix, "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
+        h_ee_pt_num.Sumw2()
+        h_ee_pt_den = ROOT.TH2F("h_ee_pt_den" + suffix, "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
+        h_ee_pt_den.Sumw2()
+    
+        h_mm_pt_num = ROOT.TH2F("h_mm_pt_num" + suffix, "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
+        h_mm_pt_num.Sumw2()
+        h_mm_pt_den = ROOT.TH2F("h_mm_pt_den" + suffix, "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
+        h_mm_pt_den.Sumw2()
+    
+        h_em_pt_num = ROOT.TH2F("h_em_pt_num" + suffix, "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
+        h_em_pt_num.Sumw2()
+        h_em_pt_den = ROOT.TH2F("h_em_pt_den" + suffix, "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
+        h_em_pt_den.Sumw2()
+    else:
+        h_ee_pt_num = ROOT.TH1F("h_ee_pt_num" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_ee_pt_num.Sumw2()
+        h_ee_pt_den = ROOT.TH1F("h_ee_pt_den" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_ee_pt_den.Sumw2()
         
+        h_mm_pt_num = ROOT.TH1F("h_mm_pt_num" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_mm_pt_num.Sumw2()
+        h_mm_pt_den = ROOT.TH1F("h_mm_pt_den" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_mm_pt_den.Sumw2()
+            
+        h_em_pt_num = ROOT.TH1F("h_em_pt_num" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_em_pt_num.Sumw2()
+        h_em_pt_den = ROOT.TH1F("h_em_pt_den" + suffix, "", len(pt_bin)-1, pt_bin)
+        h_em_pt_den.Sumw2()
+        
+
     ####################################### Histograms ################################################
     index = 0
     for i, fileToConsider in enumerate(filesToConsider):
@@ -156,47 +190,61 @@ if __name__ == '__main__':
         #    break
 
         suffix = str(index)
-        h_ee_pt_num = ROOT.TH1F("h_ee_pt_num" + suffix, "", len(pt_bin)-1, pt_bin)
-        h_ee_pt_num.Sumw2()
-        h_ee_pt_den = ROOT.TH1F("h_ee_pt_den" + suffix, "", len(pt_bin)-1, pt_bin)
-        h_ee_pt_den.Sumw2()
+        if plots2D:
+            h_ee_pt_file_num = ROOT.TH2F("h_ee_pt_file_num" + suffix, "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
+            h_ee_pt_file_num.Sumw2()
+            h_ee_pt_file_den = ROOT.TH2F("h_ee_pt_file_den" + suffix, "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
+            h_ee_pt_file_den.Sumw2()
         
-        h_mm_pt_num = ROOT.TH1F("h_mm_pt_num" + suffix, "", len(pt_bin)-1, pt_bin)
-        h_mm_pt_num.Sumw2()
-        h_mm_pt_den = ROOT.TH1F("h_mm_pt_den" + suffix, "", len(pt_bin)-1, pt_bin)
-        h_mm_pt_den.Sumw2()
-        
-        h_em_pt_num = ROOT.TH1F("h_em_pt_num" + suffix, "", len(pt_bin)-1, pt_bin)
-        h_em_pt_num.Sumw2()
-        h_em_pt_den = ROOT.TH1F("h_em_pt_den" + suffix, "", len(pt_bin)-1, pt_bin)
-        h_em_pt_den.Sumw2()
+            h_mm_pt_file_num = ROOT.TH2F("h_mm_pt_file_num" + suffix, "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
+            h_mm_pt_file_num.Sumw2()
+            h_mm_pt_file_den = ROOT.TH2F("h_mm_pt_file_den" + suffix, "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
+            h_mm_pt_file_den.Sumw2()
 
-        h_ee_pt_file_num = ROOT.TH1F("h_ee_pt_file_num" + suffix, "", len(pt_bin)-1, pt_bin)
-        h_ee_pt_file_num.Sumw2()
-        h_ee_pt_file_den = ROOT.TH1F("h_ee_pt_file_den" + suffix, "", len(pt_bin)-1, pt_bin)
-        h_ee_pt_file_den.Sumw2()
+            h_em_pt_file_num = ROOT.TH2F("h_em_pt_file_num" + suffix, "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
+            h_em_pt_file_num.Sumw2()
+            h_em_pt_file_den = ROOT.TH2F("h_em_pt_file_den" + suffix, "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
+            h_em_pt_file_den.Sumw2()
+        else:
+            h_ee_pt_file_num = ROOT.TH1F("h_ee_pt_file_num" + suffix, "", len(pt_bin)-1, pt_bin)
+            h_ee_pt_file_num.Sumw2()
+            h_ee_pt_file_den = ROOT.TH1F("h_ee_pt_file_den" + suffix, "", len(pt_bin)-1, pt_bin)
+            h_ee_pt_file_den.Sumw2()
         
-        h_mm_pt_file_num = ROOT.TH1F("h_mm_pt_file_num" + suffix, "", len(pt_bin)-1, pt_bin)
-        h_mm_pt_file_num.Sumw2()
-        h_mm_pt_file_den = ROOT.TH1F("h_mm_pt_file_den" + suffix, "", len(pt_bin)-1, pt_bin)
-        h_mm_pt_file_den.Sumw2()
+            h_mm_pt_file_num = ROOT.TH1F("h_mm_pt_file_num" + suffix, "", len(pt_bin)-1, pt_bin)
+            h_mm_pt_file_num.Sumw2()
+            h_mm_pt_file_den = ROOT.TH1F("h_mm_pt_file_den" + suffix, "", len(pt_bin)-1, pt_bin)
+            h_mm_pt_file_den.Sumw2()
 
-        h_em_pt_file_num = ROOT.TH1F("h_em_pt_file_num" + suffix, "", len(pt_bin)-1, pt_bin)
-        h_em_pt_file_num.Sumw2()
-        h_em_pt_file_den = ROOT.TH1F("h_em_pt_file_den" + suffix, "", len(pt_bin)-1, pt_bin)
-        h_em_pt_file_den.Sumw2()
+            h_em_pt_file_num = ROOT.TH1F("h_em_pt_file_num" + suffix, "", len(pt_bin)-1, pt_bin)
+            h_em_pt_file_num.Sumw2()
+            h_em_pt_file_den = ROOT.TH1F("h_em_pt_file_den" + suffix, "", len(pt_bin)-1, pt_bin)
+            h_em_pt_file_den.Sumw2()
 
 
         ################################## Projecting histograms ##########################################
-        try:
-            ev.Project("h_ee_pt_file_num" + suffix, '(Lepton_pt[0])', cut_num_ee + '*' + weight) 
-            ev.Project("h_ee_pt_file_den" + suffix, '(Lepton_pt[0])', cut_den_ee + '*' + weight) 
-            ev.Project("h_mm_pt_file_num" + suffix, '(Lepton_pt[0])', cut_num_mm + '*' + weight) 
-            ev.Project("h_mm_pt_file_den" + suffix, '(Lepton_pt[0])', cut_den_mm + '*' + weight) 
-            ev.Project("h_em_pt_file_num" + suffix, '(Lepton_pt[0])', cut_num_em + '*' + weight) 
-            ev.Project("h_em_pt_file_den" + suffix, '(Lepton_pt[0])', cut_den_em + '*' + weight) 
-        except Exception as e:
-            continue
+        if plots2D:
+            try:
+                ev.Project("h_ee_pt_file_num" + suffix, 'Lepton_pt[0]:Lepton_pt[0]', cut_num_ee + '*' + weight) 
+                ev.Project("h_ee_pt_file_den" + suffix, 'Lepton_pt[0]:Lepton_pt[0]', cut_den_ee + '*' + weight) 
+                ev.Project("h_mm_pt_file_num" + suffix, 'Lepton_pt[0]:Lepton_pt[0]', cut_num_mm + '*' + weight) 
+                ev.Project("h_mm_pt_file_den" + suffix, 'Lepton_pt[0]:Lepton_pt[0]', cut_den_mm + '*' + weight) 
+                ev.Project("h_em_pt_file_num" + suffix, 'Lepton_pt[0]:Lepton_pt[0]', cut_num_em + '*' + weight) 
+                ev.Project("h_em_pt_file_den" + suffix, 'Lepton_pt[0]:Lepton_pt[0]', cut_den_em + '*' + weight) 
+            except Exception as e:
+                print(e)
+                continue
+        else:
+            try:
+                ev.Project("h_ee_pt_file_num" + suffix, 'Lepton_pt[0]', cut_num_ee + '*' + weight) 
+                ev.Project("h_ee_pt_file_den" + suffix, 'Lepton_pt[0]', cut_den_ee + '*' + weight) 
+                ev.Project("h_mm_pt_file_num" + suffix, 'Lepton_pt[0]', cut_num_mm + '*' + weight) 
+                ev.Project("h_mm_pt_file_den" + suffix, 'Lepton_pt[0]', cut_den_mm + '*' + weight) 
+                ev.Project("h_em_pt_file_num" + suffix, 'Lepton_pt[0]', cut_num_em + '*' + weight) 
+                ev.Project("h_em_pt_file_den" + suffix, 'Lepton_pt[0]', cut_den_em + '*' + weight) 
+            except Exception as e:
+                print(e)
+                continue
 
             
         ################################## Making efficiencies ###########################################
@@ -207,28 +255,26 @@ if __name__ == '__main__':
 
         ################################## Add efficiencies ##########################################
         try:
-            eff_ee
-        except NameError:
-            eff_ee = ROOT.TEfficiency(h_ee_pt_num, h_ee_pt_den)
+            eff_ee.Add(eff_ee_partial)
+            eff_mm.Add(eff_mm_partial)
+            eff_em.Add(eff_em_partial)
+        except NameError: #First pass in the loop
+            eff_ee = eff_ee_partial
             eff_ee.SetLineColor(632)
             eff_ee.SetLineWidth(1)
             eff_ee.SetName("Efficiency_ee_pt_" + options.year + "_" + options.tag)
         
-            eff_mm = ROOT.TEfficiency(h_mm_pt_num, h_mm_pt_den)
+            eff_mm = eff_mm_partial #ROOT.TEfficiency(h_mm_pt_file_num, h_mm_pt_file_den)
             eff_mm.SetLineColor(634)
             eff_mm.SetLineWidth(1)
             eff_mm.SetName("Efficiency_mm_pt_" + options.year + "_" + options.tag)
     
-            eff_em = ROOT.TEfficiency(h_em_pt_num, h_em_pt_den)
+            eff_em = eff_em_partial
             eff_em.SetLineColor(636)
             eff_em.SetLineWidth(1)
             eff_em.SetName("Efficiency_em_pt_" + options.year + "_" + options.tag)
-    
-        eff_ee.Add(eff_ee_partial)
-        eff_mm.Add(eff_mm_partial)
-        eff_em.Add(eff_em_partial)
 
-        """
+
         ################################## Add histograms ##########################################
         h_ee_pt_num.Add(h_ee_pt_file_num)
         h_ee_pt_den.Add(h_ee_pt_file_den)
@@ -236,7 +282,6 @@ if __name__ == '__main__':
         h_mm_pt_den.Add(h_mm_pt_file_den)
         h_em_pt_num.Add(h_em_pt_file_num)
         h_em_pt_den.Add(h_em_pt_file_den)
-        """
         
 
     ########################################## DrAwing ###############################################
@@ -249,19 +294,27 @@ if __name__ == '__main__':
     eff_em.Draw("SAME")
 
     ROOT.gPad.Update() 
-    eff_ee.GetPaintedGraph().GetHistogram().SetMinimum(0)
-    eff_mm.GetPaintedGraph().GetHistogram().SetMinimum(0)
-    eff_em.GetPaintedGraph().GetHistogram().SetMinimum(0)
-    eff_ee.GetPaintedGraph().GetHistogram().SetMaximum(1.2)
-    eff_mm.GetPaintedGraph().GetHistogram().SetMaximum(1.2)
-    eff_em.GetPaintedGraph().GetHistogram().SetMaximum(1.2)
+    if plots2D:
+        print("ee numerator yields: " + str(h_ee_pt_num.Integral(-1, -1, -1, -1)))
+        print("ee denominator yields: " + str(h_ee_pt_den.Integral(-1, -1, -1, -1)))
+        print("em numerator yields: " + str(h_em_pt_num.Integral(-1, -1, -1, -1)))
+        print("em denominator yields: " + str(h_em_pt_den.Integral(-1, -1, -1, -1)))
+        print("mm numerator yields: " + str(h_mm_pt_num.Integral(-1, -1, -1, -1)))
+        print("mm denominator yields: " + str(h_mm_pt_den.Integral(-1, -1, -1, -1)))
+    else:
+        eff_ee.GetPaintedGraph().GetHistogram().SetMinimum(0)
+        eff_mm.GetPaintedGraph().GetHistogram().SetMinimum(0)
+        eff_em.GetPaintedGraph().GetHistogram().SetMinimum(0)
+        eff_ee.GetPaintedGraph().GetHistogram().SetMaximum(1.2)
+        eff_mm.GetPaintedGraph().GetHistogram().SetMaximum(1.2)
+        eff_em.GetPaintedGraph().GetHistogram().SetMaximum(1.2)
 
-    print("ee numerator yields: " + str(h_ee_pt_num.Integral(-1, -1)))
-    print("ee denominator yields: " + str(h_ee_pt_den.Integral(-1, -1)))
-    print("em numerator yields: " + str(h_em_pt_num.Integral(-1, -1)))
-    print("em denominator yields: " + str(h_em_pt_den.Integral(-1, -1)))
-    print("mm numerator yields: " + str(h_mm_pt_num.Integral(-1, -1)))
-    print("mm denominator yields: " + str(h_mm_pt_den.Integral(-1, -1)))
+        print("ee numerator yields: " + str(h_ee_pt_num.Integral(-1, -1)))
+        print("ee denominator yields: " + str(h_ee_pt_den.Integral(-1, -1)))
+        print("em numerator yields: " + str(h_em_pt_num.Integral(-1, -1)))
+        print("em denominator yields: " + str(h_em_pt_den.Integral(-1, -1)))
+        print("mm numerator yields: " + str(h_mm_pt_num.Integral(-1, -1)))
+        print("mm denominator yields: " + str(h_mm_pt_den.Integral(-1, -1)))
 
     legend = ROOT.TLegend(0.70, 0.20, 0.90, 0.30)
     legend.SetBorderSize(0)
