@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
 
     ####################################### Selection cuts ###############################################
-    leptonAcc = '(Lepton_pt[0] > 25 && Lepton_pt[1] > 20 && abs(Lepton_eta[0]) < 2.4 && abs(Lepton_eta[1]) < 2.4) * MET_pt > 130.' #TOCHECK
+    leptonAcc = '(Lepton_pt[0] > 25 && Lepton_pt[1] > 20 && abs(Lepton_eta[0]) < 2.4 && abs(Lepton_eta[1]) < 2.4) * MET_pt > 100.' #TOCHECK
     if isLatino == 0:
         ee = leptonAcc + '&& ((Lepton_pdgId[0]*Lepton_pdgId[1] == -121) && (Lepton_isTightElectron_cutBasedMediumPOG[0] > 0 &&  Lepton_isTightElectron_cutBasedMediumPOG[1] > 0))'
         mm = leptonAcc + '&& ((Lepton_pdgId[0]*Lepton_pdgId[1] == -169) && (Lepton_isTightMuon_mediumRelIsoTight[0] > 0 &&  Lepton_isTightMuon_mediumRelIsoTight[1] > 0))'
@@ -140,7 +140,8 @@ if __name__ == '__main__':
         filesToConsider = [ROOT.TFile(options.filename)]
 
     ####################################### Binning ###################################################
-    pt_bin = array('f', [20, 40, 60, 80, 120, 180, 240, 300])
+    #pt_bin = array('f', [20, 40, 60, 80, 120, 180, 240, 300])
+    pt_bin = array('f', [20, 40, 60, 80, 100, 150, 200, 500])
 
         
     ####################################### Histograms ################################################
@@ -151,7 +152,7 @@ if __name__ == '__main__':
         print("--> Reading file number " + str(i))
         
         index = index + 1
-        #if index > 2:
+        #if index > 20:
         #    break
 
         suffix = str(index)
@@ -205,7 +206,9 @@ if __name__ == '__main__':
 
 
         ################################## Add efficiencies ##########################################
-        if index == 1:
+        try:
+            eff_ee
+        except NameError:
             eff_ee = ROOT.TEfficiency(h_ee_pt_num, h_ee_pt_den)
             eff_ee.SetLineColor(632)
             eff_ee.SetLineWidth(1)
