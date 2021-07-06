@@ -54,18 +54,17 @@ if __name__ == "__main__":
     baseDir = os.getcwd() + "/"
  
     if year == 2018:
-        inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv7_Full2018v7/MCl1loose2018v7__MCCorr2018v7__l2loose__l2tightOR2018v7/"
-        #inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6/MCl1loose2018v6__MCCorr2018v6__l2loose__l2tightOR2018v6/"
+        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv7_Full2018v7/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin/"
+        inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin/"
     elif year == 2017:
-        inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv7_Full2017v7/MCl1loose2017v7__MCCorr2017v7__l2loose__l2tightOR2017v7/"
-        #inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv5_Full2017v6/MCl1loose2017v6__MCCorr2017v6__l2loose__l2tightOR2017v6/"
+        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv7_Full2017v7/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin/"
+        inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin/"
     elif year == 2016:
-        inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv7_Full2016v7/MCl1loose2016v7__MCCorr2016v7__l2loose__l2tightOR2016v7/" 
-        #inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv5_Full2016v6/MCl1loose2016v6__MCCorr2016v6__l2loose__l2tightOR2016v6/" 
+        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv7_Full2016v7loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin/"
+        inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin/"
     else:
-        inputDir = ""
         print("The year option has to be used, and the year should be 2016, 2017 or 2018.")
-    #Watch out! The files in these directories will be overwritten when using the evaluate option
+        exit()
 
     signalProcesses = [str(item) for item in signalQuery.split(",")]
     backgroundProcesses = [str(item) for item in backgroundQuery.split(",")]
@@ -80,11 +79,14 @@ if __name__ == "__main__":
 
         for i, signalProcess in enumerate(signalProcesses):
             if signalProcess != "":
-                signalFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + signalProcess + '*.root'))) #For now we keep all the signal files as then have less stat
+                signalFilesToProcess.append(','.join(fnmatch.filter(os.listdir(signalInputDir), 'nanoLatino*' + signalProcess + '*.root'))) #For now we keep all the signal files as they have less stat
         for i, backgroundProcess in enumerate(backgroundProcesses):
             if backgroundProcess != "":
                 backgroundFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + backgroundProcess + '*.root')[:maxFiles])) 
-        
+    
+    signalFilesToProcessWithFolder = [s.replace('nanoLatino_', signalInputDir + 'nanoLatino_') for s in signalFilesToProcess]
+    backgroundFilesToProcessWithFolder = [s.replace('nanoLatino_', inputDir + 'nanoLatino_') for s in backgroundFilesToProcess]
+
     try:
         #shutil.rmtree('sh')
         os.makedirs('sh')
@@ -92,11 +94,11 @@ if __name__ == "__main__":
         pass #Directory already exists, this is fine
 
     #If we train the MVA, then we want to pass a list of all the files to process, the python code will know how to deal with it
-    executable = baseDir + "/runMVA.py -i " + inputDir + " -d " + baseDir
+    executable = baseDir + "/runMVA.py -i \"\" -d " + baseDir
 
     #Add the files as arguments
-    executable = executable + " -s " + ','.join(signalFilesToProcess)
-    executable = executable + " -b " + ','.join(backgroundFilesToProcess).replace(',,', ',')
+    executable = executable + " -s " + ','.join(signalFilesToProcessWithFolder)
+    executable = executable + " -b " + ','.join(backgroundFilesToProcessWithFolder).replace(',,', ',')
     executable = executable + " -y " + str(year)
 
     trailer = ""
@@ -108,8 +110,6 @@ if __name__ == "__main__":
     template = template.replace('CMSSWRELEASE', cmssw)
     template = template.replace('EXENAME', executable) 
                 
-    
-
     f = open('sh/send_trainMVA_' + str(year) + "_" + str(signalProcesses[0][:-1]) + trailer + '.sh', 'w')
     f.write(template)
     f.close()

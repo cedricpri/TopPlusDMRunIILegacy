@@ -81,6 +81,19 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     #Select the branches we want to keep
     #===================================================
 
+    outputTree.SetBranchStatus("*CBTrigger*", 0);
+    outputTree.SetBranchStatus("*Photon*", 0);
+    outputTree.SetBranchStatus("*Neutrino*", 0);
+    outputTree.SetBranchStatus("*L1_*", 0);
+    outputTree.SetBranchStatus("*HLT_*", 0);
+    outputTree.SetBranchStatus("*Tau*", 0);    
+    outputTree.SetBranchStatus("*SV*", 0);
+    outputTree.SetBranchStatus("*SubJet*", 0);
+    outputTree.SetBranchStatus("*SoftActivity*", 0);
+    outputTree.SetBranchStatus("*LHE*", 0);
+    outputTree.SetBranchStatus("*IsoTrack*", 0);
+
+    """
     outputTree.SetBranchStatus("*", 0);
 
     #Leptons
@@ -171,6 +184,8 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("*Up*", 1);
     outputTree.SetBranchStatus("*Down*", 1);
     outputTree.SetBranchStatus("*Top_pTrw*", 1);
+    outputTree.SetBranchStatus("*leadingPtTagged_*", 1);
+    """
 
     #New variables
     nbJet = array("i", [0])
@@ -326,7 +341,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #Let's now consider jets with a given pt and which do not pass the tight jet PU Id requirement
         for j, jet in enumerate(ev.CleanJet_pt):
             if ev.CleanJet_pt[j] < 50. and ev.Jet_puId[ev.CleanJet_jetIdx[j]] < 7:
-                print("\n !! Removing a jet not passing the tight jet PU ID")
+                #print("\n !! Removing a jet not passing the tight jet PU ID")
                 ev.nCleanJet = ev.nCleanJet - 1                
                 ev.CleanJet_pt[j] = -99
                 ev.CleanJet_eta[j] = -99
@@ -653,8 +668,17 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
                     bestReconstructedKinematic.Tlep2.Boost(-boostvectorTT)
                     bestReconstructedKinematic.Tlep2.Boost(-boostvector)
 
-                    cosphill[0] = (bestReconstructedKinematic.Tlep1.Vect().Unit().Dot(bestReconstructedKinematic.Tlep2.Vect().Unit()))
-                    chel[0] = bestReconstructedKinematic.Tlep1.Angle(bestReconstructedKinematic.Tlep2.Vect())  #Full angle between leptons in parents mass frame
+                    cosphill = (bestReconstructedKinematic.Tlep1.Vect().Unit().Dot(bestReconstructedKinematic.Tlep2.Vect().Unit()))
+                    if cosphill != cosphill: #NaN
+                        cosphill[0] = -99.0
+                    else:
+                        cosphill[0] = cosphill
+
+                    chel = bestReconstructedKinematic.Tlep1.Angle(bestReconstructedKinematic.Tlep2.Vect())  #Full angle between leptons in parents mass frame
+                    if chel != chel:
+                        chel[0] = -99.0
+                    else:
+                        chel[0] = chel
                 except Exception as e:
                     print(e)
                     cosphill[0] = -49.0

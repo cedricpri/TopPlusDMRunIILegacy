@@ -143,7 +143,7 @@ if __name__ == '__main__':
 
     ####################################### Binning ###################################################
     #pt_bin = array('f', [20, 40, 60, 80, 120, 180, 240, 300])
-    pt_bin = array('f', [20, 40, 60, 80, 100, 150, 200, 500])
+    pt_bin = array('f', [25, 40, 60, 80, 100, 150, 200, 500])
 
     suffix = ""
     if plots2D:
@@ -186,7 +186,7 @@ if __name__ == '__main__':
         print("--> Reading file number " + str(i))
         
         index = index + 1
-        #if index > 20:
+        #if index > 5:
         #    break
 
         suffix = str(index)
@@ -224,13 +224,14 @@ if __name__ == '__main__':
 
         ################################## Projecting histograms ##########################################
         if plots2D:
+            #ev.Draw("Lepton_pt[0]:Lepton_pt[1]", cut_num_ee + '*' + weight)
             try:
-                ev.Project("h_ee_pt_file_num" + suffix, 'Lepton_pt[0]:Lepton_pt[0]', cut_num_ee + '*' + weight) 
-                ev.Project("h_ee_pt_file_den" + suffix, 'Lepton_pt[0]:Lepton_pt[0]', cut_den_ee + '*' + weight) 
-                ev.Project("h_mm_pt_file_num" + suffix, 'Lepton_pt[0]:Lepton_pt[0]', cut_num_mm + '*' + weight) 
-                ev.Project("h_mm_pt_file_den" + suffix, 'Lepton_pt[0]:Lepton_pt[0]', cut_den_mm + '*' + weight) 
-                ev.Project("h_em_pt_file_num" + suffix, 'Lepton_pt[0]:Lepton_pt[0]', cut_num_em + '*' + weight) 
-                ev.Project("h_em_pt_file_den" + suffix, 'Lepton_pt[0]:Lepton_pt[0]', cut_den_em + '*' + weight) 
+                ev.Project("h_ee_pt_file_num" + suffix, 'Lepton_pt[1]:Lepton_pt[0]', cut_num_ee + '*' + weight) 
+                ev.Project("h_ee_pt_file_den" + suffix, 'Lepton_pt[1]:Lepton_pt[0]', cut_den_ee + '*' + weight) 
+                ev.Project("h_mm_pt_file_num" + suffix, 'Lepton_pt[1]:Lepton_pt[0]', cut_num_mm + '*' + weight) 
+                ev.Project("h_mm_pt_file_den" + suffix, 'Lepton_pt[1]:Lepton_pt[0]', cut_den_mm + '*' + weight) 
+                ev.Project("h_em_pt_file_num" + suffix, 'Lepton_pt[1]:Lepton_pt[0]', cut_num_em + '*' + weight) 
+                ev.Project("h_em_pt_file_den" + suffix, 'Lepton_pt[1]:Lepton_pt[0]', cut_den_em + '*' + weight) 
             except Exception as e:
                 print(e)
                 continue
@@ -285,29 +286,33 @@ if __name__ == '__main__':
         
 
     ########################################## DrAwing ###############################################
-    can = ROOT.TCanvas("eff", "")
-    can.cd()
+    if not plots2D:
+        can = ROOT.TCanvas("eff", "")
+        can.cd()
 
-    eff_ee.SetTitle("Trigger efficiences (" + options.tag + ")")
-    eff_ee.Draw()
-    eff_mm.Draw("SAME")
-    eff_em.Draw("SAME")
-
-    ROOT.gPad.Update() 
-    if plots2D:
-        print("ee numerator yields: " + str(h_ee_pt_num.Integral(-1, -1, -1, -1)))
-        print("ee denominator yields: " + str(h_ee_pt_den.Integral(-1, -1, -1, -1)))
-        print("em numerator yields: " + str(h_em_pt_num.Integral(-1, -1, -1, -1)))
-        print("em denominator yields: " + str(h_em_pt_den.Integral(-1, -1, -1, -1)))
-        print("mm numerator yields: " + str(h_mm_pt_num.Integral(-1, -1, -1, -1)))
-        print("mm denominator yields: " + str(h_mm_pt_den.Integral(-1, -1, -1, -1)))
-    else:
+        eff_ee.SetTitle("Trigger efficiences (" + options.tag + ")")
+        eff_ee.Draw()
+        eff_mm.Draw("SAME")
+        eff_em.Draw("SAME")
+        
+        ROOT.gPad.Update() 
         eff_ee.GetPaintedGraph().GetHistogram().SetMinimum(0)
         eff_mm.GetPaintedGraph().GetHistogram().SetMinimum(0)
         eff_em.GetPaintedGraph().GetHistogram().SetMinimum(0)
         eff_ee.GetPaintedGraph().GetHistogram().SetMaximum(1.2)
         eff_mm.GetPaintedGraph().GetHistogram().SetMaximum(1.2)
         eff_em.GetPaintedGraph().GetHistogram().SetMaximum(1.2)
+
+        legend = ROOT.TLegend(0.70, 0.20, 0.90, 0.30)
+        legend.SetBorderSize(0)
+        legend.SetFillColor(0)
+        legend.SetTextAlign(12)
+        legend.SetTextFont(42)
+        legend.SetTextSize(0.035)
+        legend.AddEntry(eff_ee, "ee", "l")
+        legend.AddEntry(eff_mm, "mm", "l")
+        legend.AddEntry(eff_em, "em", "l")
+        legend.Draw("SAME")
 
         print("ee numerator yields: " + str(h_ee_pt_num.Integral(-1, -1)))
         print("ee denominator yields: " + str(h_ee_pt_den.Integral(-1, -1)))
@@ -316,54 +321,47 @@ if __name__ == '__main__':
         print("mm numerator yields: " + str(h_mm_pt_num.Integral(-1, -1)))
         print("mm denominator yields: " + str(h_mm_pt_den.Integral(-1, -1)))
 
-    legend = ROOT.TLegend(0.70, 0.20, 0.90, 0.30)
-    legend.SetBorderSize(0)
-    legend.SetFillColor(0)
-    legend.SetTextAlign(12)
-    legend.SetTextFont(42)
-    legend.SetTextSize(0.035)
-    legend.AddEntry(eff_ee, "ee", "l")
-    legend.AddEntry(eff_mm, "mm", "l")
-    legend.AddEntry(eff_em, "em", "l")
-    legend.Draw("SAME")
-
-    can.SaveAs("Efficiency_pt_" + options.year + "_" + options.tag + ".png")
-    if isLatino == 0:
-        eff_ee.SaveAs("Efficiency_pt_ee_" + options.year + "_" + options.tag + ".root")
-        eff_mm.SaveAs("Efficiency_pt_mm_" + options.year + "_" + options.tag + ".root")
-        eff_em.SaveAs("Efficiency_pt_em_" + options.year + "_" + options.tag + ".root")
-
-        eeFile = ROOT.TFile.Open("Efficiency_pt_ee_" + options.year + "_" + options.tag + ".root", "UPDATE")
-        h_ee_pt_num.Write()
-        h_ee_pt_den.Write()
-        eeFile.Close()
-
-        mmFile = ROOT.TFile.Open("Efficiency_pt_mm_" + options.year + "_" + options.tag + ".root", "UPDATE")
-        h_mm_pt_num.Write()
-        h_mm_pt_den.Write()
-        mmFile.Close()
-
-        emFile = ROOT.TFile.Open("Efficiency_pt_em_" + options.year + "_" + options.tag + ".root", "UPDATE")
-        h_em_pt_num.Write()
-        h_em_pt_den.Write()
-        emFile.Close()
-        
+        can.SaveAs("Efficiency_pt_" + options.year + "_" + options.tag + ".png")
     else:
-        eff_ee.SaveAs("Efficiency_pt_ee_" + options.year + "_" + options.tag + "_latino.root")
-        eff_mm.SaveAs("Efficiency_pt_mm_" + options.year + "_" + options.tag + "_latino.root")
-        eff_em.SaveAs("Efficiency_pt_em_" + options.year + "_" + options.tag + "_latino.root")
+        for channel in ["ee", "em", "mm"]:
+            can = ROOT.TCanvas("eff_" + channel, "")
+            can.cd()
 
-        eeFile = ROOT.TFile.Open("Efficiency_pt_ee_" + options.year + "_" + options.tag + "_latino.root", "UPDATE")
-        h_ee_pt_num.Write()
-        h_ee_pt_den.Write()
-        eeFile.Close()
+            if channel == "ee":
+                eff = eff_ee
+            elif channel == "em":
+                eff = eff_em
+            else:
+                eff = eff_mm
+            eff.SetTitle("Trigger efficiency (" + channel + ", " + options.tag + ")")
+            eff.Draw("COLZ,TEXT")
 
-        mmFile = ROOT.TFile.Open("Efficiency_pt_mm_" + options.year + "_" + options.tag + "_latino.root", "UPDATE")
-        h_mm_pt_num.Write()
-        h_mm_pt_den.Write()
-        mmFile.Close()
+            ROOT.gPad.Update() 
+            ROOT.gStyle.SetPaintTextFormat("4.3f")
+            eff.GetPaintedHistogram().SetMinimum(0.8)
+            eff.GetPaintedHistogram().SetMaximum(1.2)
 
-        emFile = ROOT.TFile.Open("Efficiency_pt_em_" + options.year + "_" + options.tag + "_latino.root", "UPDATE")
-        h_em_pt_num.Write()
-        h_em_pt_den.Write()
-        emFile.Close()
+            can.SaveAs("Efficiency_pt_" + channel + "_" + options.year + "_" + options.tag + ".png")
+
+    suffix = ""
+    if isLatino == 1:
+        suffix = "_latino"
+
+    eff_ee.SaveAs("Efficiency_pt_ee_" + options.year + "_" + options.tag + suffix + ".root")
+    eff_mm.SaveAs("Efficiency_pt_mm_" + options.year + "_" + options.tag + suffix + ".root")
+    eff_em.SaveAs("Efficiency_pt_em_" + options.year + "_" + options.tag + suffix + ".root")
+
+    eeFile = ROOT.TFile.Open("Efficiency_pt_ee_" + options.year + "_" + options.tag + suffix + ".root", "UPDATE")
+    h_ee_pt_num.Write()
+    h_ee_pt_den.Write()
+    eeFile.Close()
+
+    mmFile = ROOT.TFile.Open("Efficiency_pt_mm_" + options.year + "_" + options.tag + suffix + ".root", "UPDATE")
+    h_mm_pt_num.Write()
+    h_mm_pt_den.Write()
+    mmFile.Close()
+
+    emFile = ROOT.TFile.Open("Efficiency_pt_em_" + options.year + "_" + options.tag + suffix + ".root", "UPDATE")
+    h_em_pt_num.Write()
+    h_em_pt_den.Write()
+    emFile.Close()

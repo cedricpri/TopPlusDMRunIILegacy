@@ -76,7 +76,8 @@ if __name__ == "__main__":
 
     if year == 2018:
         if signal:
-            inputDir = "" + trailer
+            #inputDir = "/eos/user/c/cprieels/work/SignalsNewObjectsv2/Autumn18_102X_nAODv7_Full2018v7/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin" + trailer
+            inputDir = "/eos/user/c/cprieels/work/JonatanEOS/Autumn18_102X_nAODv7_Full2018v7/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin" + trailer
             #inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Autumn18_102X_nAODv7_Full2018v7/MCl1loose2018v7__MCCorr2018v7__l2loose__l2tightOR2018v7" + trailer
         elif data:
             inputDir = "/eos/user/s/scodella/SUSY/Nano/Run2018_102X_nAODv6_Full2018v6loose/DATASusy2018v6__hadd__susyMT2recoNomin/"
@@ -90,7 +91,8 @@ if __name__ == "__main__":
 
     elif year == 2017:
         if signal:
-            inputDir = "" + trailer
+            #inputDir = "/eos/user/c/cprieels/work/SignalsNewObjectsv2/Fall2017_102X_nAODv7_Full2017v7/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin" + trailer
+            inputDir = "/eos/user/c/cprieels/work/JonatanEOS/Fall2017_102X_nAODv7_Full2017v7/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin" + trailer
             #inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Fall2017_102X_nAODv7_Full2017v7/MCl1loose2017v7__MCCorr2017v7__l2loose__l2tightOR2017v7" + trailer
         elif data:
             inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Run2017_102X_nAODv6_Full2017v6loose/DATASusy2017v6__hadd__susyMT2recoNomin/"
@@ -104,7 +106,8 @@ if __name__ == "__main__":
 
     elif year == 2016:
         if signal:
-            inputDir = "" + trailer
+            #inputDir = "/eos/user/c/cprieels/work/SignalsNewObjectsv2/Summer16_102X_nAODv7_Full2016v7loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin" + trailer
+            inputDir = "/eos/user/c/cprieels/work/JonatanEOS/Summer16_102X_nAODv7_Full2016v7loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin" + trailer
             #inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Summer16_102X_nAODv7_Full2016v7/MCl1loose2016v7__MCCorr2016v7__l2loose__l2tightOR2016v7" + trailer
         elif data:
             inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Run2016_102X_nAODv6_Full2016v6loose/DATASusy2016v6__hadd__susyMT2recoNomin/"
@@ -131,6 +134,9 @@ if __name__ == "__main__":
     outputDirWithSubfolders = outputDir + "/" + productionName
     for root, dirs, files in os.walk(outputDirWithSubfolders):
         for subdir in dirs:
+            oldSubdir = subdir
+            subdir = subdir.replace(".root", "")
+            os.rename(outputDirWithSubfolders + "/" + oldSubdir, outputDirWithSubfolders + "/" + subdir)
             filesInSubdir = fnmatch.filter(os.listdir(root + subdir), 'nanoLatino*' + query + '*')
             for fileInSubdir in filesInSubdir:
                 try:
