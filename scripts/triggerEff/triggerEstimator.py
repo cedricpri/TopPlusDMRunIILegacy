@@ -5,6 +5,19 @@ import fnmatch
 from array import * 
 from os import walk
 
+"""
+def saveEffAsTH2D(eff, channel):
+    pt_bin = array('f', [25, 40, 60, 80, 100, 150, 200, 500])
+    h_eff = ROOT.TH2F("TH2_" + channel + "_eff", "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
+
+    for x in range(len(pt_bin)):
+        for y in range(len(pt_bin)):
+            h_eff.SetBinContent(x, y, eff.GetEfficiency(eff.GetPaintedHistogram().GetBin(x,y))))
+            h_eff.SetBinError(x, y, eff.GetEfficiency(eff.GetPaintedHistogram().GetBin(x,y))))
+    
+    return h_eff
+"""
+
 #------------------------------------- MAIN --------------------------------------------
 if __name__ == '__main__':
 
@@ -99,9 +112,12 @@ if __name__ == '__main__':
 
     ###################################### Trigger cuts #################################################
     ##### MET triggers
-    trig_MET_2016 = '(HLT_PFMET90_PFMHT90_IDTight > 0 || HLT_PFMET100_PFMHT100_IDTight > 0 || HLT_PFMET110_PFMHT110_IDTight > 0 || HLT_PFMET120_PFMHT120_IDTight > 0)'
-    trig_MET_2017 = '(HLT_PFMET120_PFMHT120_IDTight > 0 || HLT_PFMET110_PFMHT110_IDTight || HLT_PFMET130_PFMHT130_IDTight || HLT_PFMET140_PFMHT140_IDTight)'
-    trig_MET_2018 = '(HLT_PFMET120_PFMHT120_IDTight > 0 || HLT_PFMET110_PFMHT110_IDTight || HLT_PFMET130_PFMHT130_IDTight || HLT_PFMET140_PFMHT140_IDTight)'
+    #trig_MET_2016 = '(HLT_PFMET90_PFMHT90_IDTight > 0 || HLT_PFMET100_PFMHT100_IDTight > 0 || HLT_PFMET110_PFMHT110_IDTight > 0 || HLT_PFMET120_PFMHT120_IDTight > 0)'
+    trig_MET_2016 = '(HLT_PFMET300 > 0 || HLT_MET200 > 0 || HLT_PFHT300_PFMET110 > 0 || HLT_PFMET170_HBHECleaned > 0 || HLT_PFMETNoMu120_PFMHTNoMu120_IDTight > 0 || HLT_PFMET120_PFMHT120_IDTight > 0)'
+    #trig_MET_2017 = '(HLT_PFMET120_PFMHT120_IDTight > 0 || HLT_PFMET110_PFMHT110_IDTight || HLT_PFMET130_PFMHT130_IDTight || HLT_PFMET140_PFMHT140_IDTight)'
+    trig_MET_2017 = '( HLT_PFMETNoMu120_PFMHTNoMu120_IDTight > 0 || HLT_PFMET120_PFMHT120_IDTight > 0 || HLT_PFHT500_PFMET100_PFMHT100_IDTight > 0 || HLT_PFHT700_PFMET85_PFMHT85_IDTight > 0 || HLT_PFHT800_PFMET75_PFMHT75_IDTight > 0)'
+    #trig_MET_2018 = '(HLT_PFMET120_PFMHT120_IDTight > 0 || HLT_PFMET110_PFMHT110_IDTight || HLT_PFMET130_PFMHT130_IDTight || HLT_PFMET140_PFMHT140_IDTight)'
+    trig_MET_2018 = '(HLT_PFMET200_HBHECleaned > 0 || HLT_PFMET200_HBHE_BeamHaloCleaned > 0 || HLT_PFMETTypeOne200_HBHE_BeamHaloCleaned > 0 || HLT_PFMETNoMu120_PFMHTNoMu120_IDTight > 0 || HLT_PFMET120_PFMHT120_IDTight > 0 || HLT_PFMETNoMu120_PFMHTNoMu120_IDTight_PFHT60 > 0 || HLT_PFMET120_PFMHT120_IDTight_PFHT60 > 0 || HLT_PFHT500_PFMET100_PFMHT100_IDTight > 0 || HLT_PFHT700_PFMET85_PFMHT85_IDTight > 0 || HLT_PFHT800_PFMET75_PFMHT75_IDTight > 0)'
 
     trig_MET = ''
     if year == '2016':
@@ -119,12 +135,12 @@ if __name__ == '__main__':
 
     ###################################### Final cuts #################################################
     general_cut = '1'
-    cut_num_ee = general_cut + ' && ' + trig_ee + ' && ' + ee
-    cut_den_ee = general_cut + ' && ' + ee 
-    cut_num_mm = general_cut + ' && ' + trig_mm + ' && ' + mm 
-    cut_den_mm = general_cut + ' && ' + mm 
-    cut_num_em = general_cut + ' && ' + trig_em + ' && ' + em
-    cut_den_em = general_cut + ' && ' + em 
+    cut_num_ee = general_cut + ' && ' + trig_MET + ' && ' + ee + ' && ' + trig_ee
+    cut_den_ee = general_cut + ' && ' + trig_MET + ' && ' + ee
+    cut_num_mm = general_cut + ' && ' + trig_MET + ' && ' + mm + ' && ' + trig_mm
+    cut_den_mm = general_cut + ' && ' + trig_MET + ' && ' + mm
+    cut_num_em = general_cut + ' && ' + trig_MET + ' && ' + em + ' && ' + trig_em
+    cut_den_em = general_cut + ' && ' + trig_MET + ' && ' + em
  
 
     ###################################### Open file ##################################################
@@ -143,7 +159,7 @@ if __name__ == '__main__':
 
     ####################################### Binning ###################################################
     #pt_bin = array('f', [20, 40, 60, 80, 120, 180, 240, 300])
-    pt_bin = array('f', [25, 40, 60, 80, 100, 150, 200, 500])
+    pt_bin = array('f', [25, 40, 60, 80, 100, 150, 500])
 
     suffix = ""
     if plots2D:
@@ -225,13 +241,14 @@ if __name__ == '__main__':
         ################################## Projecting histograms ##########################################
         if plots2D:
             #ev.Draw("Lepton_pt[0]:Lepton_pt[1]", cut_num_ee + '*' + weight)
+            print(cut_num_ee + '*' + weight)
             try:
                 ev.Project("h_ee_pt_file_num" + suffix, 'Lepton_pt[1]:Lepton_pt[0]', cut_num_ee + '*' + weight) 
                 ev.Project("h_ee_pt_file_den" + suffix, 'Lepton_pt[1]:Lepton_pt[0]', cut_den_ee + '*' + weight) 
                 ev.Project("h_mm_pt_file_num" + suffix, 'Lepton_pt[1]:Lepton_pt[0]', cut_num_mm + '*' + weight) 
                 ev.Project("h_mm_pt_file_den" + suffix, 'Lepton_pt[1]:Lepton_pt[0]', cut_den_mm + '*' + weight) 
-                ev.Project("h_em_pt_file_num" + suffix, 'Lepton_pt[1]:Lepton_pt[0]', cut_num_em + '*' + weight) 
-                ev.Project("h_em_pt_file_den" + suffix, 'Lepton_pt[1]:Lepton_pt[0]', cut_den_em + '*' + weight) 
+                ev.Project("h_em_pt_file_num" + suffix, 'Electron_pt[0]:Muon_pt[0]', cut_num_em + '*' + weight) #Take into account the difference in effienciency between electrons and muons
+                ev.Project("h_em_pt_file_den" + suffix, 'Electron_pt[0]:Muon_pt[0]', cut_den_em + '*' + weight) 
             except Exception as e:
                 print(e)
                 continue
@@ -241,8 +258,8 @@ if __name__ == '__main__':
                 ev.Project("h_ee_pt_file_den" + suffix, 'Lepton_pt[0]', cut_den_ee + '*' + weight) 
                 ev.Project("h_mm_pt_file_num" + suffix, 'Lepton_pt[0]', cut_num_mm + '*' + weight) 
                 ev.Project("h_mm_pt_file_den" + suffix, 'Lepton_pt[0]', cut_den_mm + '*' + weight) 
-                ev.Project("h_em_pt_file_num" + suffix, 'Lepton_pt[0]', cut_num_em + '*' + weight) 
-                ev.Project("h_em_pt_file_den" + suffix, 'Lepton_pt[0]', cut_den_em + '*' + weight) 
+                ev.Project("h_em_pt_file_num" + suffix, 'Electron_pt[0]', cut_num_em + '*' + weight) 
+                ev.Project("h_em_pt_file_den" + suffix, 'Electron_pt[0]', cut_den_em + '*' + weight) 
             except Exception as e:
                 print(e)
                 continue
@@ -323,6 +340,7 @@ if __name__ == '__main__':
 
         can.SaveAs("Efficiency_pt_" + options.year + "_" + options.tag + ".png")
     else:
+        h_eff = {}
         for channel in ["ee", "em", "mm"]:
             can = ROOT.TCanvas("eff_" + channel, "")
             can.cd()
@@ -334,12 +352,23 @@ if __name__ == '__main__':
             else:
                 eff = eff_mm
             eff.SetTitle("Trigger efficiency (" + channel + ", " + options.tag + ")")
-            eff.Draw("COLZ,TEXT")
+            eff.Draw("COLZ,TEXT45,ERROR")
 
             ROOT.gPad.Update() 
-            ROOT.gStyle.SetPaintTextFormat("4.3f")
-            eff.GetPaintedHistogram().SetMinimum(0.8)
-            eff.GetPaintedHistogram().SetMaximum(1.2)
+            ROOT.gStyle.SetPaintTextFormat("4.2f")
+            eff.GetPaintedHistogram().SetMinimum(0.5)
+            #eff.GetPaintedHistogram().SetMaximum(1.02)
+            
+            paintedHist = eff.GetPaintedHistogram()
+            for x in range(len(pt_bin)):
+                for y in range(len(pt_bin)):
+                    paintedHist.SetBinContent(x, y, eff.GetEfficiency(eff.GetPaintedHistogram().GetBin(x,y)))
+                    paintedHist.SetBinError(x, y, max(eff.GetEfficiencyErrorLow(eff.GetPaintedHistogram().GetBin(x,y)), eff.GetEfficiencyErrorUp(eff.GetPaintedHistogram().GetBin(x,y))))
+            h_eff[channel] = paintedHist
+
+            for x in range(len(pt_bin)):
+                for y in range(len(pt_bin)):
+                    print(channel + " bin(" + str(x) + ", " + str(y) + ") : " + str(eff.GetEfficiency(eff.GetPaintedHistogram().GetBin(x,y))) + " - " + str(eff.GetEfficiencyErrorLow(eff.GetPaintedHistogram().GetBin(x,y))) + " + " + str(eff.GetEfficiencyErrorUp(eff.GetPaintedHistogram().GetBin(x,y))))
 
             can.SaveAs("Efficiency_pt_" + channel + "_" + options.year + "_" + options.tag + ".png")
 
@@ -352,16 +381,19 @@ if __name__ == '__main__':
     eff_em.SaveAs("Efficiency_pt_em_" + options.year + "_" + options.tag + suffix + ".root")
 
     eeFile = ROOT.TFile.Open("Efficiency_pt_ee_" + options.year + "_" + options.tag + suffix + ".root", "UPDATE")
+    h_eff["ee"].Write()
     h_ee_pt_num.Write()
     h_ee_pt_den.Write()
     eeFile.Close()
 
     mmFile = ROOT.TFile.Open("Efficiency_pt_mm_" + options.year + "_" + options.tag + suffix + ".root", "UPDATE")
+    h_eff["mm"].Write()
     h_mm_pt_num.Write()
     h_mm_pt_den.Write()
     mmFile.Close()
 
     emFile = ROOT.TFile.Open("Efficiency_pt_em_" + options.year + "_" + options.tag + suffix + ".root", "UPDATE")
+    h_eff["em"].Write()
     h_em_pt_num.Write()
     h_em_pt_den.Write()
     emFile.Close()
