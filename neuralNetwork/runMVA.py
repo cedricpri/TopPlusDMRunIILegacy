@@ -17,16 +17,19 @@ from array import array
 # ===========================================
 
 #Training variables
-#variables = ["METcorrected_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "costhetall"]
 #variables = ["METcorrected_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "mt2bl", "massT", "reco_weight", "cosphill", "costhetall", "dark_pt", "overlapping_factor", "r2l", "r2l4j"]
-variables = ["METcorrected_pt", "mt2ll", "dphillmet", "mt2bl", "massT", "reco_weight", "cosphill", "costhetall", "dark_pt", "overlapping_factor", "r2l", "r2l4j"]
+variables = {}
+variables["ST"] = ["METcorrected_pt", "mt2ll", "ptllb", "mllb"]
+variables["TTbar"] = ["METcorrected_pt", "mt2ll", "ptllb", "mllb", "dark_pt", "chel"]
 
 trainPercentage = 50
 normalizeProcesses = False #Normalize all the processes to have the same input training events in each case
 
-baseCut = "1"
-#cut = baseCut + " && ((mt2ll > 80.) && ((Sum$(CleanJet_pt >= 20. && abs(CleanJet_eta) < 2.4)) == 1) || (Sum$(CleanJet_pt >= 20. && abs(CleanJet_eta) < 2.4)) == 2 && nbJet == 1)))" #Single top region
-cut = baseCut + " && ((mt2ll > 80.) && !((Sum$(CleanJet_pt >= 30. && abs(CleanJet_eta) < 2.4) == 1) || (Sum$(CleanJet_pt >= 30. && abs(CleanJet_eta) < 2.4) == 2 && nbJet == 1)))" #ttbar region
+baseCut = "mt2ll > 80."
+nJet = "Sum$(CleanJet_pt >= 20. && abs(CleanJet_eta) < 2.4)"
+cuts ={}
+cuts["ST"] = baseCut + " && (( " + nJet + " == 1) || ( " + nJet + " == 2 && nbJet == 1))"
+cuts["TTbar"] = baseCut + " && (( " + nJet + " > 1) || ( " + nJet + " > 2 || nbJet > 1))"
 
 #=========================================================================================================
 # HELPERS
@@ -65,7 +68,7 @@ def splitByProcess(inputFiles, test = False, background = False):
     processes = [] #List of dictionnaries with the different processes as keys and a list of files as values
     
     for inputFile in inputFiles:
-        #process = "_".join(inputFile.split("_")[1:5]) #TODO: try to find a better way to estimate the process?
+        #process = "_".join(inputFile.split("_")[1:5]) #TODO: try to find a better way to estimate the process name?
         start = "nanoLatino_"
         end = "__part"
         process = inputFile[inputFile.find(start)+len(start):inputFile.rfind(end)].replace('_ext', '')
@@ -73,7 +76,7 @@ def splitByProcess(inputFiles, test = False, background = False):
         #However, at least for now, let's group all the background processes if the option is set
         if background:
             process = 'backgrounds'
-        else: #Only group the single top process together
+        else:
             #if 'ST' in process: process = 'ST'
             process = "signals"
 
@@ -89,21 +92,23 @@ def splitByProcess(inputFiles, test = False, background = False):
 #=========================================================================================================
 # TRAINING
 #=========================================================================================================
-def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
+def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, singleTopRegion, test):
     """
     Function used to train the MVA based on the signal given
     """
 
-    massPoint = signalFiles[0].split("_")[3:9]
+    massPoint = signalFiles[-1].split("_")[10:16]
     if(tag != ""): massPoint = "_".join(massPoint).replace(".root", "") + "_" + tag
     else: massPoint = "_".join(massPoint).replace(".root", "")
 
+    """
     if "DMscalar" in signalFiles[0]:
         massPoint = massPoint.replace("top_tWChan", "ST_scalar_LO").replace("__part0", "").replace("Mchi", "Mchi_").replace("Mphi", "Mphi_")
     elif "DMpseudoscalar" in signalFiles[0]:
         massPoint = massPoint.replace("top_tWChan", "ST_pseudoscalar_LO").replace("__part0", "").replace("Mchi", "Mchi_").replace("Mphi", "Mphi_")
     else:
         massPoint = "TTbar_" + massPoint
+    """
 
     #Move to the correct directory to save the model and its weights
     outputDirTraining = baseDir + "/" + str(year) + "/" + massPoint + "/training/"
@@ -126,7 +131,12 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
     dataloader = ROOT.TMVA.DataLoader('dataset')
     dataloader.SetWeightExpression("baseW")
 
-    for variable in variables:
+    if singleTopRegion:
+        regionString = "ST"
+    else:
+        regionString = "TTbar"
+
+    for variable in variables[regionString]:
         dataloader.AddVariable(variable)
         
     #Let's know try to find out how many signal and background processes have been passed as argument
@@ -142,7 +152,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
 
     signalEvents =[]
     backgroundEvents = []
-    minEvents = 999999999 #Used if required to have exactly the same number of events for each process to avoid biases
+    minEvents = 9999999999 #Used if required to have exactly the same number of events for each process to avoid biases
 
     for index in range(len(signalProcesses)):
         signalFiles = signalProcesses[index].values()[0]
@@ -151,9 +161,9 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
         for signalFile in signalFiles:
             signalChain.AddFile(inputDir+signalFile)
 
-        signalEvents.append(signalChain.GetEntries(cut))
-        #if signalChain.GetEntries(cut) < minEvents: 
-        #    minEvents = signalChain.GetEntries(cut)
+        signalEvents.append(signalChain.GetEntries(cuts[regionString]))
+        #if signalChain.GetEntries(cuts[regionString]) < minEvents: 
+        #    minEvents = signalChain.GetEntries(cuts[regionString])
 
         if numberSignals > 1:
             dataloader.AddTree(signalChain, 'Signal' + str(index))
@@ -167,9 +177,9 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
         for backgroundFile in backgroundFiles:
             backgroundChain.AddFile(inputDir+backgroundFile)
 
-        backgroundEvents.append(backgroundChain.GetEntries(cut))
-        #if backgroundChain.GetEntries(cut) < minEvents: 
-        #    minEvents = backgroundChain.GetEntries(cut)
+        backgroundEvents.append(backgroundChain.GetEntries(cuts[regionString]))
+        #if backgroundChain.GetEntries(cuts[regionString]) < minEvents: 
+        #    minEvents = backgroundChain.GetEntries(cuts[regionString])
 
         #for event in openedFile.Events:
         #    baseW = event.baseW
@@ -214,15 +224,15 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
         else:
             dataloaderOptions = dataloaderOptions + ':nTrain_Background' + '=' + str(int(numberEvents*trainPercentage/100)) + ':nTest_Background' + '=' + str(int(numberEvents*testPercentage/100))
 
-    dataloader.PrepareTrainingAndTestTree(ROOT.TCut(cut), dataloaderOptions + ':SplitMode=Random:NormMode=NumEvents:!V')
+    dataloader.PrepareTrainingAndTestTree(ROOT.TCut(cuts[regionString]), dataloaderOptions + ':SplitMode=Random:NormMode=NumEvents:!V')
 
     # ===========================================
     # Keras model
     # ===========================================
     model = Sequential()
-    model.add(Dense(80, activation='relu', input_dim=len(variables)))
-    model.add(Dense(80, activation='relu'))
+    model.add(Dense(40, activation='relu', input_dim=len(variables[regionString])))
     model.add(Dense(40, activation='relu'))
+    model.add(Dense(30, activation='relu'))
     model.add(Dense(numberProcesses, activation='softmax'))
     #model.add(Dense(1, activation='sigmoid'))
 
@@ -234,9 +244,8 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
 
     # Book method
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=500:BoostType=AdaBoost:AdaBoostBeta=0.3:SeparationType=CrossEntropy:MaxDepth=3:ncuts=20:MinNodeSize=2:!H:!V')
-    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=100:BoostType=Grad:Shrinkage=0.2:MaxDepth=4:ncuts=250:MinNodeSize=1%:!H:!V')
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'PyKeras.h5:FilenameTrainedModel=' + outputDirTraining + 'PyKerasTrained.h5:NumEpochs=100:BatchSize=250:VarTransform=N')
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kMLP, "MLP", "H:!V:NeuronType=sigmoid:NCycles=500:VarTransform=N:HiddenLayers=80,80,40:TestRate=5:LearningRate=0.01:EstimatorType=MSE");
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'PyKeras.h5:FilenameTrainedModel=' + outputDirTraining + 'PyKerasTrained.h5:NumEpochs=30:BatchSize=100:VarTransform=N')
 
     # ===========================================
     # Run training, test and evaluation
@@ -244,7 +253,8 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, test):
     
     factory.TrainAllMethods()
     factory.TestAllMethods()
-    factory.EvaluateAllmethods()
+    factory.EvaluateAllMethods()
+
 
 #=========================================================================================================
 # APPLICATION
@@ -320,7 +330,7 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
                 reader[SR][weightTag] = ROOT.TMVA.Reader("Color:!Silent")
 
                 #Read the variables used for the training
-                weightsLocation = baseDir + "/" + str(year) + "/" + SR + "_" + weightTag
+                weightsLocation = baseDir + "/" + str(year) + "/" + weightTag + "_" + SR
                 trainingFile = ROOT.TFile.Open(weightsLocation + "/training/TMVA.root", "READ")
                 trainingTree = trainingFile.Get("dataset/TrainTree")
                 trainingVariables = trainingTree.GetListOfBranches()
@@ -436,6 +446,7 @@ if __name__ == "__main__":
     parser.add_option('-w', '--weightsDir', action='store', type=str, dest='weightsDir', default="scalar_LO_Mchi_1_Mphi_100_default")
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018)
     parser.add_option('-g', '--tags', action='store', type=str, dest='tags', default="")
+    parser.add_option('-r', '--singleTopRegion', action='store_true', dest='singleTopRegion', default=False)
     parser.add_option('-h', '--threshold', action='store', type=float, dest='threshold', default=1.0)
     parser.add_option('-e', '--evaluate', action='store_true', dest='evaluate') #Evaluate the MVA or train it?
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only run on a single file
@@ -449,6 +460,7 @@ if __name__ == "__main__":
     weightsDir= opts.weightsDir
     year = opts.year
     tags = opts.tags
+    singleTopRegion = opts.singleTopRegion
     threshold = opts.threshold
     evaluate = opts.evaluate
     test = opts.test
@@ -466,4 +478,4 @@ if __name__ == "__main__":
         #Split the comma separated string for the files into lists
         signalFiles = [str(item) for item in signalFiles.split(',')]
         backgroundFiles = [str(item) for item in backgroundFiles.split(',')]            
-        trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tags, test)
+        trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tags, singleTopRegion, test)

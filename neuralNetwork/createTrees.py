@@ -57,6 +57,14 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         "lphat": distFile.Get("lphat")
     }
 
+    #Read the trigger SF histograms for the year considered
+    triggerSFFile = r.TFile(baseDir+"/data/SF_"+ str(year) +".root", "r")
+    triggerSF = {
+        "ee": triggerSFFile.Get("h_SF_ee_" + str(year)),
+        "em": triggerSFFile.Get("h_SF_em_" + str(year)),
+        "mm": triggerSFFile.Get("h_SF_mm_" + str(year))
+    }
+
     inputFile = r.TFile.Open(inputDir+filename, "r")
 
     #Create a directory to keep the files if it does not already exist
@@ -92,6 +100,15 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.SetBranchStatus("*SoftActivity*", 0);
     outputTree.SetBranchStatus("*LHE*", 0);
     outputTree.SetBranchStatus("*IsoTrack*", 0);
+    outputTree.SetBranchStatus("*LeptonGen*", 0);
+    outputTree.SetBranchStatus("*TrigObj*", 0);
+    outputTree.SetBranchStatus("*SubGenJetAK8*", 0);
+    outputTree.SetBranchStatus("*GenPart*", 0);
+    outputTree.SetBranchStatus("*GenJet*", 0);
+    outputTree.SetBranchStatus("*FatJet*", 0);
+    outputTree.SetBranchStatus("*HTXS*", 0);
+
+    outputTree.SetBranchStatus("*LHE_HT", 1);
 
     """
     outputTree.SetBranchStatus("*", 0);
@@ -188,6 +205,11 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     """
 
     #New variables
+    customTriggerSF = array("f", [0.])
+    outputTree.Branch("customTriggerSF", customTriggerSF, "customTriggerSF/F")
+    customTriggerSFError = array("f", [0.])
+    outputTree.Branch("customTriggerSFError", customTriggerSFError, "customTriggerSFError/F")
+
     nbJet = array("i", [0])
     outputTree.Branch("nbJet", nbJet, "nbJet/I")
     bJetsIdx = array("i", 10*[0])
@@ -355,8 +377,28 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
 
         if not passJet:
             continue
-
         #Additional cut removing events having less than one b-jet performed later, once the b-jets have been computed
+
+        #===================================================
+        #Trigger SF weight
+        #===================================================
+
+        channel = "ee"
+        if abs(ev.Lepton_pdgId[0] * ev.Lepton_pdgId[1]) == 11 * 13:
+            channel = "em"
+        elif abs(ev.Lepton_pdgId[0] * ev.Lepton_pdgId[1]) == 13 * 13:
+            channel = "mm"
+    
+        if channel == "em":
+            binX = triggerSF[channel].GetXaxis().FindBin(ev.Electron_pt[0])
+            binY = triggerSF[channel].GetYaxis().FindBin(ev.Muon_pt[0])
+            customTriggerSF[0] = triggerSF[channel].GetBinContent(binY + 1, binX + 1)
+            customTriggerSFError[0] = triggerSF[channel].GetBinError(binY + 1, binX + 1)
+        else:
+            binX = triggerSF[channel].GetXaxis().FindBin(ev.Lepton_pt[1])
+            binY = triggerSF[channel].GetYaxis().FindBin(ev.Lepton_pt[0])
+            customTriggerSF[0] = triggerSF[channel].GetBinContent(binY + 1, binX + 1)
+            customTriggerSFError[0] = triggerSF[channel].GetBinError(binY + 1, binX + 1)
 
         #===================================================
         #b-jets collection creation
@@ -668,17 +710,17 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
                     bestReconstructedKinematic.Tlep2.Boost(-boostvectorTT)
                     bestReconstructedKinematic.Tlep2.Boost(-boostvector)
 
-                    cosphill = (bestReconstructedKinematic.Tlep1.Vect().Unit().Dot(bestReconstructedKinematic.Tlep2.Vect().Unit()))
-                    if cosphill != cosphill: #NaN
+                    cosphillValue = (bestReconstructedKinematic.Tlep1.Vect().Unit().Dot(bestReconstructedKinematic.Tlep2.Vect().Unit()))
+                    if cosphillValue != cosphillValue: #NaN
                         cosphill[0] = -99.0
                     else:
-                        cosphill[0] = cosphill
+                        cosphill[0] = cosphillValue
 
-                    chel = bestReconstructedKinematic.Tlep1.Angle(bestReconstructedKinematic.Tlep2.Vect())  #Full angle between leptons in parents mass frame
-                    if chel != chel:
+                    chelValue = bestReconstructedKinematic.Tlep1.Angle(bestReconstructedKinematic.Tlep2.Vect())  #Full angle between leptons in parents mass frame
+                    if chelValue != chelValue:
                         chel[0] = -99.0
                     else:
-                        chel[0] = chel
+                        chel[0] = chelValue
                 except Exception as e:
                     print(e)
                     cosphill[0] = -49.0

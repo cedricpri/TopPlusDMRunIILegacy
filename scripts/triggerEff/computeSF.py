@@ -5,7 +5,7 @@ from array import *
 
 def divideEfficiencies(eff1, eff2, plots2D, channel,year):
     #pt_bin = array('f', [20, 40, 60, 80, 120, 180, 240, 300])
-    pt_bin = array('f', [25, 40, 60, 80, 100, 150, 500])
+    pt_bin = array('f', [25, 40, 60, 80, 100, 150, 200, 500])
     if plots2D:
         hist = ROOT.TH2F("h_SF_" + channel + "_" + year, "", len(pt_bin) - 1, pt_bin, len(pt_bin) - 1, pt_bin)
     else:
@@ -108,7 +108,7 @@ if __name__ == '__main__':
         can.cd()
 
         h_SF.SetTitle("Trigger SF (" + channel + " channel, " + year + ")")
-        h_SF.GetYaxis().SetRangeUser(0.8, 1.2)
+        h_SF.GetZaxis().SetRangeUser(0.8, 1.05)
         h_SF.SetStats(False)
         if plots2D:
             h_SF.Draw("COLZ,TEXT,ERROR")

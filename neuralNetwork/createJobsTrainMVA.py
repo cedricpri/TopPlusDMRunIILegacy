@@ -27,6 +27,7 @@ if __name__ == "__main__":
     parser.add_option('-g', '--tag', action='store', type=str, dest='tag', default="") #Tag to identify the training performed
     parser.add_option('-s', '--signalQuery', action='store', type=str, dest='signalQuery', default="TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100_,DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100_") #Comma separated string to be matched when searching for the files (do not use the nanoLatino prefix!)
     parser.add_option('-b', '--backgroundQuery', action='store', type=str, dest='backgroundQuery', default="TTTo2L2Nu__part,ST_s-channel_ext1,ST_t-channel_antitop,ST_t-channel_top,ST_tW_antitop_ext1,ST_tW_top_ext1") #Comma separated string to be matched when searching for the files
+    parser.add_option('-r', '--singleTop', action='store_true', dest='singleTopRegion', default=False)
 
     #Additional options
     parser.add_option('-t', '--test', action='store_true', dest='test')
@@ -38,6 +39,7 @@ if __name__ == "__main__":
     tag = opts.tag
     signalQuery = opts.signalQuery
     backgroundQuery = opts.backgroundQuery
+    singleTopRegion = opts.singleTopRegion
     test = opts.test
     verbose = opts.verbose
 
@@ -49,6 +51,7 @@ if __name__ == "__main__":
         print("Tag: " + str(tag))
         print("Signal query: " + str(signalQuery))
         print("Background query: " + str(backgroundQuery))
+        print("Single top region: " + str(singleTopRegion))
         print("=================================================")
 
     baseDir = os.getcwd() + "/"
@@ -100,11 +103,23 @@ if __name__ == "__main__":
     executable = executable + " -s " + ','.join(signalFilesToProcessWithFolder)
     executable = executable + " -b " + ','.join(backgroundFilesToProcessWithFolder).replace(',,', ',')
     executable = executable + " -y " + str(year)
+    executable = executable + " -r " + str(singleTopRegion)
 
     trailer = ""
+
     if tag != '':
-        executable = executable + " --tags " + str(tag)
-        trailer = "_" + str(tag)
+        if singleTopRegion:
+            tag = tag + "_ST"
+        else:
+            tag = tag + "_TTbar"
+    else:
+        if singleTopRegion:
+            tag = "ST"
+        else:
+            tag = "TTbar"
+
+    executable = executable + " --tags " + str(tag)
+    trailer = "_" + str(tag)
 
     template = templateCONDOR
     template = template.replace('CMSSWRELEASE', cmssw)

@@ -201,8 +201,10 @@ if __name__ == "__main__":
                     tree = f.Get("Events")
                     if not f.GetListOfKeys().Contains("Events"):
                         filesToResubmit.append(fileToProcess)
+                        os.remove(fileToCheck)
                 except:
                     filesToResubmit.append(fileToProcess)
+                    os.remove(fileToCheck)
     
         filesToProcess = filesToResubmit
 

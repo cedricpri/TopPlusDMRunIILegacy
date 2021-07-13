@@ -5,19 +5,6 @@ import fnmatch
 from array import * 
 from os import walk
 
-"""
-def saveEffAsTH2D(eff, channel):
-    pt_bin = array('f', [25, 40, 60, 80, 100, 150, 200, 500])
-    h_eff = ROOT.TH2F("TH2_" + channel + "_eff", "", len(pt_bin)-1, pt_bin, len(pt_bin)-1, pt_bin)
-
-    for x in range(len(pt_bin)):
-        for y in range(len(pt_bin)):
-            h_eff.SetBinContent(x, y, eff.GetEfficiency(eff.GetPaintedHistogram().GetBin(x,y))))
-            h_eff.SetBinError(x, y, eff.GetEfficiency(eff.GetPaintedHistogram().GetBin(x,y))))
-    
-    return h_eff
-"""
-
 #------------------------------------- MAIN --------------------------------------------
 if __name__ == '__main__':
 
@@ -39,7 +26,7 @@ if __name__ == '__main__':
     if ismc == 1:
         tag = "MC"
 
-    plots2D = True
+    plots2D = False
 
     ##########################List of weights that have to be applied to MC###############################
     mcweights  = 'baseW*genWeight*puWeight*TriggerEffWeight_2l'
@@ -147,15 +134,15 @@ if __name__ == '__main__':
     #f = ROOT.TFile(options.filename)
     #ev = f.Get('Events')
     
-    if ismc:
-        #Find all the MC files in the inputdir
-        filesToConsider = []
-        for (dirpath, dirnames, filenames) in walk(inputDir):
-            for filename in filenames:
-                if("TTTo2" in filename or "ST" in filename or "DYToLL" in filename):
-                    filesToConsider.append(ROOT.TFile(inputDir + filename))
-    else:
-        filesToConsider = [ROOT.TFile(options.filename)]
+    #if ismc:
+    #Find all the MC files in the inputdir
+    filesToConsider = []
+    for (dirpath, dirnames, filenames) in walk(inputDir):
+        for filename in filenames:
+            if not ismc or ("TTTo2" in filename or "ST" in filename or "DYToLL" in filename):
+                filesToConsider.append(ROOT.TFile(inputDir + filename))
+    #else:
+    #    filesToConsider = [ROOT.TFile(options.filename)]
 
     ####################################### Binning ###################################################
     #pt_bin = array('f', [20, 40, 60, 80, 120, 180, 240, 300])
@@ -356,7 +343,7 @@ if __name__ == '__main__':
 
             ROOT.gPad.Update() 
             ROOT.gStyle.SetPaintTextFormat("4.2f")
-            eff.GetPaintedHistogram().SetMinimum(0.5)
+            eff.GetPaintedHistogram().SetMinimum(0.8)
             #eff.GetPaintedHistogram().SetMaximum(1.02)
             
             paintedHist = eff.GetPaintedHistogram()
@@ -370,6 +357,11 @@ if __name__ == '__main__':
                 for y in range(len(pt_bin)):
                     print(channel + " bin(" + str(x) + ", " + str(y) + ") : " + str(eff.GetEfficiency(eff.GetPaintedHistogram().GetBin(x,y))) + " - " + str(eff.GetEfficiencyErrorLow(eff.GetPaintedHistogram().GetBin(x,y))) + " + " + str(eff.GetEfficiencyErrorUp(eff.GetPaintedHistogram().GetBin(x,y))))
 
+            print("ee numerator yields: " + str(h_ee_pt_num.Integral(-1, -1, -1, -1)))
+            print("ee denominator yields: " + str(h_ee_pt_den.Integral(-1, -1, -1, -1)))
+            print("ee numerator yields last bin: " + str(h_ee_pt_num.Integral(len(pt_bin)-1, len(pt_bin)-1, len(pt_bin)-1, len(pt_bin)-1)))
+            print("ee denominator yields last bin: " + str(h_ee_pt_den.Integral(len(pt_bin)-1, len(pt_bin)-1, len(pt_bin)-1, len(pt_bin)-1)))
+
             can.SaveAs("Efficiency_pt_" + channel + "_" + options.year + "_" + options.tag + ".png")
 
     suffix = ""
@@ -381,19 +373,22 @@ if __name__ == '__main__':
     eff_em.SaveAs("Efficiency_pt_em_" + options.year + "_" + options.tag + suffix + ".root")
 
     eeFile = ROOT.TFile.Open("Efficiency_pt_ee_" + options.year + "_" + options.tag + suffix + ".root", "UPDATE")
-    h_eff["ee"].Write()
+    if plots2D:
+        h_eff["ee"].Write()
     h_ee_pt_num.Write()
     h_ee_pt_den.Write()
     eeFile.Close()
 
     mmFile = ROOT.TFile.Open("Efficiency_pt_mm_" + options.year + "_" + options.tag + suffix + ".root", "UPDATE")
-    h_eff["mm"].Write()
+    if plots2D:
+        h_eff["mm"].Write()
     h_mm_pt_num.Write()
     h_mm_pt_den.Write()
     mmFile.Close()
 
     emFile = ROOT.TFile.Open("Efficiency_pt_em_" + options.year + "_" + options.tag + suffix + ".root", "UPDATE")
-    h_eff["em"].Write()
+    if plots2D:
+        h_eff["em"].Write()
     h_em_pt_num.Write()
     h_em_pt_den.Write()
     emFile.Close()
