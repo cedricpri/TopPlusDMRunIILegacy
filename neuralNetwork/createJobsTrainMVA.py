@@ -26,6 +26,7 @@ if __name__ == "__main__":
     parser.add_option('-y', '--year', action='store', type=int, dest='year', default=2018) 
     parser.add_option('-g', '--tag', action='store', type=str, dest='tag', default="") #Tag to identify the training performed
     parser.add_option('-s', '--signalQuery', action='store', type=str, dest='signalQuery', default="TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100_,DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100_") #Comma separated string to be matched when searching for the files (do not use the nanoLatino prefix!)
+    parser.add_option('-m', '--mediator', action='store', type=str, dest='mediator', default="scalar")
     parser.add_option('-b', '--backgroundQuery', action='store', type=str, dest='backgroundQuery', default="TTTo2L2Nu__part,ST_s-channel_ext1,ST_t-channel_antitop,ST_t-channel_top,ST_tW_antitop_ext1,ST_tW_top_ext1") #Comma separated string to be matched when searching for the files
     parser.add_option('-r', '--singleTop', action='store_true', dest='singleTopRegion', default=False)
 
@@ -38,6 +39,7 @@ if __name__ == "__main__":
     year = opts.year
     tag = opts.tag
     signalQuery = opts.signalQuery
+    mediator = opts.mediator
     backgroundQuery = opts.backgroundQuery
     singleTopRegion = opts.singleTopRegion
     test = opts.test
@@ -50,6 +52,7 @@ if __name__ == "__main__":
         print("Year: " + str(year))
         print("Tag: " + str(tag))
         print("Signal query: " + str(signalQuery))
+        print("Mediator: " + str(mediator))
         print("Background query: " + str(backgroundQuery))
         print("Single top region: " + str(singleTopRegion))
         print("=================================================")
@@ -72,6 +75,9 @@ if __name__ == "__main__":
     signalProcesses = [str(item) for item in signalQuery.split(",")]
     backgroundProcesses = [str(item) for item in backgroundQuery.split(",")]
 
+    mediatorString1 = "DM" + mediator
+    mediatorString2 = "_" + mediator
+
     signalFilesToProcess = []
     backgroundFilesToProcess = []
     if inputDir != "":
@@ -82,7 +88,8 @@ if __name__ == "__main__":
 
         for i, signalProcess in enumerate(signalProcesses):
             if signalProcess != "":
-                signalFilesToProcess.append(','.join(fnmatch.filter(os.listdir(signalInputDir), 'nanoLatino*' + signalProcess + '*.root'))) #For now we keep all the signal files as they have less stat
+                signalFilesToProcess.append(','.join(fnmatch.filter(os.listdir(signalInputDir), 'nanoLatino*' + mediatorString1 + "*" + signalProcess + '*.root'))) #For now we keep all the signal files as they have less stat
+                signalFilesToProcess.append(','.join(fnmatch.filter(os.listdir(signalInputDir), 'nanoLatino*' + mediatorString2 + "*" + signalProcess + '*.root'))) #For now we keep all the signal files as they have less stat
         for i, backgroundProcess in enumerate(backgroundProcesses):
             if backgroundProcess != "":
                 backgroundFilesToProcess.append(','.join(fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + backgroundProcess + '*.root')[:maxFiles])) 
@@ -119,7 +126,10 @@ if __name__ == "__main__":
             tag = "TTbar"
 
     executable = executable + " --tags " + str(tag)
-    trailer = "_" + str(tag)
+    if tag != "":
+        trailer = "_" + str(tag) + "_" + mediator
+    else:
+        trailer = "_" + mediator
 
     template = templateCONDOR
     template = template.replace('CMSSWRELEASE', cmssw)

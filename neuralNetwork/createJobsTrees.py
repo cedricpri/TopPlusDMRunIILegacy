@@ -135,7 +135,7 @@ if __name__ == "__main__":
     for root, dirs, files in os.walk(outputDirWithSubfolders):
         for subdir in dirs:
             oldSubdir = subdir
-            subdir = subdir.replace(".root", "")
+            #subdir = subdir.replace(".root", "")
             os.rename(outputDirWithSubfolders + "/" + oldSubdir, outputDirWithSubfolders + "/" + subdir)
             filesInSubdir = fnmatch.filter(os.listdir(root + subdir), 'nanoLatino*' + query + '*')
             for fileInSubdir in filesInSubdir:
@@ -191,8 +191,8 @@ if __name__ == "__main__":
             #Check if the file is missing in the output directory
             fileToCheck = outputDir + "/" + productionName + fileToProcess['outputName']
             if not os.path.exists(fileToCheck):
-                if data or fakes or signal or query != "*":
-                    filesToResubmit.append(fileToProcess)
+                #if data or fakes or signal or query != "*":
+                filesToResubmit.append(fileToProcess)
                 #pass
             else: #If the file exists, check if the tree Events has been created successfully
                 print("  --> Opening " + fileToProcess['outputName'] + " to check for the presence of the Events tree.")
@@ -204,7 +204,10 @@ if __name__ == "__main__":
                         os.remove(fileToCheck)
                 except:
                     filesToResubmit.append(fileToProcess)
-                    os.remove(fileToCheck)
+                    try:
+                        os.remove(fileToCheck)
+                    except Exception as e:
+                        pass
     
         filesToProcess = filesToResubmit
 

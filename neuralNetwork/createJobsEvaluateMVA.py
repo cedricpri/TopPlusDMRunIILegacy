@@ -110,9 +110,13 @@ if __name__ == "__main__":
                 try:
                     os.remove(outputDir + fileInSubdir)
                 except Exception as e:
-                    pass
+                    print(e)
 
-                shutil.move(os.path.join(root + subdir, fileInSubdir), outputDir)
+                try:
+                    shutil.move(os.path.join(root + subdir, fileInSubdir), outputDir)
+                except Exception as e:
+                    print(e)
+
     #exit
     filesToProcess = []
     if inputDir != "":
@@ -139,9 +143,9 @@ if __name__ == "__main__":
                         
                         resubmitThis = False
                         for weight in weightsDir.split(","):
-                            if threshold == -1.0 and (not tree.GetBranch("TTbar_DNN_output_signal_" + weight) or not tree.GetBranch("ST_DNN_output_signal_" + weight)):
+                            if threshold == -1.0 and (not tree.GetBranch("pseudo_TTbar_DNN_output_signal_" + weight) or not tree.GetBranch("pseudo_ST_DNN_output_signal_" + weight) or not tree.GetBranch("pseudo_Both_DNN_output_signal_" + weight) or not tree.GetBranch("scalar_TTbar_DNN_output_signal_" + weight) or not tree.GetBranch("scalar_ST_DNN_output_signal_" + weight) or not tree.GetBranch("scalar_Both_DNN_output_signal_" + weight)):
                                 resubmitThis = True
-                            elif threshold > -1.0 and (not tree.GetBranch("TTbar_DNN_output_signal_" + weight + "_threshold_" + str(threshold)) or not tree.GetBranch("ST_DNN_output_signal_" + weight + "_threshold_" + str(threshold))):
+                            elif threshold > -1.0:
                                 resubmitThis = True
 
                         if resubmitThis:        
@@ -164,7 +168,11 @@ if __name__ == "__main__":
     except:
         pass #Directory already exists, this is fine
 
+    #completeFiles = [x for x in filesToProcess if not "__part" in x]
+    #uncompleteFiles = [x for x in filesToProcess if "__part" in x]
+    #chunckedProcesses = completeFiles + list(chunks(uncompleteFiles, groupJobs))
     chunckedProcesses = list(chunks(filesToProcess, groupJobs))
+
     for index, i in enumerate(chunckedProcesses):
         
         executable = baseDir + "/runMVA.py -e -f " + ','.join(i) + " -i " + inputDir + " -d " + baseDir + " -w " + weightsDir + " -y " + str(year) + " --threshold " + str(threshold)
@@ -188,4 +196,4 @@ if __name__ == "__main__":
         else:
             os.chmod('sh/send_' + i[0].replace('.root', '') + '_' + str(year) + '.sh', 0755)     
 
-    print(str(len(filesToProcess)) + " file(s) matching the requirements have been found.")
+    print(str(len(chunckedProcesses)) + " file(s) matching the requirements have been found.")

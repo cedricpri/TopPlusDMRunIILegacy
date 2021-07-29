@@ -97,6 +97,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, singleT
     Function used to train the MVA based on the signal given
     """
 
+    signalFiles = filter(None, signalFiles) #Filter possible empty values
     massPoint = signalFiles[-1].split("_")[10:16]
     if(tag != ""): massPoint = "_".join(massPoint).replace(".root", "") + "_" + tag
     else: massPoint = "_".join(massPoint).replace(".root", "")
@@ -119,6 +120,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, singleT
         os.makedirs(outputDirTraining)
     output = ROOT.TFile.Open(outputDirTraining+'TMVA.root', 'UPDATE')
 
+    outputDirWeights = outputDirWeights.replace(".root", "")
     try:
         os.stat(outputDirWeights)
     except:
@@ -274,11 +276,6 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
         os.makedirs(inputDir[:-1] + '_weighted/')
     except:
         pass
-    
-    if evaluationBackgroundThreshold > 0:
-        evaluationBranchTag = "_threshold_" + str(evaluationBackgroundThreshold)
-    else:
-        evaluationBranchTag = ""
 
     #Check if the weighted tree already exists
     for filename in filenames:
@@ -312,7 +309,7 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
         DNN_output_background = {}
         DNN_output_category = {}
 
-        for SR in ["ST", "TTbar"]:
+        for SR in ["ST", "TTbar", "Both"]:
             reader[SR] = {}
             branchesAddresses[SR] = {}
             """
@@ -326,93 +323,100 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
 
             for weightTag in weightsDir:
                 branches = {}
+                allBranchesAddresses = []
                 branchesAddresses[SR][weightTag] = []
-                reader[SR][weightTag] = ROOT.TMVA.Reader("Color:!Silent")
 
-                #Read the variables used for the training
-                weightsLocation = baseDir + "/" + str(year) + "/" + weightTag + "_" + SR
-                trainingFile = ROOT.TFile.Open(weightsLocation + "/training/TMVA.root", "READ")
-                trainingTree = trainingFile.Get("dataset/TrainTree")
-                trainingVariables = trainingTree.GetListOfBranches()
+                if SR is not "Both":
+                    reader[SR][weightTag] = ROOT.TMVA.Reader("Color:!Silent")
                 
-                for variable in trainingVariables:
-                    variableName = variable.GetName().replace("_0_", "[0]").replace("_1_", "[1]")
-                    if variableName not in ["classID", "className", "weight", "BDT", "PyKeras"]:
-                        branch = inputTree.GetBranch(variableName)
-                        try:
-                            branchName = branch.GetName()
-                        except Exception as e:
-                            branchName = variableName
-
-                        branches[branchName] = array('f', [-999.0])
-                        reader[SR][weightTag].AddVariable(branchName, branches[branchName])
-                        branchesAddresses[SR][weightTag].append([branchName, branches[branchName]])
-                        inputTree.SetBranchStatus(branchName, 1)
-                        #inputTree.SetBranchAddress(branchName, branches[branchName])
-                        #outputTree.SetBranchAddress(branchName, branches[branchName])
-
-                #reader[SR][weightTag].BookMVA("BDT", weightsLocation + "/dataset/weights/TMVAClassification_BDT.weights.xml")
-                reader[SR][weightTag].BookMVA("PyKeras", weightsLocation + "/dataset/weights/TMVAClassification_PyKeras.weights.xml")
+                    #Read the variables used for the training
+                    weightsLocation = baseDir + "/" + str(year) + "/" + weightTag + "_" + SR
+                    trainingFile = ROOT.TFile.Open(weightsLocation + "/training/TMVA.root", "READ")
+                    trainingTree = trainingFile.Get("dataset/TrainTree")
+                    trainingVariables = trainingTree.GetListOfBranches()
                 
+                    for variable in trainingVariables:
+                        variableName = variable.GetName().replace("_0_", "[0]").replace("_1_", "[1]")
+                        if variableName not in ["classID", "className", "weight", "BDT", "PyKeras"]:
+                            branch = inputTree.GetBranch(variableName)
+                            try:
+                                branchName = branch.GetName()
+                            except Exception as e:
+                                branchName = variableName
+
+                            branches[branchName] = array('f', [-999.0])
+                            reader[SR][weightTag].AddVariable(branchName, branches[branchName])
+                            branchesAddresses[SR][weightTag].append([branchName, branches[branchName]])
+                            allBranchesAddresses.append([branchName, branches[branchName]])
+                            inputTree.SetBranchStatus(branchName, 1)
+                            #inputTree.SetBranchAddress(branchName, branches[branchName])
+                            #outputTree.SetBranchAddress(branchName, branches[branchName])
+                            
+                    #reader[SR][weightTag].BookMVA("BDT", weightsLocation + "/dataset/weights/TMVAClassification_BDT.weights.xml")
+                    reader[SR][weightTag].BookMVA("PyKeras", weightsLocation + "/dataset/weights/TMVAClassification_PyKeras.weights.xml")
+                else:
+                    for branchAddress in allBranchesAddresses:
+                        branchesAddresses[SR][weightTag].append(branchAddress)
+
                 """
                 BDT_output_signal[SR][weightTag] = array("f", [0.])
                 BDT_output_background[SR][weightTag] = array("f", [0.])
                 BDT_output_category[SR][weightTag] = array("i", [0]) #Which category gets the highest output?
-                outputTree.Branch(SR + "_BDT_output_signal_" + weightTag + evaluationBranchTag, BDT_output_signal[SR][weightTag], SR + "_BDT_output_signal_" + weightTag + evaluationBranchTag + "/F")
-                outputTree.Branch(SR + "_BDT_output_background_" + weightTag + evaluationBranchTag, BDT_output_background[SR][weightTag], SR + "_BDT_output_background_" + weightTag + evaluationBranchTag + "/F")
-                outputTree.Branch(SR + "_BDT_output_category_" + weightTag + evaluationBranchTag, BDT_output_category[SR][weightTag], SR + "_BDT_output_category_" + weightTag + evaluationBranchTag + "/I")
+                outputTree.Branch(SR + "_BDT_output_signal_" + weightTag, BDT_output_signal[SR][weightTag], SR + "_BDT_output_signal_" + weightTag + "/F")
+                outputTree.Branch(SR + "_BDT_output_background_" + weightTag, BDT_output_background[SR][weightTag], SR + "_BDT_output_background_" + weightTag + "/F")
+                outputTree.Branch(SR + "_BDT_output_category_" + weightTag, BDT_output_category[SR][weightTag], SR + "_BDT_output_category_" + weightTag + "/I")
                 """
 
                 DNN_output_signal[SR][weightTag] = array("f", [0.])
                 DNN_output_background[SR][weightTag] = array("f", [0.])
                 DNN_output_category[SR][weightTag] = array("i", [0])
-                outputTree.Branch(SR + "_DNN_output_signal_" + weightTag + evaluationBranchTag, DNN_output_signal[SR][weightTag], SR + "_DNN_output_signal_" + weightTag + evaluationBranchTag + "/F")
-                outputTree.Branch(SR + "_DNN_output_background_" + weightTag + evaluationBranchTag, DNN_output_background[SR][weightTag], SR + "_DNN_output_background_" + weightTag + evaluationBranchTag + "/F")
-                outputTree.Branch(SR + "_DNN_output_category_" + weightTag + evaluationBranchTag, DNN_output_category[SR][weightTag], SR + "_DNN_output_category_" + weightTag + evaluationBranchTag + "/I")
+                outputTree.Branch(SR + "_DNN_output_signal_" + weightTag, DNN_output_signal[SR][weightTag], SR + "_DNN_output_signal_" + weightTag + "/F")
+                outputTree.Branch(SR + "_DNN_output_background_" + weightTag, DNN_output_background[SR][weightTag], SR + "_DNN_output_background_" + weightTag + "/F")
+                outputTree.Branch(SR + "_DNN_output_category_" + weightTag, DNN_output_category[SR][weightTag], SR + "_DNN_output_category_" + weightTag + "/I")
 
                 trainingFile.Close()
 
         #Now we can apply the weights
-        nEvents = inputTree.GetEntries()
+        nEvents = inputTree.GetEntries("mt2ll > 80 && nbJet >= 1")
         if test:
-            nEvents = 1000
+            nEvents = min(nEvents, 1000)
 
+        eventsPassed = 0
         for index, ev in enumerate(inputTree):
-            if index % 100 == 0 and nEvents != 0: #Update the loading bar every 100 events
-                updateProgress(round(index/float(nEvents), 2))
-
             #Skimming to reduce the size of the trees
             if ev.nbJet < 1 or ev.mt2ll < 80:
                 continue
+
+            eventsPassed = eventsPassed + 1
+            if eventsPassed % 100 == 0 and nEvents != 0: #Update the loading bar every 100 events
+                updateProgress(round(eventsPassed/float(nEvents), 2))
 
             #For testing only
             if test and index == nEvents:
                 break
 
             #Let's get started
-            for SR in ["ST", "TTbar"]:
+            for SR in ["ST", "TTbar", "Both"]:
                 for weightTag in weightsDir:
+
                     for branch in branchesAddresses[SR][weightTag]:
                         inputTree.SetBranchAddress(branch[0], branch[1])
                     inputTree.GetEntry(index)
 
-                    """
-                    #Fill the BDT variables
-                    BDTValues = list(reader[SR][weightTag].EvaluateMulticlass("BDT"))
-                    BDT_output_signal[SR][weightTag][0] = BDTValues[0]
-                    BDT_output_background[SR][weightTag][0] = BDTValues[1]
-
-                    if evaluationBackgroundThreshold > 0:
-                        if BDT_output_background[SR][weightTag][0] > evaluationBackgroundThreshold:
-                            BDT_output_category[SR][weightTag][0] = 1
-                        else: #Assign the signal label depending on the most probably category
-                            BDT_output_category[SR][weightTag][0] = 0
-                    else:
-                        BDT_output_category[SR][weightTag][0] = BDTValues.index(max(BDTValues))
-                    """
+                    eventSR = SR #Which SR do we want to consider based on the observed event?
+                    if SR == "Both":
+                        nJet = 0
+                        for j, jet in enumerate(ev.CleanJet_pt):
+                            if ev.CleanJet_pt[j] >= 20 and abs(ev.CleanJet_eta[j]) < 2.4:
+                                nJet = nJet + 1
+                                
+                        if nJet == 1 or (nJet == 2 and ev.nbJet == 1):
+                            eventSR = "ST"
+                        else:
+                            eventSR = "TTbar"
 
                     #Fill the DNN variables
-                    DNNValues = list(reader[SR][weightTag].EvaluateMulticlass("PyKeras"))
+                    DNNValues = list(reader[eventSR][weightTag].EvaluateMulticlass("PyKeras"))
                     DNN_output_signal[SR][weightTag][0] = DNNValues[0]
                     DNN_output_background[SR][weightTag][0] = DNNValues[1]
 

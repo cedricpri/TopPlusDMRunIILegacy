@@ -68,7 +68,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     inputFile = r.TFile.Open(inputDir+filename, "r")
 
     #Create a directory to keep the files if it does not already exist
-    outputDirProduction = "/".join(inputDir.split('/')[-3:-1])+"/"
+    outputDirProduction = ("/".join(inputDir.split('/')[-3:-1])+"/").replace(".root", "")
     outputDir = outputDir + outputDirProduction #Add a final name to distinguish between 2016, 2017 and 2018 files
     outputDir = outputDir + filename.split("__part")[0] + "/"
 
@@ -372,7 +372,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #We want the leading jet to have pt > 30 GeV and at least one jet with pt > 20 and abs(eta) < 2.4
         passJet = False
         for j, jet in enumerate(ev.CleanJet_pt):
-            if ev.CleanJet_pt[0] > 30. and ev.CleanJet_pt[j] > 20. and abs(ev.CleanJet_eta[j]) < 2.4:
+            if j > 0 and ev.CleanJet_pt[0] > 30. and ev.CleanJet_pt[j] > 20. and abs(ev.CleanJet_eta[j]) < 2.4:
                 passJet = True
 
         if not passJet:
@@ -392,13 +392,18 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         if channel == "em":
             binX = triggerSF[channel].GetXaxis().FindBin(ev.Electron_pt[0])
             binY = triggerSF[channel].GetYaxis().FindBin(ev.Muon_pt[0])
-            customTriggerSF[0] = triggerSF[channel].GetBinContent(binY + 1, binX + 1)
-            customTriggerSFError[0] = triggerSF[channel].GetBinError(binY + 1, binX + 1)
         else:
-            binX = triggerSF[channel].GetXaxis().FindBin(ev.Lepton_pt[1])
-            binY = triggerSF[channel].GetYaxis().FindBin(ev.Lepton_pt[0])
-            customTriggerSF[0] = triggerSF[channel].GetBinContent(binY + 1, binX + 1)
-            customTriggerSFError[0] = triggerSF[channel].GetBinError(binY + 1, binX + 1)
+            binX = triggerSF[channel].GetXaxis().FindBin(ev.Lepton_pt[0])
+            binY = triggerSF[channel].GetYaxis().FindBin(ev.Lepton_pt[1])
+
+        binX = max(1, binX) #Lepton_pt[1] can be < 25 GeV and therefore out of range of the TH2
+        binY = max(1, binY)
+        binX = min(6, binX) #Lepton_pt can be > 500 and out of range of the TH2
+        binY = min(6, binY)
+
+        customTriggerSF[0] = triggerSF[channel].GetBinContent(binX, binY)
+        #print(customTriggerSF[0], ev.Lepton_pt[0], ev.Lepton_pt[1], binX, binY, channel)
+        customTriggerSFError[0] = triggerSF[channel].GetBinError(binX, binY)
 
         #===================================================
         #b-jets collection creation
