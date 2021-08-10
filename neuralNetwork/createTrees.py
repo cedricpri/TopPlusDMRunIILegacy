@@ -65,6 +65,17 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         "mm": triggerSFFile.Get("h_SF_mm_" + str(year))
     }
 
+    #Read the correct DY Rinout files
+    dySFFile = r.TFile(baseDir+"/data/Rinout_summary_"+str(year)+".root")
+    dySF = {
+        "MC_ee": dySFFile.Get("ee_MC"),
+        "data_ee": dySFFile.Get("ee_data"),
+        "MC_mm": dySFFile.Get("mm_MC"),
+        "data_mm": dySFFile.Get("mm_data")
+    }
+    dySF["SF_ee"] = dySF["MC_ee"].Divide(dySF["data_ee"])
+    dySF["SF_mm"] = dySF["MC_mm"].Divide(dySF["data_mm"])
+
     inputFile = r.TFile.Open(inputDir+filename, "r")
 
     #Create a directory to keep the files if it does not already exist
@@ -209,7 +220,13 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.Branch("customTriggerSF", customTriggerSF, "customTriggerSF/F")
     customTriggerSFError = array("f", [0.])
     outputTree.Branch("customTriggerSFError", customTriggerSFError, "customTriggerSFError/F")
+    customDYSF = array("f", [0.])
+    outputTree.Branch("customDYSF", customDYSF, "customDYSF/F")
+    customDYSFError = array("f", [0.])
+    outputTree.Branch("customDYSFError", customDYSFError, "customDYSFError/F")
 
+    nJetMine = array("i", [0])
+    outputTree.Branch("nJetMine", nJetMine, "nJetMine/I")
     nbJet = array("i", [0])
     outputTree.Branch("nbJet", nbJet, "nbJet/I")
     bJetsIdx = array("i", 10*[0])
@@ -371,10 +388,13 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
 
         #We want the leading jet to have pt > 30 GeV and at least one jet with pt > 20 and abs(eta) < 2.4
         passJet = False
+        numberJets = 0
         for j, jet in enumerate(ev.CleanJet_pt):
-            if j > 0 and ev.CleanJet_pt[0] > 30. and ev.CleanJet_pt[j] > 20. and abs(ev.CleanJet_eta[j]) < 2.4:
+            if ev.CleanJet_pt[0] > 30. and ev.CleanJet_pt[j] > 20. and abs(ev.CleanJet_eta[j]) < 2.4:
                 passJet = True
+                numberJets = numberJets + 1
 
+        nJetMine[0] = numberJets
         if not passJet:
             continue
         #Additional cut removing events having less than one b-jet performed later, once the b-jets have been computed
@@ -402,7 +422,6 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         binY = min(6, binY)
 
         customTriggerSF[0] = triggerSF[channel].GetBinContent(binX, binY)
-        #print(customTriggerSF[0], ev.Lepton_pt[0], ev.Lepton_pt[1], binX, binY, channel)
         customTriggerSFError[0] = triggerSF[channel].GetBinError(binX, binY)
 
         #===================================================
@@ -416,6 +435,14 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
 
         ibjet = 0
         for j, jet in enumerate(ev.CleanJet_pt): #TOCHECK: For now, we only consider b-jets from the clean jets collection
+            if j == 0 and (ev.CleanJet_pt[j] < 30. or abs(ev.CleanJet_eta[j]) > 2.4):
+                continue
+            elif j > 0 and (ev.CleanJet_pt[j] < 20. or abs(ev.CleanJet_eta[j]) > 2.4):
+                continue
+
+            if ev.CleanJet_pt[j] < 50. and ev.Jet_puId[ev.CleanJet_jetIdx[j]] < 7:
+                continue
+
             maxBWeight = -10.0
 
             jetIndexes.append(j)
@@ -437,7 +464,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         if(len(mbltJets) < 3 and lastmlbJet is not None): mbltJets.append(lastmlbJet)
         nbJet[0] = len(bJetIndexes)
 
-        #Commented for now as we need to have access to the mt2ll variable for 0b-jets events for the DY Rin-otu method
+        #Commented for now as we need to have access to the mt2ll variable for 0b-jets events for the DY Rin-out method
         #if len(bJetIndexes) == 0: #We don't consider events having less than 1 b-jet
         #    continue 
 
@@ -594,6 +621,16 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         METcorrected_pt[0] = METcorrected_pt_phi[0]
         METcorrected_phi[0] = METcorrected_pt_phi[1]
         TMET.SetPtEtaPhiM(METcorrected_pt_phi[0], 0.0, METcorrected_pt_phi[1], 0.0)
+
+        #===================================================
+        #DY Rinout SF
+        #===================================================
+        if channel == "ee" or channel == "mm":
+            customDYSF[0] = dySF["SF_" + channel].GetBinContent(METcorrected_pt_phi[0])
+            customDYSFError[0] = dySF["SF_" + channel].GetBinError(METcorrected_pt_phi[0])
+        else:
+            customDYSF[0] = 1
+            customDYSFError[0] = 0
 
         #===================================================
         #MT2 computation

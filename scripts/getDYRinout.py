@@ -4,21 +4,20 @@ import ROOT as r
 import math
 from array import array
 
-#!!TODO: apply this method to the region of the analysis (mt2ll cut, for example)
-haddFile = 'rootFile/plots_ttDM2016_DY.root'
-
 #General parameters
-year = 2016
+year = 2018
 channels = ['ee', 'mm']
+
+haddFile = 'Shapes/' + str(year) + '/Rinout/plots_Rinout_SM.root'
 
 #Z window width
 xmin = 76
 xmax = 106
 
 #Histograms to be considered for the computation
-DYObjects = ['histo_DY;1', 'histo_DY;2']
-MCObjects = ['histo_ttZ', 'histo_Vg', 'histo_VgS_L', 'histo_ttbar', 'histo_ttW', 'histo_TTToSemiLeptonic', 'histo_singleTop', 'histo_VVV', 'histo_WW', 'histo_VgS_H', 'histo_VZ', 'histo_Fake'] #Backgrounds to be substracted to only keep DY-like data events
-dataObjects = ['histo_DATA;1']
+DYObjects = ['histo_DY']
+MCObjects = ['histo_ttbar', 'histo_ttW', 'histo_STtW', 'histo_VVV', 'histo_ZZ', 'histo_WZ'] #Backgrounds to be substracted to only keep DY-like data events
+dataObjects = ['histo_DATA']
 
 #MET bins used to plot the Routin factor
 metBins = ['0', '1', '2', '3', '4', '5'] #Matching the definition of the cuts in the cuts.py file: 0 is the inclusive distribution
@@ -232,34 +231,35 @@ plots = [
     [RoutinData, errorRoutinData, "data"], 
     [RoutinMC, errorRoutinMC, "MC"], 
     [RoutinData0bjet, errorRoutinData0bjet, "data_0bjet"],
-    [RoutinMC0bjet, errorRoutinMC0bjet, "MC_objet"]
+    [RoutinMC0bjet, errorRoutinMC0bjet, "MC_0bjet"]
 ]
 
 for p, plot in enumerate(plots):
+    h.append([])
     for i, channel in enumerate(channels):
-        h.append(r.TH1D())
-
+        h[p].append(r.TH1D())
         if(i == 0):
-            h[i].GetXaxis().SetTitle("Pf MET [GeV]")
-            h[i].GetYaxis().SetTitle("R^{out/in} = N^{out} / N^{in}")
-            #h[i].GetYaxis().SetTitle("DY SF")
-            h[i].SetTitle('DY Rin-out (' + str(year) + ')')
-            #h[i].SetTitle('DY Rin-out scale factor (' + str(year) + ')')
+            h[p][i].GetXaxis().SetTitle("Pf MET [GeV]")
+            h[p][i].GetYaxis().SetTitle("R^{out/in} = N^{out} / N^{in}")
+            #h[p][i].GetYaxis().SetTitle("DY SF")
+            h[p][i].SetTitle('DY Rin-out (' + str(year) + ')')
+            #h[p][i].SetTitle('DY Rin-out scale factor (' + str(year) + ')')
 
-        h[i].SetBins(len(metValues) - 1, array('d', metValues))
+        h[p][i].SetBins(len(metValues) - 1, array('d', metValues))
+        h[p][i].SetName(channel + "_" + plot[2])
 
         for j in range(1, len(metValues)): #Start at 1 to avoid plotting the inclusive MET bin
-            h[i].SetBinContent(j, plot[0][channel][str(j)])
-            h[i].SetBinError(j, plot[1][channel][str(j)])
-            h[i].SetLineColor(channelColors[i])
-            h[i].SetLineWidth(2)
-            h[i].SetMarkerStyle(21)
-            #h[i].GetYaxis().SetRangeUser(0, 0.16)
-            h[i].SetMarkerColor(channelColors[i])
-            h[i].Draw("same")
+            h[p][i].SetBinContent(j, plot[0][channel][str(j)])
+            h[p][i].SetBinError(j, plot[1][channel][str(j)])
+            h[p][i].SetLineColor(channelColors[i])
+            h[p][i].SetLineWidth(2)
+            h[p][i].SetMarkerStyle(21)
+            #h[p][i].GetYaxis().SetRangeUser(0, 0.16)
+            h[p][i].SetMarkerColor(channelColors[i])
+            h[p][i].Draw("same")
         
         if(p == 0): 
-            legend.AddEntry(h[i], channel)
+            legend.AddEntry(h[p][i], channel)
 
     #Plot the inclusive value
     inputData = plot[0]
@@ -278,5 +278,12 @@ for p, plot in enumerate(plots):
 
     legend.SetBorderSize(0)
     legend.Draw()
+
     canvas.SaveAs("Rinout" + str(year) + "_" + plot[2] + ".png")
     canvas.SaveAs("Rinout" + str(year) + "_" + plot[2] + ".root")
+
+summaryFile = r.TFile.Open("Rinout_summary_" + str(year) + ".root", "RECREATE")
+for p, plot in enumerate(plots):
+    for i, channel in enumerate(channels):
+        h[p][i].Write()
+summaryFile.Close()
