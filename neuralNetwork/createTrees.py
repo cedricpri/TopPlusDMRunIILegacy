@@ -10,7 +10,7 @@ from ttbarReco.eventKinematic import EventKinematic
 
 #Smearing parameters
 runSmearing = True
-runSmearingNumber = 100
+runSmearingNumber = 40
 
 #=========================================================================================================
 # HELPERS
@@ -65,16 +65,20 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         "mm": triggerSFFile.Get("h_SF_mm_" + str(year))
     }
 
+    """
     #Read the correct DY Rinout files
     dySFFile = r.TFile(baseDir+"/data/Rinout_summary_"+str(year)+".root")
     dySF = {
         "MC_ee": dySFFile.Get("ee_MC"),
         "data_ee": dySFFile.Get("ee_data"),
         "MC_mm": dySFFile.Get("mm_MC"),
-        "data_mm": dySFFile.Get("mm_data")
+        "data_mm": dySFFile.Get("mm_data"),
+        "SF_ee": dySFFile.Get("ee_MC"),
+        "SF_mm": dySFFile.Get("mm_MC"),
     }
-    dySF["SF_ee"] = dySF["MC_ee"].Divide(dySF["data_ee"])
-    dySF["SF_mm"] = dySF["MC_mm"].Divide(dySF["data_mm"])
+    dySF["SF_ee"].Divide(dySF["data_ee"])
+    dySF["SF_mm"].Divide(dySF["data_mm"])
+    """
 
     inputFile = r.TFile.Open(inputDir+filename, "r")
 
@@ -220,10 +224,20 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.Branch("customTriggerSF", customTriggerSF, "customTriggerSF/F")
     customTriggerSFError = array("f", [0.])
     outputTree.Branch("customTriggerSFError", customTriggerSFError, "customTriggerSFError/F")
+    """
+    customDYMCWeight = array("f", [0.])
+    outputTree.Branch("customDYMCWeight", customDYMCWeight, "customDYMCWeight/F")
+    customDYMCWeightError = array("f", [0.])
+    outputTree.Branch("customDYMCWeightError", customDYMCWeightError, "customDYMCWeightError/F")
+    customDYDataWeight = array("f", [0.])
+    outputTree.Branch("customDYDataWeight", customDYDataWeight, "customDYDataWeight/F")
+    customDYDataWeightError = array("f", [0.])
+    outputTree.Branch("customDYDataWeightError", customDYDataWeightError, "customDYDataWeightError/F")
     customDYSF = array("f", [0.])
     outputTree.Branch("customDYSF", customDYSF, "customDYSF/F")
     customDYSFError = array("f", [0.])
     outputTree.Branch("customDYSFError", customDYSFError, "customDYSFError/F")
+    """
 
     nJetMine = array("i", [0])
     outputTree.Branch("nJetMine", nJetMine, "nJetMine/I")
@@ -390,14 +404,18 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         passJet = False
         numberJets = 0
         for j, jet in enumerate(ev.CleanJet_pt):
-            if ev.CleanJet_pt[0] > 30. and ev.CleanJet_pt[j] > 20. and abs(ev.CleanJet_eta[j]) < 2.4:
-                passJet = True
-                numberJets = numberJets + 1
+            if j == 0:
+                if ev.CleanJet_pt[0] > 30. and abs(ev.CleanJet_eta[0]) < 2.4:
+                    passJet = True
+                    numberJets = numberJets + 1
+            else:
+                if ev.CleanJet_pt[j] > 20. and abs(ev.CleanJet_eta[j]) < 2.4:
+                    passJet = True
+                    numberJets = numberJets + 1
 
         nJetMine[0] = numberJets
         if not passJet:
             continue
-        #Additional cut removing events having less than one b-jet performed later, once the b-jets have been computed
 
         #===================================================
         #Trigger SF weight
@@ -614,23 +632,34 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #===================================================
 
         if(year == 2017):
-            METcorrected_pt_phi = r.METXYCorr_Met_MetPhi(ev.METFixEE2017_pt, ev.METFixEE2017_phi, ev.run, year, "Run" in filename, ev.PV_npvs)
+            METcorrected_pt_phi = r.METXYCorr_Met_MetPhi(ev.METFixEE2017_pt, ev.METFixEE2017_phi, ev.run, year, not "Run" in filename, ev.PV_npvs)
         else:
-            METcorrected_pt_phi = r.METXYCorr_Met_MetPhi(ev.MET_pt, ev.MET_phi, ev.run, year, "Run" in filename, ev.PV_npvs)
+            METcorrected_pt_phi = r.METXYCorr_Met_MetPhi(ev.MET_pt, ev.MET_phi, ev.run, year, not "Run" in filename, ev.PV_npvs)
 
         METcorrected_pt[0] = METcorrected_pt_phi[0]
         METcorrected_phi[0] = METcorrected_pt_phi[1]
         TMET.SetPtEtaPhiM(METcorrected_pt_phi[0], 0.0, METcorrected_pt_phi[1], 0.0)
 
+        """
         #===================================================
         #DY Rinout SF
         #===================================================
+
         if channel == "ee" or channel == "mm":
-            customDYSF[0] = dySF["SF_" + channel].GetBinContent(METcorrected_pt_phi[0])
-            customDYSFError[0] = dySF["SF_" + channel].GetBinError(METcorrected_pt_phi[0])
+            customDYMCWeight[0] = dySF["MC_" + channel].GetBinContent(dySF["MC_" + channel].GetXaxis().FindBin(METcorrected_pt_phi[0]))
+            customDYMCWeightError[0] = dySF["MC_" + channel].GetBinError(dySF["MC_" + channel].GetXaxis().FindBin(METcorrected_pt_phi[0]))
+            customDYDataWeight[0] = dySF["data_" + channel].GetBinContent(dySF["data_" + channel].GetXaxis().FindBin(METcorrected_pt_phi[0]))
+            customDYDataWeightError[0] = dySF["data_" + channel].GetBinError(dySF["data_" + channel].GetXaxis().FindBin(METcorrected_pt_phi[0]))
+            customDYSF[0] = dySF["SF_" + channel].GetBinContent(dySF["SF_" + channel].GetXaxis().FindBin(METcorrected_pt_phi[0]))
+            customDYSFError[0] = dySF["SF_" + channel].GetBinError(dySF["SF_" + channel].GetXaxis().FindBin(METcorrected_pt_phi[0]))
         else:
+            customDYMCWeight[0] = 1
+            customDYMCWeightError[0] = 0
+            customDYDataWeight[0] = 1
+            customDYDataWeightError[0] = 0
             customDYSF[0] = 1
             customDYSFError[0] = 0
+        """
 
         #===================================================
         #MT2 computation
@@ -644,8 +673,8 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
             if bestReconstructedKinematicWithoutSmearing is not None and bestReconstructedKinematicWithoutSmearing.weight > 0:
                 mt2bl[0] = computeMT2(bestReconstructedKinematicWithoutSmearing.Tlep1 + bestReconstructedKinematicWithoutSmearing.Tb1, bestReconstructedKinematicWithoutSmearing.Tlep2 + bestReconstructedKinematicWithoutSmearing.Tb2, bestReconstructedKinematicWithoutSmearing.TMET) 
             else:
-                #mt2bl[0] = computeMT2(eventKinematic.Tlep1 + eventKinematic.Tb1, eventKinematic.Tlep2 + eventKinematic.Tb2, eventKinematic.TMET) 
-                mt2bl[0] = -99.0
+                mt2bl[0] = computeMT2(eventKinematic.Tlep1 + eventKinematic.Tb1, eventKinematic.Tlep2 + eventKinematic.Tb2, eventKinematic.TMET) 
+                #mt2bl[0] = -99.0
 
         else:
             mt2bl[0] = -99.0

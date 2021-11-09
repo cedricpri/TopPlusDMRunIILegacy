@@ -27,7 +27,7 @@ if __name__ == "__main__":
     parser.add_option('-g', '--tag', action='store', type=str, dest='tag', default="") #Tag to identify the training performed
     parser.add_option('-s', '--signalQuery', action='store', type=str, dest='signalQuery', default="TTbarDMJets_Dilepton_scalar_LO_Mchi_1_Mphi_100_,DMscalar_Dilepton_top_tWChan_Mchi1_Mphi100_") #Comma separated string to be matched when searching for the files (do not use the nanoLatino prefix!)
     parser.add_option('-m', '--mediator', action='store', type=str, dest='mediator', default="scalar")
-    parser.add_option('-b', '--backgroundQuery', action='store', type=str, dest='backgroundQuery', default="TTTo2L2Nu__part,ST_s-channel_ext1,ST_t-channel_antitop,ST_t-channel_top,ST_tW_antitop_ext1,ST_tW_top_ext1") #Comma separated string to be matched when searching for the files
+    parser.add_option('-b', '--backgroundQuery', action='store', type=str, dest='backgroundQuery', default="") #Comma separated string to be matched when searching for the files
     parser.add_option('-r', '--singleTop', action='store_true', dest='singleTopRegion', default=False)
 
     #Additional options
@@ -45,6 +45,14 @@ if __name__ == "__main__":
     test = opts.test
     verbose = opts.verbose
 
+    if backgroundQuery == "":
+        if year == 2016:
+            backgroundQuery = "TTTo2L2Nu__part,ST_tW_antitop__,ST_tW_top__"
+        elif year == 2017:
+            backgroundQuery = "TTTo2L2Nu_PSWeights__part,ST_tW_antitop__,ST_tW_top__"
+        elif year == 2018:
+            backgroundQuery = "TTTo2L2Nu__part,ST_tW_antitop_ext1,ST_tW_top_ext1"
+
     if verbose:
         print("=================================================")
         print("-> OPTIONS USED:")
@@ -60,14 +68,14 @@ if __name__ == "__main__":
     baseDir = os.getcwd() + "/"
  
     if year == 2018:
-        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv7_Full2018v7/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin/"
-        inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin/"
+        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv7_Full2018v7/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoSmear/"
+        inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoSmear/"
     elif year == 2017:
-        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv7_Full2017v7/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin/"
-        inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin/"
+        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv7_Full2017v7/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoSmear/"
+        inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoSmear/"
     elif year == 2016:
-        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv7_Full2016v7loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin/"
-        inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin/"
+        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv7_Full2016v7loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoSmear/"
+        inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoSmear/"
     else:
         print("The year option has to be used, and the year should be 2016, 2017 or 2018.")
         exit()
@@ -110,7 +118,8 @@ if __name__ == "__main__":
     executable = executable + " -s " + ','.join(signalFilesToProcessWithFolder)
     executable = executable + " -b " + ','.join(backgroundFilesToProcessWithFolder).replace(',,', ',')
     executable = executable + " -y " + str(year)
-    executable = executable + " -r " + str(singleTopRegion)
+    if singleTopRegion:
+        executable = executable + " -r "
 
     trailer = ""
 

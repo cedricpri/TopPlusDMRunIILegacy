@@ -23,6 +23,8 @@ if __name__ == '__main__':
     isLatino = options.isLatino
     year = options.year
     tag = options.tag 
+    if ismc == 1:
+        tag = "MC"
 
     ##########################List of weights that have to be applied to MC###############################
     mcweights  = 'baseW*genWeight*puWeight*TriggerEffWeight_2l'
@@ -30,11 +32,14 @@ if __name__ == '__main__':
     leptonGen = '(Lepton_promptgenmatched[0]*Lepton_promptgenmatched[1] + (1. - Lepton_promptgenmatched[0]*Lepton_promptgenmatched[1])*1.30)'
 
     vetoEENoise = '(Sum$(Jet_pt*(1.-Jet_rawFactor)<50. && Jet_pt>30. && abs(Jet_eta)>2.650 && abs(Jet_eta)<3.139)==0)'
-    vetoHEMele = '(((Sum$(Electron_pt>30. && Electron_eta>-3.0 && Electron_eta<-1.4 && Electron_phi>-1.57 && Electron_phi<-0.87)==0) && (Sum$(Jet_pt>30. && Jet_eta>-3.2 && Jet_eta<-1.2 && Jet_phi>-1.77 && Jet_phi<-0.67)==0)) + (1.-((Sum$(Electron_pt>30. && Electron_eta>-3.0 && Electron_eta<-1.4 && Electron_phi>-1.57 && Electron_phi<-0.87)==0) && (Sum$(Jet_pt>30. && Jet_eta>-3.2 && Jet_eta<-1.2 && Jet_phi>-1.77 && Jet_phi<-0.67)==0)))*0.35225285)'
+    #vetoHEMele = '(((Sum$(Electron_pt>30. && Electron_eta>-3.0 && Electron_eta<-1.4 && Electron_phi>-1.57 && Electron_phi<-0.87)==0) && (Sum$(Jet_pt>30. && Jet_eta>-3.2 && Jet_eta<-1.2 && Jet_phi>-1.77 && Jet_phi<-0.67)==0)) + (1.-((Sum$(Electron_pt>30. && Electron_eta>-3.0 && Electron_eta<-1.4 && Electron_phi>-1.57 && Electron_phi<-0.87)==0) && (Sum$(Jet_pt>30. && Jet_eta>-3.2 && Jet_eta<-1.2 && Jet_phi>-1.77 && Jet_phi<-0.67)==0)))*0.35225285)'
+    vetoHEMele = '1'
 
     flags = '(Flag_goodVertices*Flag_HBHENoiseFilter*Flag_HBHENoiseIsoFilter*Flag_EcalDeadCellTriggerPrimitiveFilter*Flag_BadPFMuonFilter*Flag_globalSuperTightHalo2016Filter)'
-    if year == '2017' or year == '2018':
+    if year == '2017':
         flags = flags + '*(Flag_ecalBadCalibFilterV2)'
+    elif year == '2018':
+        flags = flags + '*(Flag_ecalBadCalibFilter)'
     flagsmc = flags
 
     #ptreweighting = '((TMath::Sqrt( TMath::Exp(0.0615-0.0005*topGenPt) * TMath::Exp(0.0615-0.0005*antitopGenPt))'
@@ -57,7 +62,8 @@ if __name__ == '__main__':
     ##########################List of weights that have to be applied to data#############################
     flagsdata = flags + '*(Flag_eeBadScFilter)'
     
-    vetoHEMeleData = '((run<319077 || ((Sum$(Electron_pt>30. && Electron_eta>-3.0 && Electron_eta<-1.4 && Electron_phi>-1.57 && Electron_phi<-0.87)==0) && (Sum$(Jet_pt>30. && Jet_eta>-3.2 && Jet_eta<-1.2 && Jet_phi>-1.77 && Jet_phi<-0.67)==0)))*1.)'
+    #vetoHEMeleData = '((run<319077 || ((Sum$(Electron_pt>30. && Electron_eta>-3.0 && Electron_eta<-1.4 && Electron_phi>-1.57 && Electron_phi<-0.87)==0) && (Sum$(Jet_pt>30. && Jet_eta>-3.2 && Jet_eta<-1.2 && Jet_phi>-1.77 && Jet_phi<-0.67)==0)))*1.)'
+    vetoHEMeleData = '1'
 
     weight = ''
     if ismc == 0:
@@ -92,8 +98,8 @@ if __name__ == '__main__':
     ###################################### Trigger cuts #################################################
     ##### MET triggers
     trig_MET_2016 = '(HLT_PFMET90_PFMHT90_IDTight > 0 || HLT_PFMET100_PFMHT100_IDTight > 0 || HLT_PFMET110_PFMHT110_IDTight > 0 || HLT_PFMET120_PFMHT120_IDTight > 0)'
-    trig_MET_2017 = '(HLT_PFMET120_PFMHT120_IDTight > 0 || HLT_PFMET120_PFMHT120_IDTight_PFHT60 > 0)'
-    trig_MET_2018 = '(HLT_PFMET120_PFMHT120_IDTight > 0 || HLT_PFMET120_PFMHT120_IDTight_PFHT60 > 0)'
+    trig_MET_2017 = '(HLT_PFMET120_PFMHT120_IDTight > 0 || HLT_PFMET110_PFMHT110_IDTight || HLT_PFMET130_PFMHT130_IDTight || HLT_PFMET140_PFMHT140_IDTight)'
+    trig_MET_2018 = '(HLT_PFMET120_PFMHT120_IDTight > 0 || HLT_PFMET110_PFMHT110_IDTight || HLT_PFMET130_PFMHT130_IDTight || HLT_PFMET140_PFMHT140_IDTight)'
 
     trig_MET = ''
     if year == '2016':
@@ -128,7 +134,7 @@ if __name__ == '__main__':
         filesToConsider = []
         for (dirpath, dirnames, filenames) in walk(inputDir):
             for filename in filenames:
-                if("TTTo2" in filename):
+                if("TTTo2" in filename or "ST" in filename or "DYToLL" in filename):
                     filesToConsider.append(ROOT.TFile(inputDir + filename))
     else:
         filesToConsider = [ROOT.TFile(options.filename)]
@@ -145,8 +151,8 @@ if __name__ == '__main__':
         print("--> Reading file number " + str(i))
         
         index = index + 1
-        if index > 1:
-            break
+        #if index > 280:
+        #    break
 
         suffix = str(index)
         h_ee_pt_num = ROOT.TH1F("h_ee_pt_num" + suffix, "", len(pt_bin)-1, pt_bin)
@@ -181,14 +187,15 @@ if __name__ == '__main__':
 
 
         ################################## Projecting histograms ##########################################
-        
-        ev.Project("h_ee_pt_file_num" + suffix, '(Lepton_pt[1]) * ' + weight, cut_num_ee) 
-        ev.Project("h_ee_pt_file_den" + suffix, '(Lepton_pt[1]) * ' + weight, cut_den_ee) 
-        ev.Project("h_mm_pt_file_num" + suffix, '(Lepton_pt[1]) * ' + weight, cut_num_mm) 
-        ev.Project("h_mm_pt_file_den" + suffix, '(Lepton_pt[1]) * ' + weight, cut_den_mm) 
-        ev.Project("h_em_pt_file_num" + suffix, '(Lepton_pt[1]) * ' + weight, cut_num_em) 
-        ev.Project("h_em_pt_file_den" + suffix, '(Lepton_pt[1]) * ' + weight, cut_den_em) 
-
+        try:
+            ev.Project("h_ee_pt_file_num" + suffix, '(Lepton_pt[0])', cut_num_ee + '*' + weight) 
+            ev.Project("h_ee_pt_file_den" + suffix, '(Lepton_pt[0])', cut_den_ee + '*' + weight) 
+            ev.Project("h_mm_pt_file_num" + suffix, '(Lepton_pt[0])', cut_num_mm + '*' + weight) 
+            ev.Project("h_mm_pt_file_den" + suffix, '(Lepton_pt[0])', cut_den_mm + '*' + weight) 
+            ev.Project("h_em_pt_file_num" + suffix, '(Lepton_pt[0])', cut_num_em + '*' + weight) 
+            ev.Project("h_em_pt_file_den" + suffix, '(Lepton_pt[0])', cut_den_em + '*' + weight) 
+        except Exception as e:
+            continue
 
         ################################## Add histograms ##########################################
         h_ee_pt_num.Add(h_ee_pt_file_num)
@@ -198,14 +205,8 @@ if __name__ == '__main__':
         h_em_pt_num.Add(h_em_pt_file_num)
         h_em_pt_den.Add(h_em_pt_file_den)
 
-        """
-        h_ee_pt_file_num.Reset()
-        h_ee_pt_file_den.Reset()
-        h_mm_pt_file_num.Reset()
-        h_mm_pt_file_den.Reset()
-        h_em_pt_file_num.Reset()
-        h_em_pt_file_den.Reset()
-        """
+        #fileToConsider.Close()
+
 
     ################################## Making efficiencies ###########################################
     eff_ee = ROOT.TEfficiency(h_ee_pt_num, h_ee_pt_den)
@@ -240,6 +241,13 @@ if __name__ == '__main__':
     eff_mm.GetPaintedGraph().GetHistogram().SetMaximum(1.2)
     eff_em.GetPaintedGraph().GetHistogram().SetMaximum(1.2)
 
+    print("ee numerator yields: " + str(h_ee_pt_num.Integral(-1, -1)))
+    print("ee denominator yields: " + str(h_ee_pt_den.Integral(-1, -1)))
+    print("em numerator yields: " + str(h_em_pt_num.Integral(-1, -1)))
+    print("em denominator yields: " + str(h_em_pt_den.Integral(-1, -1)))
+    print("mm numerator yields: " + str(h_mm_pt_num.Integral(-1, -1)))
+    print("mm denominator yields: " + str(h_mm_pt_den.Integral(-1, -1)))
+
     legend = ROOT.TLegend(0.70, 0.20, 0.90, 0.30)
     legend.SetBorderSize(0)
     legend.SetFillColor(0)
@@ -256,8 +264,38 @@ if __name__ == '__main__':
         eff_ee.SaveAs("Efficiency_pt_ee_" + options.year + "_" + options.tag + ".root")
         eff_mm.SaveAs("Efficiency_pt_mm_" + options.year + "_" + options.tag + ".root")
         eff_em.SaveAs("Efficiency_pt_em_" + options.year + "_" + options.tag + ".root")
+
+        eeFile = ROOT.TFile.Open("Efficiency_pt_ee_" + options.year + "_" + options.tag + ".root", "UPDATE")
+        h_ee_pt_num.Write()
+        h_ee_pt_den.Write()
+        eeFile.Close()
+
+        mmFile = ROOT.TFile.Open("Efficiency_pt_mm_" + options.year + "_" + options.tag + ".root", "UPDATE")
+        h_mm_pt_num.Write()
+        h_mm_pt_den.Write()
+        mmFile.Close()
+
+        emFile = ROOT.TFile.Open("Efficiency_pt_em_" + options.year + "_" + options.tag + ".root", "UPDATE")
+        h_em_pt_num.Write()
+        h_em_pt_den.Write()
+        emFile.Close()
+        
     else:
         eff_ee.SaveAs("Efficiency_pt_ee_" + options.year + "_" + options.tag + "_latino.root")
         eff_mm.SaveAs("Efficiency_pt_mm_" + options.year + "_" + options.tag + "_latino.root")
         eff_em.SaveAs("Efficiency_pt_em_" + options.year + "_" + options.tag + "_latino.root")
 
+        eeFile = ROOT.TFile.Open("Efficiency_pt_ee_" + options.year + "_" + options.tag + "_latino.root", "UPDATE")
+        h_ee_pt_num.Write()
+        h_ee_pt_den.Write()
+        eeFile.Close()
+
+        mmFile = ROOT.TFile.Open("Efficiency_pt_mm_" + options.year + "_" + options.tag + "_latino.root", "UPDATE")
+        h_mm_pt_num.Write()
+        h_mm_pt_den.Write()
+        mmFile.Close()
+
+        emFile = ROOT.TFile.Open("Efficiency_pt_em_" + options.year + "_" + options.tag + "_latino.root", "UPDATE")
+        h_em_pt_num.Write()
+        h_em_pt_den.Write()
+        emFile.Close()

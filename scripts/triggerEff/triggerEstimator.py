@@ -26,7 +26,7 @@ if __name__ == '__main__':
     if ismc == 1:
         tag = "MC"
 
-    plots2D = False
+    plots2D = True
 
     ##########################List of weights that have to be applied to MC###############################
     mcweights  = 'baseW*genWeight*puWeight*TriggerEffWeight_2l'

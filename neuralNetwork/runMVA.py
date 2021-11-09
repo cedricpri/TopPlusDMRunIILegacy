@@ -17,19 +17,29 @@ from array import array
 # ===========================================
 
 #Training variables
-#variables = ["METcorrected_pt", "mt2ll", "dphillmet", "nbJet", "mblt", "mt2bl", "massT", "reco_weight", "cosphill", "costhetall", "dark_pt", "overlapping_factor", "r2l", "r2l4j"]
-variables = {}
-variables["ST"] = ["METcorrected_pt", "mt2ll", "ptllb", "mllb"]
-variables["TTbar"] = ["METcorrected_pt", "mt2ll", "ptllb", "mllb", "dark_pt", "chel"]
+basicVariables = ["METcorrected_pt", "mt2ll", "dphillmet", "mblt", "mt2bl", "massT", "reco_weight", "cosphill", "costhetall", "dark_pt", "overlapping_factor", "r2l", "r2l4j"]
+allVariables = basicVariables + ["nbJet"]
+set1 = ["nbJet", "mblt", "METcorrected_pt", "mt2ll", "dphillmet"]
+set2 = set1 + ["mt2bl", "massT"]
+set3 = set2 + ["cosphill", "costhetall"]
+set4 = set3 + ["r2l", "r2l4j"]
+set5 = set4 + ["reco_weight", "dark_pt", "overlapping_factor"]
+allVariables = set5
 
-trainPercentage = 50
+variables = {}
+variables["ST"] = basicVariables
+variables["TTbar"] = allVariables
+#variables["ST"] = ["METcorrected_pt", "mt2ll", "ptllb", "mllb"]
+#variables["TTbar"] = ["METcorrected_pt", "mt2ll", "ptllb", "mllb", "dark_pt", "chel"]
+
+trainPercentage = 80
 normalizeProcesses = False #Normalize all the processes to have the same input training events in each case
 
-baseCut = "mt2ll > 80."
+baseCut = "mt2ll > 80. && nbJet >= 1"
 nJet = "Sum$(CleanJet_pt >= 20. && abs(CleanJet_eta) < 2.4)"
 cuts ={}
 cuts["ST"] = baseCut + " && (( " + nJet + " == 1) || ( " + nJet + " == 2 && nbJet == 1))"
-cuts["TTbar"] = baseCut + " && (( " + nJet + " > 1) || ( " + nJet + " > 2 || nbJet > 1))"
+cuts["TTbar"] = baseCut + " && (( " + nJet + " > 2) || ( " + nJet + " > 2 || nbJet > 1))"
 
 #=========================================================================================================
 # HELPERS
@@ -118,7 +128,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, singleT
         os.stat(outputDirTraining)
     except:
         os.makedirs(outputDirTraining)
-    output = ROOT.TFile.Open(outputDirTraining+'TMVA.root', 'UPDATE')
+    output = ROOT.TFile.Open(outputDirTraining+"TMVA.root", "UPDATE")
 
     outputDirWeights = outputDirWeights.replace(".root", "")
     try:
@@ -130,7 +140,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, singleT
     # Load data
     # ===========================================
     os.chdir(outputDirWeights)
-    dataloader = ROOT.TMVA.DataLoader('dataset')
+    dataloader = ROOT.TMVA.DataLoader("dataset")
     dataloader.SetWeightExpression("baseW")
 
     if singleTopRegion:
@@ -231,6 +241,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, singleT
     # ===========================================
     # Keras model
     # ===========================================
+    """
     model = Sequential()
     model.add(Dense(40, activation='relu', input_dim=len(variables[regionString])))
     model.add(Dense(40, activation='relu'))
@@ -243,11 +254,57 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, singleT
     #plot_model(model, to_file=outputDirTraining+'trainingModel.png')
     model.save(outputDirTraining+'PyKeras.h5')
     model.summary()
+    """
 
+    model = Sequential()
+    model.add(Dense(20, activation='relu', input_dim=len(variables[regionString])))
+    model.add(Dense(15, activation='relu'))
+    model.add(Dense(15, activation='relu'))
+    model.add(Dense(10, activation='relu'))
+    model.add(Dense(numberProcesses, activation='softmax'))
+
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(0.005), metrics=['accuracy', 'mse'])
+    model.save(outputDirTraining+'PyKeras1.h5')
+    model.summary()
+
+    """
+    model = Sequential()
+    model.add(Dense(50, activation='relu', input_dim=len(variables[regionString])))
+    model.add(Dense(50, activation='relu'))
+    model.add(Dense(30, activation='relu'))
+    model.add(Dense(numberProcesses, activation='softmax'))
+
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(0.005), metrics=['accuracy', 'mse'])
+    model.save(outputDirTraining+'PyKeras2.h5')
+    model.summary()
+
+    model = Sequential()
+    model.add(Dense(20, activation='relu', input_dim=len(variables[regionString])))
+    model.add(Dense(15, activation='relu'))
+    model.add(Dense(15, activation='relu'))
+    model.add(Dense(10, activation='relu'))
+    model.add(Dense(numberProcesses, activation='softmax'))
+
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(0.005), metrics=['accuracy', 'mse'])
+    model.save(outputDirTraining+'PyKeras3.h5')
+    model.summary()
+
+    model = Sequential()
+    model.add(Dense(50, activation='relu', input_dim=len(variables[regionString])))
+    model.add(Dense(40, activation='relu'))
+    model.add(Dense(40, activation='relu'))
+    model.add(Dense(30, activation='relu'))
+    model.add(Dense(numberProcesses, activation='softmax'))
+
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(0.005), metrics=['accuracy', 'mse'])
+    model.save(outputDirTraining+'PyKeras4.h5')
+    model.summary()
+    """
     # Book method
-    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=500:BoostType=AdaBoost:AdaBoostBeta=0.3:SeparationType=CrossEntropy:MaxDepth=3:ncuts=20:MinNodeSize=2:!H:!V')
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, 'BDT', 'NTrees=250:BoostType=AdaBoost:AdaBoostBeta=0.3:SeparationType=CrossEntropy:MaxDepth=4:ncuts=1000:MinNodeSize=2:!H:!V')
     #factory.BookMethod(dataloader, ROOT.TMVA.Types.kMLP, "MLP", "H:!V:NeuronType=sigmoid:NCycles=500:VarTransform=N:HiddenLayers=80,80,40:TestRate=5:LearningRate=0.01:EstimatorType=MSE");
-    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'PyKeras.h5:FilenameTrainedModel=' + outputDirTraining + 'PyKerasTrained.h5:NumEpochs=30:BatchSize=100:VarTransform=N')
+    #factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'PyKeras.h5:FilenameTrainedModel=' + outputDirTraining + 'PyKerasTrained.h5:NumEpochs=50:BatchSize=100:VarTransform=N')
+    factory.BookMethod(dataloader, ROOT.TMVA.Types.kPyKeras, 'PyKeras', 'H:!V:FilenameModel=' + outputDirTraining + 'PyKeras1.h5:FilenameTrainedModel=' + outputDirTraining + 'PyKerasTrained1.h5:NumEpochs=50:BatchSize=250:VarTransform=N')
 
     # ===========================================
     # Run training, test and evaluation
@@ -300,11 +357,11 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
 
         reader = {}
         branchesAddresses = {}
-        """
+
         BDT_output_signal = {}
         BDT_output_background = {}
         BDT_output_category = {}
-        """
+
         DNN_output_signal = {}
         DNN_output_background = {}
         DNN_output_category = {}
@@ -312,11 +369,11 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
         for SR in ["ST", "TTbar", "Both"]:
             reader[SR] = {}
             branchesAddresses[SR] = {}
-            """
+
             BDT_output_signal[SR] = {}
             BDT_output_background[SR] = {}
             BDT_output_category[SR] = {}
-            """
+
             DNN_output_signal[SR] = {}
             DNN_output_background[SR] = {}
             DNN_output_category[SR] = {}
@@ -352,20 +409,18 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
                             #inputTree.SetBranchAddress(branchName, branches[branchName])
                             #outputTree.SetBranchAddress(branchName, branches[branchName])
                             
-                    #reader[SR][weightTag].BookMVA("BDT", weightsLocation + "/dataset/weights/TMVAClassification_BDT.weights.xml")
+                    reader[SR][weightTag].BookMVA("BDT", weightsLocation + "/dataset/weights/TMVAClassification_BDT.weights.xml")
                     reader[SR][weightTag].BookMVA("PyKeras", weightsLocation + "/dataset/weights/TMVAClassification_PyKeras.weights.xml")
                 else:
                     for branchAddress in allBranchesAddresses:
                         branchesAddresses[SR][weightTag].append(branchAddress)
 
-                """
                 BDT_output_signal[SR][weightTag] = array("f", [0.])
                 BDT_output_background[SR][weightTag] = array("f", [0.])
                 BDT_output_category[SR][weightTag] = array("i", [0]) #Which category gets the highest output?
                 outputTree.Branch(SR + "_BDT_output_signal_" + weightTag, BDT_output_signal[SR][weightTag], SR + "_BDT_output_signal_" + weightTag + "/F")
                 outputTree.Branch(SR + "_BDT_output_background_" + weightTag, BDT_output_background[SR][weightTag], SR + "_BDT_output_background_" + weightTag + "/F")
                 outputTree.Branch(SR + "_BDT_output_category_" + weightTag, BDT_output_category[SR][weightTag], SR + "_BDT_output_category_" + weightTag + "/I")
-                """
 
                 DNN_output_signal[SR][weightTag] = array("f", [0.])
                 DNN_output_background[SR][weightTag] = array("f", [0.])
@@ -405,28 +460,24 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
 
                     eventSR = SR #Which SR do we want to consider based on the observed event?
                     if SR == "Both":
-                        nJet = 0
-                        for j, jet in enumerate(ev.CleanJet_pt):
-                            if ev.CleanJet_pt[j] >= 20 and abs(ev.CleanJet_eta[j]) < 2.4:
-                                nJet = nJet + 1
-                                
+                        nJet = ev.nJetMine
                         if nJet == 1 or (nJet == 2 and ev.nbJet == 1):
                             eventSR = "ST"
                         else:
                             eventSR = "TTbar"
 
+                    #Fill the BDT variables
+                    #print(reader[eventSR][weightTag].EvaluateMVA("BDT"))
+                    BDTValues = list(reader[eventSR][weightTag].EvaluateMulticlass("BDT"))
+                    BDT_output_signal[SR][weightTag][0] = reader[eventSR][weightTag].EvaluateMVA("BDT")
+                    #BDT_output_background[SR][weightTag][0] = BDTValues[1]
+                    BDT_output_category[SR][weightTag][0] = BDTValues.index(max(BDTValues))
+
                     #Fill the DNN variables
                     DNNValues = list(reader[eventSR][weightTag].EvaluateMulticlass("PyKeras"))
-                    DNN_output_signal[SR][weightTag][0] = DNNValues[0]
+                    DNN_output_signal[SR][weightTag][0] = reader[eventSR][weightTag].EvaluateMVA("PyKeras")
                     DNN_output_background[SR][weightTag][0] = DNNValues[1]
-
-                    if evaluationBackgroundThreshold > 0:
-                        if DNN_output_background[SR][weightTag][0] > evaluationBackgroundThreshold:
-                            DNN_output_category[SR][weightTag][0] = 1
-                        else:
-                            DNN_output_category[SR][weightTag][0] = 0
-                    else:
-                        DNN_output_category[SR][weightTag][0] = DNNValues.index(max(DNNValues))
+                    DNN_output_category[SR][weightTag][0] = DNNValues.index(max(DNNValues))
 
             outputTree.Fill()
 

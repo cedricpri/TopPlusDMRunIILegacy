@@ -71,53 +71,76 @@ if __name__ == "__main__":
     #Three different directories are used: the inputDir, where the original latino files are, the outputDir, where to keep the output, and baseDir, the current path where the distributions.root file is.
     baseDir = os.getcwd() + "/"
     trailer = "/"
-    if systematic != "":
-        trailer = "__" + systematic + "_suffix/"
 
     if year == 2018:
         if signal:
-            #inputDir = "/eos/user/c/cprieels/work/SignalsNewObjectsv2/Autumn18_102X_nAODv7_Full2018v7/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin" + trailer
-            inputDir = "/eos/user/c/cprieels/work/JonatanEOS/Autumn18_102X_nAODv7_Full2018v7/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin" + trailer
-            #inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Autumn18_102X_nAODv7_Full2018v7/MCl1loose2018v7__MCCorr2018v7__l2loose__l2tightOR2018v7" + trailer
+            baseInputDir = "/eos/user/c/cprieels/work/JonatanEOS/Autumn18_102X_nAODv7_Full2018v7/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin"
+            if systematic != "":
+                inputDir = baseInputDir + "__susyMT2reco" + systematic + "/"
+            else:
+                inputDir = baseInputDir + trailer
         elif data:
             inputDir = "/eos/user/s/scodella/SUSY/Nano/Run2018_102X_nAODv6_Full2018v6loose/DATASusy2018v6__hadd__susyMT2recoNomin/"
-            #inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2018_102X_nAODv7_Full2018v7/DATAl1loose2018v7__l2loose__l2tightOR2018v7/"
         elif fakes:
-            inputDir = ""
-            #inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2018_102X_nAODv7_Full2018v7/DATAl1loose2018v7__l2loose__fakeW/"
+            inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2018_102X_nAODv7_Full2018v7/DATAl1loose2018v7__l2loose__fakeW/"
         else:
-            inputDir = "/eos/user/s/scodella/SUSY/Nano/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin" + trailer
-            #inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Autumn18_102X_nAODv7_Full2018v7/MCl1loose2018v7__MCCorr2018v7__l2loose__l2tightOR2018v7" + trailer
+            if systematic == "JESDo":
+                inputDir = "/eos/user/s/scodella/SUSY/Nano/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyJESDo2018v6loose__susyMT2recoJESDo__hadd/"
+            elif systematic == "JESUp":
+                inputDir = "/eos/user/s/scodella/SUSY/Nano/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyJESUp2018v6loose__susyMT2recoJESUp__hadd/"
+            elif systematic == "METDo":
+                inputDir = "/eos/user/s/scodella/SUSY/Nano/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoMETDo__hadd/"
+            elif systematic == "METUp":
+                inputDir = "/eos/user/s/scodella/SUSY/Nano/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoMETUp__hadd/"
+            else:
+                inputDir = "/eos/user/s/scodella/SUSY/Nano/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin" + trailer
 
     elif year == 2017:
         if signal:
-            #inputDir = "/eos/user/c/cprieels/work/SignalsNewObjectsv2/Fall2017_102X_nAODv7_Full2017v7/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin" + trailer
-            inputDir = "/eos/user/c/cprieels/work/JonatanEOS/Fall2017_102X_nAODv7_Full2017v7/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin" + trailer
-            #inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Fall2017_102X_nAODv7_Full2017v7/MCl1loose2017v7__MCCorr2017v7__l2loose__l2tightOR2017v7" + trailer
+            baseInputDir = "/eos/user/c/cprieels/work/JonatanEOS/Fall2017_102X_nAODv7_Full2017v7/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin"
+            if systematic != "":
+                inputDir = baseInputDir + "__susyMT2reco" + systematic + "/"
+            else:
+                inputDir = baseInputDir + trailer
         elif data:
             inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Run2017_102X_nAODv6_Full2017v6loose/DATASusy2017v6__hadd__susyMT2recoNomin/"
-            #inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2017_102X_nAODv7_Full2017v7/DATAl1loose2017v7__l2loose__l2tightOR2017v7/"
         elif fakes:
-            inputDir = ""
-            #inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2017_102X_nAODv7_Full2017v7/DATAl1loose2017v7__l2loose__fakeW/"
+            inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2017_102X_nAODv7_Full2017v7/DATAl1loose2017v7__l2loose__fakeW/"
         else:
-            inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin" + trailer
-            #inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Fall2017_102X_nAODv7_Full2017v7/MCl1loose2017v7__MCCorr2017v7__l2loose__l2tightOR2017v7" + trailer
+            if systematic == "JESDo":
+                inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyJESDo2017v6loose__susyMT2recoJESDo__hadd/"
+            elif systematic == "JESUp":
+                inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyJESUp2017v6loose__susyMT2recoJESUp__hadd/"
+            elif systematic == "METDo":
+                inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoMETDo__hadd/"
+            elif systematic == "METUp":
+                inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoMETUp__hadd/"
+            else:
+                inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin" + trailer
 
     elif year == 2016:
         if signal:
-            #inputDir = "/eos/user/c/cprieels/work/SignalsNewObjectsv2/Summer16_102X_nAODv7_Full2016v7loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin" + trailer
-            inputDir = "/eos/user/c/cprieels/work/JonatanEOS/Summer16_102X_nAODv7_Full2016v7loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin" + trailer
-            #inputDir = "/eos/user/c/cprieels/work/SignalsPostProcessing/Summer16_102X_nAODv7_Full2016v7/MCl1loose2016v7__MCCorr2016v7__l2loose__l2tightOR2016v7" + trailer
+            baseInputDir = "/eos/user/c/cprieels/work/JonatanEOS/Summer16_102X_nAODv7_Full2016v7loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin"
+            if systematic != "":
+                inputDir = baseInputDir + "__susyMT2reco" + systematic + "/"
+            else:
+                inputDir = baseInputDir + trailer
         elif data:
             inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Run2016_102X_nAODv6_Full2016v6loose/DATASusy2016v6__hadd__susyMT2recoNomin/"
-            #inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2016_102X_nAODv7_Full2016v7/DATAl1loose2016v7__l2loose__l2tightOR2016v7/"
         elif fakes:
-            inputDir = ""
-            #inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2016_102X_nAODv7_Full2016v7/DATAl1loose2016v7__l2loose__fakeW/"
+            inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2016_102X_nAODv7_Full2016v7/DATAl1loose2016v7__l2loose__fakeW/"
         else:
-            inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin" + trailer
-            #inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Summer16_102X_nAODv7_Full2016v7/MCl1loose2016v7__MCCorr2016v7__l2loose__l2tightOR2016v7" + trailer
+            if systematic == "JESDo":
+                inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyJESDo2016v6loose__susyMT2recoJESDo__hadd/"
+            elif systematic == "JESUp":
+                inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyJESUp2016v6loose__susyMT2recoJESUp__hadd/"
+            elif systematic == "METDo":
+                inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoMETDo__hadd/"
+            elif systematic == "METUp":
+                inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoMETUp__hadd/"
+            else:
+                inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin" + trailer
+
     else:
         inputDir = ""
         print("The year option has to be used, and the year should be 2016, 2017 or 2018.")
@@ -132,15 +155,32 @@ if __name__ == "__main__":
 
     #Move all the files in folder to the global directory
     outputDirWithSubfolders = outputDir + "/" + productionName
+
+    #Remove all the ".root" in folder names
+    if resubmit:
+        stringstoremove = [".root"]
+        try:
+            for folder in next(os.walk(outputDirWithSubfolders))[1]:
+                newFolder = folder
+                for stringtoremove in stringstoremove :
+                    newFolder = newFolder.replace( stringtoremove, '')
+            
+                if folder != newFolder :  # don't rename if it's the same
+                    os.rename( outputDirWithSubfolders + folder, outputDirWithSubfolders + newFolder )
+        except:
+            print("No folders found")
+
     for root, dirs, files in os.walk(outputDirWithSubfolders):
         for subdir in dirs:
             oldSubdir = subdir
             #subdir = subdir.replace(".root", "")
-            os.rename(outputDirWithSubfolders + "/" + oldSubdir, outputDirWithSubfolders + "/" + subdir)
+            #os.rename(outputDirWithSubfolders + "/" + oldSubdir, outputDirWithSubfolders + "/" + subdir)
             filesInSubdir = fnmatch.filter(os.listdir(root + subdir), 'nanoLatino*' + query + '*')
+
             for fileInSubdir in filesInSubdir:
                 try:
                     os.remove(outputDirWithSubfolders + fileInSubdir)
+                    pass
                 except Exception as e:
                     pass
 
@@ -180,7 +220,7 @@ if __name__ == "__main__":
                         "splitNumber": -1
                     }
                 filesToProcess.append(fileToProcess)
-
+   
     #Resubmit only the files that ran into an error previously
     if resubmit:
         filesToResubmit = []
@@ -190,6 +230,7 @@ if __name__ == "__main__":
 
             #Check if the file is missing in the output directory
             fileToCheck = outputDir + "/" + productionName + fileToProcess['outputName']
+            print(fileToCheck)
             if not os.path.exists(fileToCheck):
                 #if data or fakes or signal or query != "*":
                 filesToResubmit.append(fileToProcess)
@@ -206,6 +247,7 @@ if __name__ == "__main__":
                     filesToResubmit.append(fileToProcess)
                     try:
                         os.remove(fileToCheck)
+                        pass
                     except Exception as e:
                         pass
     
@@ -234,13 +276,14 @@ if __name__ == "__main__":
         if fakes:
             f = open('sh/send_' + fileToProcess['outputName'].replace('.root', '') + '_fakes.sh', 'w')
         else:
-            f = open('sh/send_' + fileToProcess['outputName'].replace('.root', '') + '.sh', 'w')
+            f = open('sh/send_' + fileToProcess['outputName'].replace('.root', '') + systematic + '.sh', 'w')
         f.write(template)
         f.close()
 
         if fakes:
             os.chmod('sh/send_' + fileToProcess['outputName'].replace('.root', '') + '_fakes.sh', 0755)     
         else:
-            os.chmod('sh/send_' + fileToProcess['outputName'].replace('.root', '') + '.sh', 0755)     
+            os.chmod('sh/send_' + fileToProcess['outputName'].replace('.root', '') + systematic + '.sh', 0755)     
 
     print(str(len(filesToProcess)) + " file(s) matching the requirements have been found.")
+
