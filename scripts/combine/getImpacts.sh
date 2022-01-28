@@ -1,12 +1,10 @@
-year="2018"
+year="2016"
 datacard=/afs/cern.ch/user/c/cprieels/work/public/Latinos/TopPlusDMRunIILegacy/Luca/CMSSW_10_2_5/src/PlotsConfigurations/Configurations/TTDM/Datacards/${year}
-model="ttDM"
+datacardsCombined=datacardsCombinedModels/${year}
 mediator="scalar"
-variable="BDT_output"
-#variable="METcorrected_pt"
-#SR="SRFullSystNoJER"
+model="both"
 SR="SR"
-prefix="GroupedBkg-Smear"
+prefix="Smear"
 suffix=""
 
 if [ "$mediator" == "scalar" ]
@@ -20,14 +18,15 @@ outputDir=impacts_${year}_${model}_${mediator}
 rm -r "$outputDir"
 mkdir "$outputDir"
 
-for massPoint in 100 500 #150 200 250 300 350 400 450 500
+for massPoint in 100 500 # 150 200 250 300 350 400 450
 do
 
+variable=BDT_output_${mediatorExtended}${massPoint}_customBinsAttempt7
+#variable="METcorrected_pt_customBins"
+
 #text2workspace
-text2workspace.py ${datacard}/${prefix}${SR}-${model}-${mediator}${massPoint}${suffix}/${mediator}${massPoint}/topCR_ll/${variable}_${mediatorExtended}${massPoint}_customBins/datacard.txt
-mv ${datacard}/${prefix}${SR}-${model}-${mediator}${massPoint}${suffix}/${mediator}${massPoint}/topCR_ll/${variable}_${mediatorExtended}${massPoint}_customBins/datacard.root "$outputDir"/"$outputDir""$massPoint".root
-#text2workspace.py ${datacard}/${prefix}${SR}-${model}-${mediator}${massPoint}${suffix}/${mediator}${massPoint}/topCR_ll/${variable}/datacard.txt
-#mv ${datacard}/${prefix}${SR}-${model}-${mediator}${massPoint}${suffix}/${mediator}${massPoint}/topCR_ll/${variable}/datacard.root "$outputDir"/"$outputDir""$massPoint".root
+text2workspace.py ${datacardsCombined}/${prefix}${SR}-${model}-${mediator}${massPoint}${suffix}/${mediator}${massPoint}/topCR_ll/${variable}/datacard.txt
+mv ${datacardsCombined}/${prefix}${SR}-${model}-${mediator}${massPoint}${suffix}/${mediator}${massPoint}/topCR_ll/${variable}/datacard.root "$outputDir"/"$outputDir""$massPoint".root
 
 #combineTool
 combineTool.py -M Impacts -d ${outputDir}/${outputDir}${massPoint}.root -m $massPoint --doInitialFit --robustFit 1 -t -1 --expectSignal=1

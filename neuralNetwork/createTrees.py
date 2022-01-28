@@ -10,7 +10,7 @@ from ttbarReco.eventKinematic import EventKinematic
 
 #Smearing parameters
 runSmearing = True
-runSmearingNumber = 40
+runSmearingNumber = 50
 
 #=========================================================================================================
 # HELPERS
@@ -224,23 +224,13 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     outputTree.Branch("customTriggerSF", customTriggerSF, "customTriggerSF/F")
     customTriggerSFError = array("f", [0.])
     outputTree.Branch("customTriggerSFError", customTriggerSFError, "customTriggerSFError/F")
-    """
-    customDYMCWeight = array("f", [0.])
-    outputTree.Branch("customDYMCWeight", customDYMCWeight, "customDYMCWeight/F")
-    customDYMCWeightError = array("f", [0.])
-    outputTree.Branch("customDYMCWeightError", customDYMCWeightError, "customDYMCWeightError/F")
-    customDYDataWeight = array("f", [0.])
-    outputTree.Branch("customDYDataWeight", customDYDataWeight, "customDYDataWeight/F")
-    customDYDataWeightError = array("f", [0.])
-    outputTree.Branch("customDYDataWeightError", customDYDataWeightError, "customDYDataWeightError/F")
-    customDYSF = array("f", [0.])
-    outputTree.Branch("customDYSF", customDYSF, "customDYSF/F")
-    customDYSFError = array("f", [0.])
-    outputTree.Branch("customDYSFError", customDYSFError, "customDYSFError/F")
-    """
 
     nJetMine = array("i", [0])
     outputTree.Branch("nJetMine", nJetMine, "nJetMine/I")
+    CleanJetMine_pt = array("f", 10*[-99.0]) 
+    outputTree.Branch("CleanJetMine_pt", CleanJetMine_pt, "CleanJetMine_pt[10]/F")
+    CleanJetMine_eta = array("f", 10*[-99.0]) 
+    outputTree.Branch("CleanJetMine_eta", CleanJetMine_eta, "CleanJetMine_eta[10]/F")
     nbJet = array("i", [0])
     outputTree.Branch("nbJet", nbJet, "nbJet/I")
     bJetsIdx = array("i", 10*[0])
@@ -251,8 +241,8 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
     METcorrected_phi = array("f", [0.])
     outputTree.Branch("METcorrected_phi", METcorrected_phi, "METcorrected_phi/F")
 
-    mt2ll = array("f", [0.])
-    outputTree.Branch("mt2ll", mt2ll, "mt2ll/F")
+    mt2llMine = array("f", [0.])
+    outputTree.Branch("mt2llMine", mt2llMine, "mt2llMine/F")
     mt2bl = array("f", [0.])
     outputTree.Branch("mt2bl", mt2bl, "mt2bl/F")
     mblt = array("f", [0.])
@@ -391,6 +381,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         except:
             jetpt4 = 0.
 
+        """
         #Let's now consider jets with a given pt and which do not pass the tight jet PU Id requirement
         for j, jet in enumerate(ev.CleanJet_pt):
             if ev.CleanJet_pt[j] < 50. and ev.Jet_puId[ev.CleanJet_jetIdx[j]] < 7:
@@ -399,19 +390,37 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
                 ev.CleanJet_pt[j] = -99
                 ev.CleanJet_eta[j] = -99
                 ev.CleanJet_phi[j] = -99
+        """
 
         #We want the leading jet to have pt > 30 GeV and at least one jet with pt > 20 and abs(eta) < 2.4
         passJet = False
         numberJets = 0
-        for j, jet in enumerate(ev.CleanJet_pt):
-            if j == 0:
-                if ev.CleanJet_pt[0] > 30. and abs(ev.CleanJet_eta[0]) < 2.4:
+        for j, jet in  enumerate(ev.CleanJet_pt):
+            skip = True
+
+            if ev.CleanJet_pt[j] > 50. and abs(ev.CleanJet_eta[j]) < 2.4:
+                skip = False
+            elif ev.CleanJet_pt[j] > 30. and abs(ev.CleanJet_eta[j]) < 2.4:
+                if ev.Jet_puId[ev.CleanJet_jetIdx[j]] == 7:
+                    skip = False
+
+            try:
+                if not skip:
                     passJet = True
                     numberJets = numberJets + 1
-            else:
-                if ev.CleanJet_pt[j] > 20. and abs(ev.CleanJet_eta[j]) < 2.4:
-                    passJet = True
-                    numberJets = numberJets + 1
+                    CleanJetMine_pt[j] = ev.CleanJet_pt[j]
+                    CleanJetMine_eta[j] = ev.CleanJet_eta[j]
+                else:
+                    CleanJetMine_pt[j] = -99.0
+                    CleanJetMine_eta[j] = -99.0
+            except:
+                if (j < 10):
+                    print("Jet assignement failed for index " + str(j))
+
+        #if j == len(ev.CleanJet_pt):
+        for remaining in range(len(ev.CleanJet_pt), 10):
+            CleanJetMine_pt[remaining] = -99.0
+            CleanJetMine_eta[remaining] = -99.0                    
 
         nJetMine[0] = numberJets
         if not passJet:
@@ -454,8 +463,6 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         ibjet = 0
         for j, jet in enumerate(ev.CleanJet_pt): #TOCHECK: For now, we only consider b-jets from the clean jets collection
             if j == 0 and (ev.CleanJet_pt[j] < 30. or abs(ev.CleanJet_eta[j]) > 2.4):
-                continue
-            elif j > 0 and (ev.CleanJet_pt[j] < 20. or abs(ev.CleanJet_eta[j]) > 2.4):
                 continue
 
             if ev.CleanJet_pt[j] < 50. and ev.Jet_puId[ev.CleanJet_jetIdx[j]] < 7:
@@ -665,7 +672,7 @@ def createTree(inputDir, outputDir, baseDir, filename, firstEvent, lastEvent, sp
         #MT2 computation
         #===================================================
 
-        mt2ll[0] = computeMT2(Tlep1, Tlep2, TMET)
+        mt2llMine[0] = computeMT2(Tlep1, Tlep2, TMET)
         #if eventKinematic is not None: --> Removed to synch our results with Dominic's and the other channels
             #mt2ll[0] = computeMT2(eventKinematic.Tlep1, eventKinematic.Tlep2, eventKinematic.TMET) 
 

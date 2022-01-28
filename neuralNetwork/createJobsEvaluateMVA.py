@@ -31,6 +31,7 @@ if __name__ == "__main__":
     parser.add_option('-q', '--query', action='store', type=str, dest='query', default="*") #String to be matched when searching for the files (do not use the nanoLatino prefix!)
     parser.add_option('-h', '--threshold', action='store', type=float, dest='threshold', default=-1.0) #Threshold for background assignment
     parser.add_option('-g', '--groupJobs', action='store', type=int, dest='groupJobs', default=4) #Group jobs before sending them to the queue
+    parser.add_option('-e', '--systematic', action='store', type=str, dest='systematic', default="") #Systematic suffix
 
     parser.add_option('-r', '--resubmit', action='store_true', dest='resubmit') #Resubmit only files that failed based on the log files and missing Tree events
     parser.add_option('-t', '--test', action='store_true', dest='test') #Only process a few files and a few events, for testing purposes
@@ -46,7 +47,8 @@ if __name__ == "__main__":
     query = opts.query
     threshold = opts.threshold
     groupJobs = opts.groupJobs
-
+    systematic = opts.systematic
+    
     test = opts.test
     resubmit = opts.resubmit
     verbose = opts.verbose
@@ -70,37 +72,70 @@ if __name__ == "__main__":
     if year == 2018:
         if data:
             inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Run2018_102X_nAODv6_Full2018v6loose/DATASusy2018v6__hadd__susyMT2recoNomin/"
-        elif fakes:
-            inputDir = ""
         elif signal:
-            inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv7_Full2018v7/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin/"
+            if systematic == "":
+                inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv7_Full2018v7/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin/"
+            else:
+                inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv7_Full2018v7/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin__susyMT2reco" + systematic + "/"
         else:
-            inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin/"
+            if systematic == "":
+                inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoSmear/"
+            else:
+                if "MET" in systematic:
+                    inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2reco" + systematic + "/"
+                else:
+                    inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusy" + systematic + "2018v6loose__susyMT2reco" + systematic + "/"
                     
     elif year == 2017:
         if data:
             inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Run2017_102X_nAODv6_Full2017v6loose/DATASusy2017v6__hadd__susyMT2recoNomin/"
-        elif fakes:
-            inputDir = ""
         elif signal:
-            inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv7_Full2017v7/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin/"
+            if systematic == "":
+                inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv7_Full2017v7/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin/"
+            else:
+                inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv7_Full2017v7/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin__susyMT2reco" + systematic + "/"
         else:
-            inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin/"
+            if systematic == "":
+                inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoSmear/"
+            else:
+                if "MET" in systematic:
+                    inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2reco" + systematic + "/"
+                else:
+                    inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusy" + systematic + "2017v6loose__susyMT2reco" + systematic + "/"
 
     elif year == 2016:
         if data:
             inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Run2016_102X_nAODv6_Full2016v6loose/DATASusy2016v6__hadd__susyMT2recoNomin/"
-        elif fakes:
-            inputDir = ""
         elif signal:
-            inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv7_Full2016v7loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin/"
+            if systematic == "":
+                inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv7_Full2016v7loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin/"
+            else:
+                inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv7_Full2016v7loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin__susyMT2reco" + systematic + "/"
         else:            
-            inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin/" 
+            if systematic == "":
+                inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoSmear/" 
+            else:
+                if "MET" in systematic:
+                    inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2reco" + systematic + "/"
+                else:
+                    inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusy" + systematic + "2016v6loose__susyMT2reco" + systematic + "/" 
 
     else:
         inputDir = ""
         print("The year option has to be used, and the year should be 2016, 2017 or 2018.")
     outputDir = inputDir[:-1] + "_weighted/"
+
+    #Remove all the ".root" in folder names
+    if resubmit:
+        stringstoremove = [".root"]
+        for folder in next(os.walk(outputDir))[1]:
+            newFolder = folder
+            for stringtoremove in stringstoremove :
+                newFolder = newFolder.replace( stringtoremove, '')
+
+            print(folder, newFolder)
+            if folder != newFolder :  # don't rename if it's the same
+                os.rename( outputDir + folder, outputDir + newFolder )
 
     #Move all the files in folder to the global directory
     for root, dirs, files in os.walk(outputDir):
@@ -121,6 +156,7 @@ if __name__ == "__main__":
     filesToProcess = []
     if inputDir != "":
         filesToProcess = fnmatch.filter(os.listdir(inputDir), 'nanoLatino*' + query + '*.root')
+
 
     #Resubmit only the files that ran into an error previously
     if resubmit:
@@ -143,7 +179,7 @@ if __name__ == "__main__":
                         
                         resubmitThis = False
                         for weight in weightsDir.split(","):
-                            if threshold == -1.0 and (not tree.GetBranch("pseudo_TTbar_DNN_output_signal_" + weight) or not tree.GetBranch("pseudo_ST_DNN_output_signal_" + weight) or not tree.GetBranch("pseudo_Both_DNN_output_signal_" + weight) or not tree.GetBranch("scalar_TTbar_DNN_output_signal_" + weight) or not tree.GetBranch("scalar_ST_DNN_output_signal_" + weight) or not tree.GetBranch("scalar_Both_DNN_output_signal_" + weight)):
+                            if threshold == -1.0 and (not tree.GetBranch("TTbar_DNN_output_signal_" + weight) or not tree.GetBranch("ST_DNN_output_signal_" + weight)):# or not tree.GetBranch("Both_DNN_output_signal_" + weight)):
                                 resubmitThis = True
                             elif threshold > -1.0:
                                 resubmitThis = True
@@ -162,6 +198,22 @@ if __name__ == "__main__":
         except:
             print("No file matching the requirements has been found.")
 
+    #Now, delete all the folders we don't need any more
+    try:
+        foldersFound = fnmatch.filter(os.listdir(outputDir), 'nanoLatino*')
+        for folderFound in foldersFound:
+            #print(outputDir + folderFound, os.path.isdir(outputDir + folderFound))
+            if os.path.isdir(outputDir + folderFound):
+                shutil.rmtree(outputDir + folderFound)
+
+        #And delete all the files in the outputdir which have a size of 0
+        for subdir, dirs, files in os.walk(outputDir):
+            for fileFound in files:
+                if os.path.getsize(outputDir + fileFound) < 10 * 1024:
+                    os.remove(outputDir + fileFound)
+    except Exception as e:
+        pass
+
     try:
         #shutil.rmtree('sh')
         os.makedirs('sh')
@@ -174,7 +226,6 @@ if __name__ == "__main__":
     chunckedProcesses = list(chunks(filesToProcess, groupJobs))
 
     for index, i in enumerate(chunckedProcesses):
-        
         executable = baseDir + "/runMVA.py -e -f " + ','.join(i) + " -i " + inputDir + " -d " + baseDir + " -w " + weightsDir + " -y " + str(year) + " --threshold " + str(threshold)
         
         if test:
@@ -187,13 +238,13 @@ if __name__ == "__main__":
         if fakes:
             f = open('sh/send_' + i[0].replace('.root', '') + '_fakes_' + str(year) + '.sh', 'w')
         else:
-            f = open('sh/send_' + i[0].replace('.root', '') + '_' + str(year) + '.sh', 'w')
+            f = open('sh/send_' + i[0].replace('.root', '') + '_' + str(year) + systematic + '.sh', 'w')
         f.write(template)
         f.close()
 
         if fakes:
             os.chmod('sh/send_' + i[0].replace('.root', '') + '_fakes_' + str(year) + '.sh', 0755)     
         else:
-            os.chmod('sh/send_' + i[0].replace('.root', '') + '_' + str(year) + '.sh', 0755)     
+            os.chmod('sh/send_' + i[0].replace('.root', '') + '_' + str(year) + systematic + '.sh', 0755)     
 
     print(str(len(chunckedProcesses)) + " file(s) matching the requirements have been found.")

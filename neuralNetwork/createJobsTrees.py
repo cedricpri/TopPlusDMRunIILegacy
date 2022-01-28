@@ -71,6 +71,7 @@ if __name__ == "__main__":
     #Three different directories are used: the inputDir, where the original latino files are, the outputDir, where to keep the output, and baseDir, the current path where the distributions.root file is.
     baseDir = os.getcwd() + "/"
     trailer = "/"
+    nomin = "Smear"
 
     if year == 2018:
         if signal:
@@ -85,15 +86,15 @@ if __name__ == "__main__":
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2018_102X_nAODv7_Full2018v7/DATAl1loose2018v7__l2loose__fakeW/"
         else:
             if systematic == "JESDo":
-                inputDir = "/eos/user/s/scodella/SUSY/Nano/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyJESDo2018v6loose__susyMT2recoJESDo__hadd/"
+                inputDir = "/eos/user/c/cprieels/work/TreesWithSystematics/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyJESDo2018v6loose__susyMT2recoJESDo/"
             elif systematic == "JESUp":
-                inputDir = "/eos/user/s/scodella/SUSY/Nano/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyJESUp2018v6loose__susyMT2recoJESUp__hadd/"
+                inputDir = "/eos/user/c/cprieels/work/TreesWithSystematics/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyJESUp2018v6loose__susyMT2recoJESUp/"
             elif systematic == "METDo":
-                inputDir = "/eos/user/s/scodella/SUSY/Nano/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoMETDo__hadd/"
+                inputDir = "/eos/user/c/cprieels/work/TreesWithSystematics/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoMETDo/"
             elif systematic == "METUp":
-                inputDir = "/eos/user/s/scodella/SUSY/Nano/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoMETUp__hadd/"
+                inputDir = "/eos/user/c/cprieels/work/TreesWithSystematics/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoMETUp/"
             else:
-                inputDir = "/eos/user/s/scodella/SUSY/Nano/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin" + trailer
+                inputDir = "/eos/user/s/scodella/SUSY/Nano/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2reco" + nomin + trailer
 
     elif year == 2017:
         if signal:
@@ -108,15 +109,15 @@ if __name__ == "__main__":
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2017_102X_nAODv7_Full2017v7/DATAl1loose2017v7__l2loose__fakeW/"
         else:
             if systematic == "JESDo":
-                inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyJESDo2017v6loose__susyMT2recoJESDo__hadd/"
+                inputDir = "/eos/user/c/cprieels/work/TreesWithSystematics/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyJESDo2017v6loose__susyMT2recoJESDo/"
             elif systematic == "JESUp":
-                inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyJESUp2017v6loose__susyMT2recoJESUp__hadd/"
+                inputDir = "/eos/user/c/cprieels/work/TreesWithSystematics/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyJESUp2017v6loose__susyMT2recoJESUp/"
             elif systematic == "METDo":
-                inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoMETDo__hadd/"
+                inputDir = "/eos/user/c/cprieels/work/TreesWithSystematics/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoMETDo/"
             elif systematic == "METUp":
-                inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoMETUp__hadd/"
+                inputDir = "/eos/user/c/cprieels/work/TreesWithSystematics/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoMETUp/"
             else:
-                inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin" + trailer
+                inputDir = "/eos/cms/store/caf/user/scodella/BTV/Nano/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2reco" + nomin + trailer
 
     elif year == 2016:
         if signal:
@@ -131,15 +132,15 @@ if __name__ == "__main__":
             inputDir = "/eos/cms/store/group/phys_higgs/cmshww/amassiro/HWWNano/Run2016_102X_nAODv7_Full2016v7/DATAl1loose2016v7__l2loose__fakeW/"
         else:
             if systematic == "JESDo":
-                inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyJESDo2016v6loose__susyMT2recoJESDo__hadd/"
+                inputDir = "/eos/user/c/cprieels/work/TreesWithSystematics/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyJESDo2016v6loose__susyMT2recoJESDo/"
             elif systematic == "JESUp":
-                inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyJESUp2016v6loose__susyMT2recoJESUp__hadd/"
+                inputDir = "/eos/user/c/cprieels/work/TreesWithSystematics/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyJESUp2016v6loose__susyMT2recoJESUp/"
             elif systematic == "METDo":
-                inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoMETDo__hadd/"
+                inputDir = "/eos/user/c/cprieels/work/TreesWithSystematics/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoMETDo/"
             elif systematic == "METUp":
-                inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoMETUp__hadd/"
+                inputDir = "/eos/user/c/cprieels/work/TreesWithSystematics/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoMETUp/"
             else:
-                inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin" + trailer
+                inputDir = "/eos/cms/store/user/scodella/SUSY/Nano/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2reco" + nomin + trailer
 
     else:
         inputDir = ""
@@ -259,6 +260,16 @@ if __name__ == "__main__":
             filesToProcess = [filesToProcess[0]]
         except:
             print("No file matching the requirements has been found.")
+
+    #Now, delete all the folders we don't need any more
+    try:
+        foldersFound = fnmatch.filter(os.listdir(outputDirWithSubfolders), 'nanoLatino*')
+        for folderFound in foldersFound:
+            #print(outputDir + folderFound, os.path.isdir(outputDir + folderFound))
+            if os.path.isdir(outputDirWithSubfolders + folderFound):
+                shutil.rmtree(outputDirWithSubfolders + folderFound)
+    except Exception as e:
+        pass
 
     #Write the executable needed for each file to process
     for fileToProcess in filesToProcess:

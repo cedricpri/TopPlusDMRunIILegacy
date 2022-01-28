@@ -9,7 +9,7 @@ from keras.optimizers import SGD, RMSprop, Adam
 from keras.utils import plot_model
 from keras.models import load_model
 
-import optparse, os, fnmatch, sys
+import optparse, os, fnmatch, sys, shutil
 from array import array
 
 # ===========================================
@@ -32,14 +32,15 @@ variables["TTbar"] = allVariables
 #variables["ST"] = ["METcorrected_pt", "mt2ll", "ptllb", "mllb"]
 #variables["TTbar"] = ["METcorrected_pt", "mt2ll", "ptllb", "mllb", "dark_pt", "chel"]
 
-trainPercentage = 80
+trainPercentage = 70
 normalizeProcesses = False #Normalize all the processes to have the same input training events in each case
 
 baseCut = "mt2ll > 80. && nbJet >= 1"
-nJet = "Sum$(CleanJet_pt >= 20. && abs(CleanJet_eta) < 2.4)"
+#nJet = "Sum$(CleanJet_pt >= 20. && abs(CleanJet_eta) < 2.4)"
+nJet = "nJetMine"
 cuts ={}
 cuts["ST"] = baseCut + " && (( " + nJet + " == 1) || ( " + nJet + " == 2 && nbJet == 1))"
-cuts["TTbar"] = baseCut + " && (( " + nJet + " > 2) || ( " + nJet + " > 2 || nbJet > 1))"
+cuts["TTbar"] = baseCut + " && (( " + nJet + " > 2) || ( " + nJet + " == 2 && nbJet > 1))"
 
 #=========================================================================================================
 # HELPERS
@@ -128,6 +129,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, singleT
         os.stat(outputDirTraining)
     except:
         os.makedirs(outputDirTraining)
+
     output = ROOT.TFile.Open(outputDirTraining+"TMVA.root", "UPDATE")
 
     outputDirWeights = outputDirWeights.replace(".root", "")
@@ -141,7 +143,7 @@ def trainMVA(baseDir, inputDir, year, backgroundFiles, signalFiles, tag, singleT
     # ===========================================
     os.chdir(outputDirWeights)
     dataloader = ROOT.TMVA.DataLoader("dataset")
-    dataloader.SetWeightExpression("baseW")
+    dataloader.SetWeightExpression("baseW")#*genWeight")
 
     if singleTopRegion:
         regionString = "ST"
@@ -341,14 +343,19 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
         outputDir = inputDir[:-1] + '_weighted/' + filename.split("__part")[0] + "/"
         try:
             os.stat(outputDir)
-        except:
-            os.makedirs(outputDir)
+            os.remove(outputDir)
+        except Exception as e:
+            try:
+                os.makedirs(outputDir)
+            except:
+                pass
 
         #Check if the weighted tree already exists
         inputFile = ROOT.TFile.Open(inputDir + filename, "READ")
         inputTree = inputFile.Get("Events")
         inputTree.SetBranchStatus("*", 1)
 
+        print("Output file: " + str(outputDir + filename))
         outputFile = ROOT.TFile.Open(outputDir + filename, "RECREATE")
         outputTree = inputTree.CloneTree(0)
         #inputTree.SetBranchStatus("*", 0)
@@ -366,7 +373,7 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
         DNN_output_background = {}
         DNN_output_category = {}
 
-        for SR in ["ST", "TTbar", "Both"]:
+        for SR in ["ST", "TTbar"]:#, "Both"]:
             reader[SR] = {}
             branchesAddresses[SR] = {}
 
@@ -451,7 +458,7 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
                 break
 
             #Let's get started
-            for SR in ["ST", "TTbar", "Both"]:
+            for SR in ["ST", "TTbar"]:#, "Both"]:
                 for weightTag in weightsDir:
 
                     for branch in branchesAddresses[SR][weightTag]:
@@ -470,7 +477,7 @@ def evaluateMVA(baseDir, inputDir, filenames, weightsDir, year, evaluationBackgr
                     #print(reader[eventSR][weightTag].EvaluateMVA("BDT"))
                     BDTValues = list(reader[eventSR][weightTag].EvaluateMulticlass("BDT"))
                     BDT_output_signal[SR][weightTag][0] = reader[eventSR][weightTag].EvaluateMVA("BDT")
-                    #BDT_output_background[SR][weightTag][0] = BDTValues[1]
+                    BDT_output_background[SR][weightTag][0] = BDTValues[1]
                     BDT_output_category[SR][weightTag][0] = BDTValues.index(max(BDTValues))
 
                     #Fill the DNN variables

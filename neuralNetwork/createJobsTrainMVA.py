@@ -48,10 +48,13 @@ if __name__ == "__main__":
     if backgroundQuery == "":
         if year == 2016:
             backgroundQuery = "TTTo2L2Nu__part,ST_tW_antitop__,ST_tW_top__"
+            #backgroundQuery = "TTTo2L2Nu__part,ST_tW_antitop__,ST_tW_top__,TTZToLLNuNu_M-10"
         elif year == 2017:
             backgroundQuery = "TTTo2L2Nu_PSWeights__part,ST_tW_antitop__,ST_tW_top__"
+            #backgroundQuery = "TTTo2L2Nu_PSWeights__part,ST_tW_antitop__,ST_tW_top__,TTZToLLNuNu_M-10"
         elif year == 2018:
             backgroundQuery = "TTTo2L2Nu__part,ST_tW_antitop_ext1,ST_tW_top_ext1"
+            #backgroundQuery = "TTTo2L2Nu__part,ST_tW_antitop_ext1,ST_tW_top_ext1,TTZToLLNuNu_M-10"
 
     if verbose:
         print("=================================================")
@@ -68,13 +71,13 @@ if __name__ == "__main__":
     baseDir = os.getcwd() + "/"
  
     if year == 2018:
-        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv7_Full2018v7/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoSmear/"
+        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv7_Full2018v7/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoNomin/"
         inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Autumn18_102X_nAODv6_Full2018v6loose/MCSusy2018v6loose__MCSusyCorr2018v6loose__MCSusyNomin2018v6loose__susyMT2recoSmear/"
     elif year == 2017:
-        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv7_Full2017v7/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoSmear/"
+        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv7_Full2017v7/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoNomin/"
         inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Fall2017_102X_nAODv6_Full2017v6loose/MCSusy2017v6loose__MCSusyCorr2017v6loose__MCSusyNomin2017v6loose__susyMT2recoSmear/"
     elif year == 2016:
-        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv7_Full2016v7loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoSmear/"
+        signalInputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv7_Full2016v7loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoNomin/"
         inputDir = "/eos/user/c/cprieels/work/TopPlusDMRunIILegacyRootfiles/Summer16_102X_nAODv6_Full2016v6loose/MCSusy2016v6loose__MCSusyCorr2016v6loose__MCSusyNomin2016v6loose__susyMT2recoSmear/"
     else:
         print("The year option has to be used, and the year should be 2016, 2017 or 2018.")
